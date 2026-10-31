@@ -119,4 +119,4 @@ The one place a CRDT would clearly win is real-time collaboration between people
 
 1. **How does Juggler drive `claude` on Pro/Max?** Its site says the unmodified CLI, but not whether interactively or with `-p` (which now draws from the Agent SDK credit). Read its source before building the M2 interactive bridge.
 2. Is the `events.jsonl` sidecar worth its weight from M1, or only once the native loop exists?
-3. Locks across machines — an advisory `lock` file naming the host, or simply "runtimes only on one machine"? (ARCHITECTURE §12.)
+3. Locks across machines — an advisory `lock` file naming the host, or simply "runtimes only on one machine"? (ARCHITECTURE §13.)

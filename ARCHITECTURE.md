@@ -1,6 +1,6 @@
 # agent-files — Architecture
 
-> Status: draft v0.3 · 2026-10-31 · this document describes the **target** architecture; what gets built is gated by the M1 trial ([docs/m1-plan.md](docs/m1-plan.md)).
+> Status: draft v0.4 · 2026-10-31 · this document describes the **target** architecture; what gets built is gated by the M1 trial ([docs/m1-plan.md](docs/m1-plan.md)).
 > Collapse the agent interface down to **files, processes, and an editor**.
 > Supplemental: [docs/m1-plan.md](docs/m1-plan.md) — the M1 trial and go/no-go criteria · [docs/m1-build-spec.md](docs/m1-build-spec.md) — the first M1 build, specified · [docs/juggler-analysis.md](docs/juggler-analysis.md) — reference comparison, storage format tradeoff, own agent loop · [docs/role-of-neovim.md](docs/role-of-neovim.md) — Neovim's role and the doorbell · [docs/view-layer.md](docs/view-layer.md) — readable text in Neovim, rich HTML view in the browser.
 
@@ -35,6 +35,7 @@ Unix analogy: program vs. process. The file is the program and its state; the ru
 9. **The editor is a client.** Neovim is the best viewer, not a dependency. Every operation can be done from a shell.
 10. **Humans author, machines append.** You write the human parts of a thread (§4.3); the thread's runtime appends the rest. Text a human did not write never enters the interactive tier.
 11. **One machine writer per file.** Every file has exactly one process allowed to write it (§4.4). Many readers, one writer, no locks to get wrong.
+12. **Review is enforcement.** What a machine can check, a machine checks while the code is written; the guarantee lives in the outermost ring that can enforce it, and humans own the checks (§9).
 
 **The cat test.** A feature passes if you can see it with `cat`, find it with `grep`, undo it with `git`, and do it by hand from a shell. A feature that fails the test needs its reason written down.
 
@@ -54,6 +55,8 @@ Unix analogy: program vs. process. The file is the program and its state; the ru
 | Control file | An out-of-band request to a running turn | `threads/<id>/STOP`, present only until handled |
 | Snippet | Reusable prompt text, expanded from `/name` (tiers 2–3) | `snippets/<name>.md` (+ `.claude/commands`, skills) |
 | KB node | One fact / claim / ref / decision / question | `kb/<node id>.md` |
+| Check | An executable every change must pass, run in the agent's loop, at commit, before merge (§9) | listed in the code repo's `.agent-files/checks.toml`; results in `threads/<id>/checks/` |
+| Exception | A human decision to let one turn end with a check failing (§9.5) | a `? EXCEPTION` line and its answer, recorded in `checks/` and the commit |
 
 An agent declaration, minimally:
 
@@ -90,6 +93,9 @@ A thread's frontmatter overrides its agent's fields (`runtime`, `model`, `ground
         ├── out/                   # large tool outputs, linked from turns
         ├── archive/               # originals replaced by compaction (nothing is thrown away)
         ├── reviews/               # council output: <model>.md + synthesis.md
+        ├── checks/                # check results per agent turn (§9.5)
+        │   └── t0007.json
+        ├── commits                # commits made from this thread, one per line (§9.6)
         ├── events.jsonl           # optional event log (history); `status` is authoritative for the current state
         ├── explore-pool/          # sub-thread (kind: subthread) — reports back when closed
         │   └── thread.md
@@ -152,6 +158,8 @@ A line is a **marker** only at column 0, outside fenced code blocks and outside 
 | `END (interrupted)` / `END (failed)` / `END (conflict)` | the runtime | A turn closed abnormally; parsed like `END` |
 | `? PERMISSION pN <tool> <args> [y/n/always]` | the runtime | A pending permission question (tiers 2–3) |
 | `> y` / `> n` / `> always` | you, on the line directly below its question | Your answer |
+| `? EXCEPTION eN <check> "<reason>" [grant/deny]` | the runtime | The agent asks to end its turn with a check failing (§9.5) |
+| `> grant` / `> deny` | you, on the line directly below it | Your answer |
 
 - **Escaping.** The runtime writes tool output indented two spaces (or to `out/`, linked), and prefixes any other output line that would parse as a marker with `\`. Model or tool output can therefore never forge `END`, a header, or a permission answer.
 - **Turn ids** (`tN`) are assigned when a turn is created and never renumbered. Deleting or compacting turns leaves gaps; `branched_at` keeps pointing at the same turn.
@@ -169,6 +177,8 @@ A line is a **marker** only at column 0, outside fenced code blocks and outside 
 | `STOP` | — (the runtime deletes it after handling) | you |
 | `inbox/<n>.md` | whoever reports (a child's runtime, an extension); one file per note | — |
 | `events.jsonl` | append-only; the runtime, and in tier 1 the Claude Code hooks (single-line appends) | — |
+| `checks/`, `commits` (own thread) | the thread's runtime | — |
+| `.agent-files/checks.toml` and other protected paths (in the code repo) | — (agents are denied) | you, by commit (§9.4) |
 | New branch directories | whoever creates the branch (§8) | you, via `:AgentsFork` or `mkdir` |
 
 ### 4.5 Rules
@@ -179,7 +189,7 @@ A line is a **marker** only at column 0, outside fenced code blocks and outside 
 4. **Snippets.** In tiers 2–3 a leading `/name args` line is expanded from `snippets/` (or `.claude/commands/`, skills) before sending. In tier 1 your text is forwarded verbatim and Claude Code expands its own commands.
 5. **Session actions.** `/fork` creates a branch exactly as `:AgentsFork` does (§8). `/clear` in replay mode starts a fork with an empty `## carry`; in tier 1 it is passed to Claude Code and recorded as a `## note`. `/compact` is compaction (rule 9 below).
 6. **Tool calls** are one-line `▸` summaries with output indented beneath (folded by indentation in Neovim) or moved to `out/` and linked. All folds closed = the collapsed natural-language transcript.
-7. **Permissions (tiers 2–3).** The runtime writes one `? PERMISSION pN …` line, sets `blocked`, and waits; there is at most one pending question per thread. You answer `> y`, `> n` or `> always` on the line below it and save — the one place you write inside an agent turn, safe because the runtime is waiting, not writing. `always` allows that exact tool call pattern for the rest of the runtime's process (a persistent rules file is proposed; [juggler analysis §3](docs/juggler-analysis.md#3-what-we-borrow--translated-to-files)). Tier-1 permissions are answered in the attached TUI for now (§12).
+7. **Permissions (tiers 2–3).** The runtime writes one `? PERMISSION pN …` line, sets `blocked`, and waits; there is at most one pending question per thread. You answer `> y`, `> n` or `> always` on the line below it and save — the one place you write inside an agent turn, safe because the runtime is waiting, not writing. `always` allows that exact tool call pattern for the rest of the runtime's process (a persistent rules file is proposed; [juggler analysis §3](docs/juggler-analysis.md#3-what-we-borrow--translated-to-files)). Tier-1 permissions are answered in the attached TUI for now (§13).
 8. **Status.** Only the thread's runtime writes `status`. "Idle" is not a status: a thread whose `status` file is older than its `seen` file is shown as idle. `closed` is terminal and applies to sub-threads (§8).
 9. **Compaction** is the one machine rewrite above `END`: an explicit operation the runtime performs while holding the turn (its `status` is `working`), moving the replaced turns to `archive/` and recording a `## note · compaction`. Turn ids of surviving turns are unchanged.
 
@@ -270,11 +280,143 @@ Body: evidence, reasoning, caveats.
 
 **Council** (tier 3, or tier 2 if reviewers need to run the code): the same diff + grounding fans out to N models → `<thread>/reviews/<model>.md`; an aggregator writes `<thread>/reviews/synthesis.md` listing agreements, disagreements, and singletons, and drops a note in the thread's `inbox/`. It surfaces disagreement; it does not vote. Caveats: ~N+1× cost; correlated blind spots across similarly trained models.
 
-## 9. Implementation — scripts first, Elixir/OTP + Jido as the target
+## 9. Enforcement — review while writing, guarantees at the edges
+
+**Thesis.** The real review steps are the ones a machine can repeat: types, tests, architecture rules, policies, proofs. They run *while* code is written, inside the agent's loop, so a human never sees a turn that fails them. Then they run again at the repository and infrastructure level, where no agent can switch them off. Review by a person shrinks to what only a person can judge: intent, specs, decisions, and exceptions. Every change carries its reasoning (thread, turn, decisions, check results) as plain files and git metadata. No new storage format or external service is involved.
+
+**Placement: a layer, not a tier.** Tiers (§5) say *who runs the agent*. Enforcement says *what every change must satisfy*, whoever made it. So it wraps every tier — and it also applies to commits made with no agent and no agent-files at all.
+
+### 9.1 Rings
+
+Enforcement is arranged in rings, from the agent's loop outward. **Inner rings are for speed; outer rings are for truth.** Every guarantee must be enforced at the outermost ring that can enforce it. Inner rings run the same checks earlier, as feedback, and are never the only enforcement.
+
+| Ring | Where | Runs | Can an agent bypass it? | Purpose |
+|---|---|---|---|---|
+| **0. Loop** | Inside the thread's runtime, per tier (§9.2) | Fast checks, on each edit and at the end of each agent turn | In principle (same machine, same user) | Instant feedback; the agent fixes failures before you see the turn |
+| **1. Repository** | Git hooks in the code repo (`pre-commit`, `commit-msg`) | Fast and medium checks, at each commit | Yes (`--no-verify`) | Cheap gate for every commit, agent or human |
+| **2. Infrastructure** | CI required checks, branch protection, merge queue, CODEOWNERS, policy-as-code | The full required set, before merge, on clean machines | **No** — needs credentials the agent doesn't have | The guarantee |
+| **3. Runtime** | Deploys and production | Canaries, feature flags, SLO-gated rollout, automatic rollback, runtime monitors from the same specs | No | Enforcement after merge (§9.8) |
+
+Ring 2 never trusts rings 0–1. It re-runs every required check; their records (§9.6) are evidence for the reader, not proof.
+
+### 9.2 Ring 0 in each tier
+
+| Tier | Mechanism | On a failure |
+|---|---|---|
+| **1. Interactive** | Claude Code hooks, configured from `checks.toml` by `agent-files-check install`: `PreToolUse` denies writes to protected paths; `PostToolUse` runs `edit` checks on changed files; `Stop` runs `turn` checks and blocks the stop with the failure as its reason, so Claude keeps working (guard against loops with the hook's stop-active flag; verify hook behaviour at build time). | Feedback goes through Claude Code's own hook channel, set up by you — not through the bridge, so the tier-1 policy rule (§5.1) still holds. |
+| — **Observed** | The same hooks on a `claude` you started by hand. Needs no bridge, so it can be tried before M2. | Same |
+| **2. Headless** | SDK hooks and `can_use_tool`: protected paths denied, checks run after edits and before the turn ends. | The runtime sends the failure to the agent as a tool result or a follow-up turn; the attempt is logged in `checks/` |
+| **3. Direct** | Changes no code, so nothing to enforce. The council (§8) sits here: it is a probabilistic review, useful for raising concerns, never a gate. | — |
+| **Native** (M6) | Built in: after each edit tool call, `edit` checks; before writing `END`, `turn` checks. | The loop feeds the failure back as the next step; only a green or excepted turn reaches `END` |
+
+In every tier: a turn may end only when its blocking `turn` checks pass, or with an open exception question (§9.5).
+
+### 9.3 The checks file
+
+One per code repo, **owned by you**: `.agent-files/checks.toml`. It lists checks; it does not implement them. A check is any executable (principle 3): a test runner, a linter, an architecture rule tool, a proof checker.
+
+```toml
+protected = ["tests/**", ".github/**", ".agent-files/**", "specs/**"]   # agents may not write these
+
+[[check]]
+id       = "types"
+run      = "npm run typecheck"
+on       = ["edit", "turn", "commit", "merge"]    # edit | turn | commit | merge | deploy
+level    = "block"                                 # block | warn
+timeout  = "60s"
+protects = ["decision-0007"]                        # KB decisions this check enforces (§9.7)
+
+[[check]]
+id       = "layers"
+run      = "npx depcruise src --config .dependency-cruiser.js"
+on       = ["turn", "commit", "merge"]
+level    = "block"
+protects = ["decision-0003"]                        # "UI never imports from db/"
+
+[[check]]
+id       = "mutation"
+run      = "npx stryker run --incremental"
+on       = ["merge"]
+level    = "block"
+```
+
+`agent-files-check <trigger> [--paths …]` runs the checks for one trigger and prints one JSON result per check (`id`, `status`: `pass | fail | error | skipped`, `duration_ms`, `summary`, `output` path). It exits non-zero if any blocking check failed. The same executable runs in every ring: from hooks, from git hooks, and in CI. So "what passed on my machine" and "what CI requires" are the same list.
+
+### 9.4 Who checks the checks
+
+If an agent writes both the code and its tests, enforcement is circular. Agents under pressure weaken assertions, delete failing tests, widen types or skip a rule. The answer extends principle 10: **humans own the oracles.**
+
+- **Protected paths.** Tests that act as oracles, specs, policies, CI config and `checks.toml` itself are listed in `protected`. Ring 0 denies agent writes to them. Ring 2 enforces it for real: CODEOWNERS makes your approval required on any change to those paths. A deny rule on the same machine is a convenience; the merge rule is the boundary.
+- **Agents propose, humans accept.** An agent that wants a new test or rule writes it as a proposal (a patch under `out/`, or a KB node with `status: proposed`). It enters a protected path only through your commit.
+- **Anti-gaming checks**, shipped as ordinary checks:
+  - a diff check that fails when a change deletes tests, removes assertions, adds skips, or loosens types (`any`, `# type: ignore`, `@ts-expect-error`) without an exception;
+  - mutation testing on the changed code, so tests that pass but test nothing are caught;
+  - coverage measured on the diff, not the whole repo.
+- **Checks are versioned with the code.** A check changes only by a commit to a protected path, so `git log .agent-files/` is the audit trail of what the rules were and when.
+
+### 9.5 Results, feedback, exceptions
+
+- **Results are files.** Each ring-0 run writes `threads/<id>/checks/tNNNN.json` (the turn's results) and one fold line in the agent's turn: `▸ check types, layers: pass` or `▸ check layers: fail (2 violations → checks/t0007.json)`.
+- **Failures carry their reason.** When a check fails, the runtime gives the agent the failure *and* the text of every decision the check protects (§9.7). The agent fixes the problem knowing why the rule exists, not just that it fired.
+- **Exceptions are questions.** When the agent cannot or should not satisfy a check, it asks:
+
+  ```
+  ? EXCEPTION e1 layers "SettingsPanel reads db/config directly; the config service doesn't exist yet" [grant/deny]
+  > grant
+  ```
+
+  The runtime sets `blocked` and waits, exactly like a permission question (§4.5 rule 7). `> grant` lets the turn end with the check failing. Granted exceptions are recorded in the turn's `checks/` file and in the commit's record (§9.6). Ring 2 still fails, so the exception shows up on the PR as the one thing you need to look at. An exception is temporary by default; making it permanent means changing `checks.toml`.
+
+### 9.6 Records: linking commits, threads and checks
+
+The point of a record is that a change can be explained after the fact, from text files and git alone.
+
+- **Commit → thread.** Commits made from a thread carry trailers, added by a `prepare-commit-msg` hook that `agent-files-check install` sets up:
+
+  ```
+  Agent-Files-Thread: fix-auth-timeout/retry-logic
+  Agent-Files-Turn: t7
+  Agent-Files-Decision: decision-0007
+  Agent-Files-Exception: layers e1
+  ```
+
+  The hook finds the thread from the tier-1 or observed session running in that repo. `git log --format='%(trailers:key=Agent-Files-Thread)'` lists the threads that changed the code; `git blame` → commit → thread → turn explains a line.
+- **Thread → commits.** A `commits` sidecar in the thread directory, one line per commit (`<repo> <sha> <subject>`), written by the thread's runtime (principle 11).
+- **Commit → checks.** `agent-files-check` attaches its results for each commit as a git note under `refs/notes/agent-files/checks` (JSON: checks, versions, results, exceptions). Notes can be read with `git notes show`, survive rebases with `notes.rewriteRef`, and are pushed explicitly.
+- **The PR, read this way:** linked threads (the intent and the conversation), the decisions it touches, the check record, and the list of exceptions. Reading the diff becomes optional; reading the exceptions does not.
+
+### 9.7 Decisions and checks (the KB link)
+
+KB `decision` nodes (§7) and checks point at each other:
+
+```markdown
+---
+type: decision
+status: accepted
+summary: The UI layer never imports from db/.
+enforced_by: [layers]          # check ids in checks.toml
+implemented_by: [api@3f9c2e1]  # commits, filled in from commit trailers
+---
+```
+
+- A KB lint compares the two sides: a check that protects a missing or retracted decision is a warning; an accepted decision with no `enforced_by` is listed as **soft** — written down, but not enforced.
+- **Invalidation reaches code.** Retracting or disputing a decision (§7) also lists its checks (drop or change them) and its `implemented_by` commits (review or revert), and drops a note in the threads that relied on it.
+- A check failure in any ring links straight to the decision it protects, so the reason for a rule is one hop from its failure.
+
+### 9.8 Formal methods, and after merge
+
+- **Formal proof is for small cores.** Proving a whole application is not realistic. Proving a protocol (TLA+), a state machine, a permission model or a money-handling path (Dafny, Lean, Kani, refinement types) is, and agents make writing specs cheaper. The spec lives in a protected path, so it is the thing you review; the proof checker is an ordinary check. Contracts and property-based tests are the middle ground for everything else.
+- **Ring 3, after merge.** The same specs can generate runtime monitors (invariant assertions, contract checks in production builds), and deploys are gated: canary, feature flag, SLO-gated rollout, automatic rollback. An incident closes the loop through the records: the alert names a check or invariant → its decision → a KB dispute → invalidation reaches the commits and threads that depended on it (§9.7).
+
+### 9.9 The cat test
+
+Everything here is a file or git metadata: `checks.toml`, `checks/*.json`, the `commits` sidecar, commit trailers, git notes, KB front matter. Checks are executables. No enforcement depends on agent-files running: ring 2 is ordinary CI calling `agent-files-check merge`, and a repo that drops agent-files keeps its checks.
+
+## 10. Implementation — scripts first, Elixir/OTP + Jido as the target
 
 **Gate:** the Elixir supervisor is not built in M1. M1 runs on scripts; the supervisor moves to Elixir only after the M1 trial passes *and* one of the triggers in [m1-plan §6](docs/m1-plan.md#6-triggers-for-the-elixir-supervisor) is real — many concurrent agents, crash-recovery pain, multiple machines, or long-lived tier-2 sessions. The file format is the contract, so the swap never touches a thread.
 
-### 9.1 Executables
+### 10.1 Executables
 
 | Executable | Does | Milestone |
 |---|---|---|
@@ -284,9 +426,10 @@ Body: evidence, reasoning, caveats.
 | `agent-files-bridge` | Tier-1 runtime: hosts `claude` in tmux, runs the Channels server, single writer of tier-1 threads | M2 |
 | `agent-files-ring` | Rings editors (path + event); always exits 0 by design | M3 |
 | `agent-files-notify` | Escalation when no editor answers (OS notification) | M3 |
+| `agent-files-check` | Runs the checks for one trigger and prints JSON results; `install` sets up hooks, git hooks and commit trailers in a code repo (§9) | M7 (a probe earlier) |
 | supervisor | Owns `headless` threads, spawning, the inbox, the Notifier; scripts first, Elixir when a trigger fires | M3 |
 
-### 9.2 Elixir target
+### 10.2 Elixir target
 
 **Target:** Elixir core with Jido 2; harnesses behind a process boundary.
 
@@ -307,9 +450,9 @@ AgentFiles.Application
 
 Directives (side effects as data): `AppendToThread`, `SetStatus`, `SpawnChild`, `RunHarness`, `CallModel`, `AskPermission`, `Interrupt`.
 
-Remote machines: a node per machine; distributed Erlang gives one view across them. A looser setup syncs the root via git or Syncthing — then at most one machine may run a runtime for a given thread (see §12 on locks).
+Remote machines: a node per machine; distributed Erlang gives one view across them. A looser setup syncs the root via git or Syncthing — then at most one machine may run a runtime for a given thread (see §13 on locks).
 
-## 10. Neovim client — `agents.nvim`
+## 11. Neovim client — `agents.nvim`
 
 Runs in Ghostty. tmux hosts tier-1 TUI sessions (detached, attachable), not the editor.
 
@@ -324,7 +467,7 @@ Runs in Ghostty. tmux hosts tier-1 TUI sessions (detached, attachable), not the 
 - **Needs-you jump:** `:AgentsNext` jumps to the next blocked thread's question (the quickfix list's `:cnext`).
 - **Commands that write files:** `:AgentsSend` (append `END`, save), `:AgentsStop` (`touch STOP`), `:AgentsNew` (thread directory + `## you · t1`), `:AgentsFork` (branch per §8, selection → `## carry`), `:AgentsClose` (close a sub-thread), `:AgentsPrune` (`rm -r` a branch), `:AgentsGrep` (`rg` across `threads/` into quickfix). Each has a plain-shell equivalent; the full table is in [role-of-neovim §7](docs/role-of-neovim.md#7-the-other-direction-neovims-only-output-is-files).
 
-### 10.1 Neovim's RPC server — a doorbell, not a mailbox
+### 11.1 Neovim's RPC server — a doorbell, not a mailbox
 
 Every Neovim instance runs a msgpack-RPC server (its address is `v:servername`; pin it with `nvim --listen <socket>`), and Neovim exports that address as `$NVIM` into every `:terminal` job.
 
@@ -340,7 +483,7 @@ Optional: a headless `nvim --headless --listen <addr>` on a remote machine can h
 
 Who rings, for whom, when, and what happens if nobody answers: [docs/role-of-neovim.md](docs/role-of-neovim.md). Not built in M1: locally the file watcher is enough.
 
-## 11. Relation to Herdr
+## 12. Relation to Herdr
 
 | Herdr feature | Here |
 |---|---|
@@ -352,7 +495,7 @@ Who rings, for whom, when, and what happens if nobody answers: [docs/role-of-neo
 | GPU terminal (libghostty) | **Not ours** — use Ghostty/tmux |
 | Status for arbitrary terminal programs | **Not ours** — only for programs that report |
 
-## 12. Open questions
+## 13. Open questions
 
 1. **Channels** is a research preview: protocol stability; whether the reply tool alone suffices or transcript tailing is needed; how permission prompts surface through it — and so how tier-1 permissions could move into the file.
 2. Claude Code hook behaviour the bridge relies on — whether `Stop` fires on interrupt, the name of the failure event — to verify against current docs at M2.
@@ -364,8 +507,9 @@ Who rings, for whom, when, and what happens if nobody answers: [docs/role-of-neo
 8. Which Juggler borrowings to adopt beyond branching-as-directories (intra-turn states, an approval rules file, budgets, worktree workspaces) — see the same doc.
 9. Locks across machines: with a synced root, how do two machines agree which one runs a thread — an advisory `lock` file naming the host, or "runtimes only on one machine"?
 10. How a sub-thread's agent declares its turn final (a structured marker, a tool call, or always one task per sub-thread).
+11. **Enforcement (§9).** Which of an agent's tests count as protected oracles and which are its own working tests? How fast must ring-0 checks be before they slow the loop more than they save? How do exceptions expire? Which formal tools are worth it for which cores? Can Claude Code's `Stop` hook reliably keep a session working until checks pass, without loops?
 
-## 13. Milestones
+## 14. Milestones
 
 - **M0** — these documents.
 - **M1 — thesis trial** ([docs/m1-plan.md](docs/m1-plan.md)): the thread format, `agent-files-run` (direct replay, no tools), minimal `agents.nvim`, `observed` status for ordinary `claude` sessions, measurement; ten working days of use; then a go/no-go decision against criteria fixed in advance.
@@ -377,3 +521,5 @@ Everything below happens only if M1 says go, in an order the trial's results sug
 - **M4** — tier 3 + council.
 - **M5** — KB: nodes, lint, grounding, proposals, invalidation.
 - **M6** *(proposed)* — native loop for API/local models (`runtime: native`), grown from `agent-files-run`, writing every request to `steps/`.
+- **M7** *(proposed)* — enforcement (§9): `checks.toml`, `agent-files-check`, ring-0 hooks per tier, protected paths, exceptions, commit trailers and notes, the KB link. Its own thesis, separate from M1's.
+    - *Probe, any time:* a `Stop` hook on hand-started `claude` sessions that runs the repo's fast checks and blocks finishing until they pass, plus deny rules on test and CI paths. Measure how often the agent's "done" fails the checks, and how often it tries to touch protected files. Not part of M1's go/no-go.

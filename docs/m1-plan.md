@@ -1,6 +1,6 @@
 # M1 plan — a cheap test of the thesis
 
-> Status: draft · 2026-10-31 · companion to [ARCHITECTURE.md](../ARCHITECTURE.md) §13
+> Status: draft · 2026-10-31 · companion to [ARCHITECTURE.md](../ARCHITECTURE.md) §14
 > Build spec: [m1-build-spec.md](m1-build-spec.md)
 > Goal: build the smallest agent-files that can prove or disprove the core thesis in two weeks of real use, and decide with evidence whether anything bigger gets built.
 
@@ -120,7 +120,7 @@ Set before the trial starts; revise them now if they look wrong, never after.
 
 ## 6. Triggers for the Elixir supervisor
 
-Move from scripts to the Elixir/Jido supervisor (ARCHITECTURE §9.2) only when one of these is *real*, not anticipated:
+Move from scripts to the Elixir/Jido supervisor (ARCHITECTURE §10.2) only when one of these is *real*, not anticipated:
 
 - Routinely more than ~5 agents running at once, and the scripts' process handling hurts.
 - Crash-recovery or restart bugs are costing real time.
