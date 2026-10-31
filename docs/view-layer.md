@@ -1,7 +1,7 @@
 # The view layer — readable in Neovim, rich in the browser
 
 > Status: draft · 2026-10-31 · companion to [ARCHITECTURE.md](../ARCHITECTURE.md) and [role-of-neovim.md](role-of-neovim.md)
-> Not part of M1's go/no-go. Steps 0–1 below are cheap and fix daily friction; step 2 is an optional prototype ([m1-plan](m1-plan.md)).
+> Not part of M1's go/no-go. Steps 0–1 are in the first M1 build — step 0 is a prerequisite of the smoke test, step 1 is part of `agents.nvim` ([m1-build-spec §9.5](m1-build-spec.md#95-display-view-layer-step-1)); step 2 is an optional prototype ([m1-build-spec §12](m1-build-spec.md#12-the-html-view--how-it-plugs-in)).
 
 **Summary.** Markdown stays the single source of truth. Neovim is made to display it well. A separate, read-only HTML view is generated from the same files for rich display (tables, charts, collapsible tool output). The HTML is a cache: delete it and nothing is lost. Nothing is ever translated back from HTML to text.
 
@@ -57,7 +57,7 @@ Most of the "looks broken" problem is the renderer, not the format.
 
 ### Step 1 — thread-aware display in `agents.nvim`
 
-Generic markdown rendering does not know about turns. Add to the plugin ([m1-plan §3.2](m1-plan.md)):
+Generic markdown rendering does not know about turns. Add to the plugin ([m1-plan §3.2](m1-plan.md); specified in [m1-build-spec §9.5](m1-build-spec.md#95-display-view-layer-step-1)):
 
 - Highlight groups for `## you · tN`, `## agent · tN`, `END`, and `▸` tool lines.
 - A fold for each `▸` line with its indented output, closed by default.
@@ -91,7 +91,8 @@ Each thread page shows: the frontmatter card; a breadcrumb and links to child br
 
 #### 5.3 Parsing rules
 
-- Split `thread.md` on the turn grammar: a line matching `^## (you|agent|note) · t\d+$` starts a turn; a line that is exactly `END` or `END (...)` closes it. The last turn may have no `END` (a draft); mark it "draft".
+- Split `thread.md` with the shared parser (`lib/agent_files/thread.py`, [m1-build-spec §4](m1-build-spec.md#4-thread-format--the-contract)), never a second set of regexes. In summary: `## you · tN`, `## agent · tN` and `## note · <source> · tN` start a turn; `END` or `END (interrupted|failed|conflict)` closes it; markers inside code fences don't count; a leading `\` escape is removed for display. The last turn may have no `END` (a draft); mark it "draft".
+- Lines starting `! ` in agent turns are runner diagnostics: show them styled as such, not as model text.
 - Render turn bodies as CommonMark with pipe tables, escaping raw HTML from the source (the source may contain model output).
 - A `▸` line followed by lines indented two spaces becomes a `<details>` block with the first line as `<summary>`.
 - A `chart` block holds `key: value` lines, plus optional `title:`, `type: bar|line` header lines. Render as inline SVG. Invalid data falls back to the raw text in a `<pre>`.
@@ -105,11 +106,11 @@ Each thread page shows: the frontmatter card; a breadcrumb and links to child br
 - **Safe by default.** Source text is data: escape it; no `innerHTML` of source content; bind the server to loopback only.
 - **Never write to the root.** The renderer reads `threads/` and writes only under `--out`.
 - **Idempotent.** The same input always gives the same output; rebuilding is safe at any time.
-- **Suggested stack:** Python 3 standard library plus `markdown-it-py` (or `pandoc` as a subprocess); live reload through a server-sent-events endpoint. Match the M1 runner's language.
+- **Suggested stack:** Python 3, importing the runner's `thread.py`, plus `markdown-it-py` (or `pandoc` as a subprocess); live reload through a server-sent-events endpoint.
 
 #### 5.5 Test fixture
 
-Create `docs/examples/view-fixture/thread.md` with, in one thread: frontmatter; a user turn with a pipe table; an agent turn with a `▸` tool fold (long indented output), a `chart` block, a `csv` block, a `mermaid` block, and a line that looks like a marker inside a code fence; a closed turn with `END (interrupted)`; and a trailing draft turn without `END`. Add a child directory with its own `thread.md`.
+The same fixture is used by the parser and plugin tests ([m1-build-spec §10.1](m1-build-spec.md#101-automated-tests-must-pass-before-the-smoke-test)), so it is created in build step 5 even if the renderer is never built. Create `docs/examples/view-fixture/thread.md` with, in one thread: frontmatter; a user turn with a pipe table; an agent turn with a `▸` tool fold (long indented output), a `chart` block, a `csv` block, a `mermaid` block, and a line that looks like a marker inside a code fence; a closed turn with `END (interrupted)`; a runner diagnostic (`! error: …`) in a failed turn; an escaped marker line (`\END`); and a trailing draft turn without `END`. Add a child directory with its own `thread.md`.
 
 #### 5.6 Acceptance checks
 
@@ -131,7 +132,7 @@ Candidates, each optional and in this order: a jump-to-line link that opens a tu
 
 Treat this like the M1 trial: set the question in advance.
 
-- **Keep the browser view** if, over two weeks, the journal shows you used it for reading on more days than you used Warp or another viewer.
+- **Keep the browser view** if, over two weeks, the journal's "read threads in" line ([m1-build-spec §7.4](m1-build-spec.md#74-journal-template-trialjournalmd)) shows you used it for reading on more days than you used Warp or another viewer.
 - **Drop step 2** if steps 0–1 already remove the need for a separate viewer. That is a good outcome, not a failure.
 
 ## 7. Open questions

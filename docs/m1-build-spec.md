@@ -1,9 +1,9 @@
 # M1 build spec — the first build
 
-> Status: draft · 2026-10-31 · implements [m1-plan.md](m1-plan.md) §3 against [ARCHITECTURE.md](../ARCHITECTURE.md) §4
+> Status: draft · 2026-10-31 · implements [m1-plan.md](m1-plan.md) §3 against [ARCHITECTURE.md](../ARCHITECTURE.md) §4, with steps 0–1 of [view-layer.md](view-layer.md)
 > Audience: whoever writes the code. Where this spec and the plan disagree, this spec wins for M1; where it is silent, the plan and the architecture apply.
 
-**Summary.** The first M1 build is four small programs and one Neovim plugin, all reading and writing the same plain-text files: `agent-files-run` (the replay runtime), `agent-files-hook` (observed status for hand-started `claude` sessions), `agent-files-stats` (trial measurement), `agent-files-grep` (logged cross-thread search), and `agents.nvim`. The build is done when the automated tests pass and the smoke test in §10 passes by hand; then the ten-day trial starts. This document pins down everything the plan left open: the exact grammar and parser, turn numbering, escaping, request assembly, backends, git commits, configuration, and the acceptance tests.
+**Summary.** The first M1 build is four small programs and one Neovim plugin, all reading and writing the same plain-text files: `agent-files-run` (the replay runtime), `agent-files-hook` (observed status for hand-started `claude` sessions), `agent-files-stats` (trial measurement), `agent-files-grep` (logged cross-thread search), and `agents.nvim`, which also makes threads readable in Neovim (view-layer steps 0–1). The optional HTML view (`agent-files-render`, view-layer step 2) is specified there, not here; this spec only fixes how it plugs in (§12). The build is done when the automated tests pass and the smoke test in §10 passes by hand; then the ten-day trial starts. This document pins down everything the plan left open: the exact grammar and parser, turn numbering, escaping, request assembly, backends, git commits, configuration, and the acceptance tests.
 
 ## 1. Decisions this spec makes
 
@@ -23,6 +23,8 @@ Things the plan and architecture left open or inconsistent, settled here for M1:
 | D10 | Recursion via `claude -p` | The runner sets `AGENT_FILES_RUNNER=1` for child processes; `agent-files-hook` exits at once when it is set, so the runner's own `claude -p` calls never create observed threads. |
 | D11 | Sidecars in git | `status`, `seen`, `STOP`, `last_turn` and `threads/_observed/` are git-ignored (live state, noise in history). `thread.md`, `steps/` and `trial/` are committed. |
 | D12 | Configuration | One file, `$AGENT_FILES_ROOT/config.toml`, read with `tomllib`. Your file; no program writes it after `init`. |
+| D13 | Reading threads | Neovim is the reading surface for the trial: view-layer step 0 (editor setup) is a prerequisite of the smoke test, and step 1 (thread-aware display) is part of `agents.nvim`. The HTML view is optional and outside the M1 go/no-go. |
+| D14 | One parser | Every program that reads `thread.md` — runner, stats, the HTML renderer — imports `lib/agent_files/thread.py`. view-layer §5.3's line rules are a summary of §4 here, not a second grammar: fences, escapes (`\END`) and `## note · <source> · tN` headers are handled the same way everywhere. |
 
 ## 2. Code layout (this repo)
 
@@ -32,6 +34,7 @@ bin/
   agent-files-hook         # Python 3.11+, standard library only (must start fast)
   agent-files-stats        # Python 3.11+, standard library only
   agent-files-grep         # POSIX sh: rg wrapper that logs the search
+  agent-files-render       # optional, after the core build — view-layer step 2 (§12)
 lib/agent_files/           # shared Python, imported by the bin scripts
   thread.py                # parser, serializer, escaping (§4) — the contract, most tested
   assemble.py              # thread → request (§5.3)
@@ -41,10 +44,12 @@ nvim/
   lua/agents/init.lua      # setup(), commands, autocmds
   lua/agents/thread.lua    # minimal Lua parser: last END, last header, turn ids
   lua/agents/status.lua    # status/seen reading, marks, tabline component
+  lua/agents/display.lua   # highlights, folds, end-of-thread status mark (§9.5)
   plugin/agents.lua
 tests/
   test_thread.py  test_assemble.py  test_run.py  test_hook.py  test_stats.py
   fixtures/                # sample thread.md files, hook input JSON
+                           # also parses docs/examples/view-fixture/ (view-layer §5.5) — one fixture for parser, plugin and renderer
   nvim/test_agents.lua     # run with `nvim --headless -l`
   smoke.sh                 # end-to-end with the mock backend (§10)
 install.sh                 # symlinks bin/* into ~/.local/bin, prints the hook config
@@ -400,6 +405,7 @@ spend                       $3.12 (today $0.40)
 - Worst friction:
 - Forks today: <thread> — helped | hurt | neutral — why
 - Searches whose result I used: <pattern> → <thread>
+- Read threads in: Neovim | browser view | Warp/other viewer   (view-layer §6)
 ```
 
 ## 8. `agent-files-grep`
@@ -452,7 +458,18 @@ Plus `~Nk` tokens: `ceil(characters of thread.md / 4 / 1000)`.
 
 Touch `seen` when a thread buffer is entered (`BufEnter`) and on `FocusGained` while one is the current buffer, and after a reload while it is visible in the current window. Never for buffers that are only loaded.
 
+### 9.5 Display (view-layer step 1)
+
+Thread-aware display on top of whatever generic markdown renderer step 0 installed. Applied to thread buffers only; must not fight `render-markdown.nvim` / `markview.nvim` (use our own highlight groups and extmark namespace, priority above theirs).
+
+- **Highlight groups**, linked to sensible defaults so colorschemes can override: `AgentsYou` (`## you · tN`), `AgentsAgent` (`## agent · tN`), `AgentsNote`, `AgentsCarry`, `AgentsEnd` (`END` and `END (…)`, dimmed), `AgentsEndAbnormal` (`END (interrupted|failed|conflict)`), `AgentsDiag` (`! ` lines), `AgentsTool` (`▸` lines). Matching uses the Lua parser, so markers inside fences are not highlighted.
+- **Folds:** `foldmethod=expr` with an expression that opens a fold at each `▸` line and includes the indented lines below it, closed by default. M1's runner writes no `▸` lines (no tools), so this is exercised by the fixture and later milestones; it costs nothing now.
+- **End mark:** virtual text at the end of the last `END` line (or of the last header, during a turn) showing the thread's mark from §9.2 plus the status word, e.g. `  ⠋ working · ~12k`. Updated with the marks.
+- Settings for thread buffers: `conceallevel=2`, `wrap`, `linebreak` (step 0 recommends them globally for markdown; the plugin sets them locally so threads read well either way).
+
 ## 10. Acceptance
+
+
 
 ### 10.1 Automated tests (must pass before the smoke test)
 
@@ -466,9 +483,12 @@ Touch `seen` when a thread buffer is entered (`BufEnter`) and on `FocusGained` w
 | Runner (mock) | full turn writes header, body, `END`, scaffold, `done`, two commits with trailers; `STOP` → `END (interrupted)`; foreign write → `END (conflict)` + `out/`; crash (kill -9 mid-turn) then restart → recovered; `mock/fail` → `END (failed)` + `! error`; spend cap; second runner exits 2 |
 | Hook | fixture events → statuses; `idle_prompt` no change; `SessionEnd` deletes; `AGENT_FILES_RUNNER` set → no-op; always exit 0, even on garbage input |
 | Stats | a scripted git history with known edits, switches and forks → expected numbers |
-| Plugin (headless) | `:AgentsNew`, `:AgentsSend` refusals and success, `:AgentsFork` output, read-only while `working`, draft re-apply |
+| Plugin (headless) | `:AgentsNew`, `:AgentsSend` refusals and success, `:AgentsFork` output, read-only while `working`, draft re-apply; on the view fixture: highlight groups land on the right lines (none inside the fenced fake marker), the `▸` fold is closed, the end mark shows the status |
 
 ### 10.2 Smoke test (by hand, real editor; `tests/smoke.sh` automates S1–S5 with the mock backend)
+
+**Prerequisite:** view-layer step 0 is done and its exit check passes — you can read `docs/examples/view-fixture/thread.md` (table, long tool output) in Neovim without another viewer. A trial that fails because threads are unpleasant to read tests the editor setup, not the thesis (m1-plan §7).
+
 
 | # | Do | Pass when |
 |---|---|---|
@@ -482,8 +502,9 @@ Touch `seen` when a thread buffer is entered (`BufEnter`) and on `FocusGained` w
 | S8 | Switch to a local model (`ollama/<name>`), send | Reply; `cost_usd: 0` |
 | S9 | Start `claude` by hand in a project, give it a task that needs a permission | `_observed/<project>-<sid>/` appears; `:AgentsNext` shows it `blocked`; then `working`, `done`; gone after exit |
 | S10 | `:AgentsGrep <word from S1>` | Quickfix hits; one line in `trial/searches.log` |
+| S11 | Open S1's thread and the view fixture | Turn headers and `END` are highlighted; the end mark shows the status and token estimate; the fixture's tool fold is closed |
 
-When S1–S10 pass, record the date at the top of `trial/journal.md`: day 1 of the trial.
+When S1–S11 pass, record the date at the top of `trial/journal.md`: day 1 of the trial.
 
 ## 11. Build order
 
@@ -493,16 +514,27 @@ Each step ends with its tests passing; together under a week, matching m1-plan �
 2. `assemble.py` + the mock backend + `agent-files-run once`/`check` + runner tests.
 3. `watch`, the lock, `STOP`, conflicts, recovery; git commits with trailers.
 4. Anthropic backend, spend cap, `steps/`; S6, S7 by hand.
-5. `agents.nvim`: buffers, watcher, read-only, `:AgentsNew`/`:AgentsSend`/`:AgentsStop`; then marks, `:AgentsFork`, `:AgentsNext`, draft re-apply.
+5. View-layer step 0 (editor setup, about an hour) and the view fixture (`docs/examples/view-fixture/`). Then `agents.nvim`: buffers, watcher, read-only, `:AgentsNew`/`:AgentsSend`/`:AgentsStop`; then marks, `:AgentsFork`, `:AgentsNext`, draft re-apply; then display (§9.5).
 6. `agent-files-hook` + `install.sh`; S9.
 7. `agent-files-grep`, `agent-files-stats`, journal template; OpenAI-compatible and `claude -p` backends.
 8. Full smoke test; start the trial.
+9. *Optional, in parallel with the trial:* `agent-files-render` (view-layer step 2), built on `thread.py` (§12).
 
-## 12. Not in this build
+## 12. The HTML view — how it plugs in
 
-Exactly as m1-plan §2: no tools in the runner (so no `▸` folds, `out/` only for conflicts, no `? PERMISSION`), no `inbox/` or notes, no sub-threads, `:AgentsClose` or `:AgentsPrune`, no doorbell, no grounding, no compaction, no `resume` context, no multi-machine use. The parser already accepts note headers so later milestones don't change the format.
+`agent-files-render` is specified in [view-layer.md §5](view-layer.md#step-2--the-html-prototype-agent-files-render) and is not needed for the trial. If it is built, these rules from this spec apply to it:
 
-## 13. Open questions for the build
+- **Parser:** it imports `lib/agent_files/thread.py` (D14) — same markers, fence handling and unescaping as the runner; a turn's `closed` state drives its styling (draft, `END (interrupted)` etc.).
+- **Diagnostics:** `! ` lines in agent turns are shown, styled as runner messages, not as model text.
+- **Sidecars:** status from `status` and `seen` with the same rules as §9.2 (idle, unseen, stale); the token estimate is the same characters ÷ 4.
+- **Read-only and outside the root:** it writes only under `~/.cache/agent-files/view/`, which is outside the root repo, so it never shows up in git or in `agent-files-stats`.
+- **Not measured as a hypothesis.** Its keep/drop question (view-layer §6) is answered from the journal's "read threads in" line, separately from H1–H4.
+
+## 13. Not in this build
+
+Exactly as m1-plan §2: no tools in the runner (so no `▸` folds, `out/` only for conflicts, no `? PERMISSION`), no `inbox/` or notes, no sub-threads, `:AgentsClose` or `:AgentsPrune`, no doorbell, no grounding, no compaction, no `resume` context, no multi-machine use, no browser actions that write files (view-layer step 3). The parser already accepts note headers so later milestones don't change the format.
+
+## 14. Open questions for the build
 
 1. **`claude -p` flags** (m1-plan §9.1): verify at step 7; if Claude Code's own prompt cannot be removed, the backend is still useful for cheap iteration but its turns should be excluded from cache and request comparisons.
 2. **Effort per thread.** M1 uses one `effort` from config. If the trial wants a per-thread knob, add an optional `effort:` frontmatter field — a format addition, not a change.
