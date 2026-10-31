@@ -2,19 +2,8 @@
 
 You are continuing the M1 build of agent-files. Read [docs/m1-build-spec.md](docs/m1-build-spec.md) first; where it is silent, [docs/m1-plan.md](docs/m1-plan.md) and [ARCHITECTURE.md](ARCHITECTURE.md) apply. The operator's checklist is in [readme-operator-next.md](readme-operator-next.md).
 
-## Ground rules
-- Code lives in this repo. The **data root** is `$AGENT_FILES_ROOT` (default `~/agent-files/`). Never run programs with the root set to this checkout; they refuse (D1). Tests use temp roots.
-- One parser: everything that reads `thread.md` imports `lib/agent_files/thread.py` (D14). The Lua mirror in `nvim/lua/agents/thread.lua` must stay behaviourally identical for headers, `END`, fences and ids. Change both, plus tests.
-- Standard library only for `thread.py`, the hook, stats and grep. Third-party imports (`anthropic`, `openai`) stay lazy inside their backend.
-- The hook must stay under 100 ms, exit 0 and print nothing.
-- Never put a model identifier in commits, PR text or code comments.
-
-## Run the checks before every push
-```sh
-python3 -W ignore -m unittest discover -s tests -t .
-nvim --headless -u NONE -l tests/nvim/test_agents.lua   # from repo root; Neovim 0.9.5 was used
-sh tests/smoke.sh                                       # S1-S5 with the mock backend
-```
+## Rules and checks
+Standing rules and the pre-push test commands are in [AGENTS.md](AGENTS.md).
 
 ## Open items, in priority order
 1. **Anthropic refusal fallback** (`lib/agent_files/backends/anthropic.py`). `fallbacks = true` currently only records a caveat in `steps/*.response.json`. Look up the server-side fallback option and beta flag in the current API docs, wire it in, and add the `! served by <model>` diagnostic path (runner already emits it when `served_model` differs). Needs a mock of the SDK stream for a unit test.
