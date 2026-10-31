@@ -46,7 +46,7 @@
 | Workspace per conversation | `workspace: worktree` in frontmatter → the runtime runs `git worktree add` in the code repo | Proposed |
 | Read-only explore/research sub-agents in parallel | Sub-thread template with read-only tools; many may run at once | Proposed |
 | Extension SDK | Executables on `PATH`: `agent-files-<name>`, arguments/JSON in, JSON out | **Adopted** as principle 3 |
-| Export to Markdown/HTML | Not needed — the thread already is markdown | — |
+| Export to Markdown/HTML | Markdown stays the source; a read-only HTML view is generated from it ([view-layer.md](view-layer.md)) | Proposed |
 
 ## 4. Where we deliberately differ
 
