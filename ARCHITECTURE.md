@@ -2,7 +2,7 @@
 
 > Status: draft v0.1 · 2026-10-31
 > Collapse the agent interface down to **files, processes, and an editor**.
-> Supplemental: [docs/juggler-analysis.md](docs/juggler-analysis.md) — reference comparison, storage format tradeoff, own agent loop.
+> Supplemental: [docs/juggler-analysis.md](docs/juggler-analysis.md) — reference comparison, storage format tradeoff, own agent loop · [docs/role-of-neovim.md](docs/role-of-neovim.md) — Neovim's role and the doorbell.
 
 ## 1. Thesis
 
@@ -250,6 +250,8 @@ Its role here is deliberately narrow:
 What it is not: a store, a message transport, or a requirement. All state goes through files (principles 1, 8, 9). If no Neovim is running or the call fails, nothing is lost — the file watcher catches up. Locally `fs_event` already reacts in milliseconds, so the doorbell's value is *actions* (focus, jump) and filesystems where change events are slow or missing (network mounts, synced folders), not raw latency.
 
 Optional: a headless `nvim --headless --listen <addr>` on a remote machine can hold the editor session, and a laptop attaches with `nvim --remote-ui --server <addr>` — the editor's equivalent of `tmux attach`.
+
+Who rings, for whom, when, and what happens if nobody answers: [docs/role-of-neovim.md](docs/role-of-neovim.md).
 
 ## 11. Relation to Herdr
 
