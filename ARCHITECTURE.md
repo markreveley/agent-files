@@ -2,7 +2,7 @@
 
 > Status: draft v0.3 · 2026-10-31 · this document describes the **target** architecture; what gets built is gated by the M1 trial ([docs/m1-plan.md](docs/m1-plan.md)).
 > Collapse the agent interface down to **files, processes, and an editor**.
-> Supplemental: [docs/m1-plan.md](docs/m1-plan.md) — the M1 trial and go/no-go criteria · [docs/juggler-analysis.md](docs/juggler-analysis.md) — reference comparison, storage format tradeoff, own agent loop · [docs/role-of-neovim.md](docs/role-of-neovim.md) — Neovim's role and the doorbell · [docs/view-layer.md](docs/view-layer.md) — readable text in Neovim, rich HTML view in the browser.
+> Supplemental: [docs/m1-plan.md](docs/m1-plan.md) — the M1 trial and go/no-go criteria · [docs/m1-build-spec.md](docs/m1-build-spec.md) — the first M1 build, specified · [docs/juggler-analysis.md](docs/juggler-analysis.md) — reference comparison, storage format tradeoff, own agent loop · [docs/role-of-neovim.md](docs/role-of-neovim.md) — Neovim's role and the doorbell · [docs/view-layer.md](docs/view-layer.md) — readable text in Neovim, rich HTML view in the browser.
 
 ## 1. Thesis
 
@@ -319,6 +319,7 @@ Runs in Ghostty. tmux hosts tier-1 TUI sessions (detached, attachable), not the 
 - **Quickfix:** `:AgentsBlocked` fills the quickfix list with one entry per blocked thread, pointing at its `? PERMISSION` line (or at the thread, for observed sessions).
 - **Locking and drafts:** buffer read-only while `working`; on reload, unsaved drafts are re-applied below the new last `END` (§4.5 rule 1).
 - **Folds:** by indentation — each `▸` line folds the output beneath it.
+- **Display:** highlights for turn markers and a status mark on the last `END`, on top of a generic markdown renderer. A read-only HTML view generated from the same files is optional ([docs/view-layer.md](docs/view-layer.md)); markdown stays the only source.
 - **Acknowledge:** viewing a thread touches its `seen` file.
 - **Needs-you jump:** `:AgentsNext` jumps to the next blocked thread's question (the quickfix list's `:cnext`).
 - **Commands that write files:** `:AgentsSend` (append `END`, save), `:AgentsStop` (`touch STOP`), `:AgentsNew` (thread directory + `## you · t1`), `:AgentsFork` (branch per §8, selection → `## carry`), `:AgentsClose` (close a sub-thread), `:AgentsPrune` (`rm -r` a branch), `:AgentsGrep` (`rg` across `threads/` into quickfix). Each has a plain-shell equivalent; the full table is in [role-of-neovim §7](docs/role-of-neovim.md#7-the-other-direction-neovims-only-output-is-files).

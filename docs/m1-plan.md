@@ -1,6 +1,7 @@
 # M1 plan — a cheap test of the thesis
 
 > Status: draft · 2026-10-31 · companion to [ARCHITECTURE.md](../ARCHITECTURE.md) §13
+> Build spec: [m1-build-spec.md](m1-build-spec.md)
 > Goal: build the smallest agent-files that can prove or disprove the core thesis in two weeks of real use, and decide with evidence whether anything bigger gets built.
 
 **Summary.** M1 is a trial, not a foundation. It ships a replay runner script, a minimal Neovim plugin, observe-only hooks for ordinary Claude Code sessions, and a way to measure use. After ten working days, fixed go/no-go criteria decide whether the rest of the architecture (supervisor, interactive bridge, knowledge base) is worth building. Nothing in M1 uses Elixir; the file format is the contract, so scripts can be replaced later without touching a single thread.
@@ -37,6 +38,7 @@ If H1–H3 fail, the thesis fails, whatever H4 shows.
 - Grounding, the knowledge base, council, compaction.
 - The doorbell (`agent-files-ring`, editor registry, `agent-files-notify`). Locally the file watcher is enough; see [role-of-neovim.md](role-of-neovim.md).
 - Multi-machine use.
+- The HTML view (`agent-files-render`, [view-layer.md](view-layer.md) step 2): optional, may be prototyped alongside the trial, outside the go/no-go.
 
 ## 3. Deliverables
 
@@ -74,6 +76,7 @@ A few hundred lines of Lua.
     - `:AgentsNext` / `:AgentsBlocked` — needs-you list in quickfix.
     - `:AgentsGrep <pattern>` — `rg` across `threads/` into quickfix; logs one line per search (for H3).
 - Viewing a thread touches its `seen` file (your acknowledgment; ARCHITECTURE §4.5 rule 8).
+- Thread-aware display ([view-layer.md](view-layer.md) step 1): highlights for turn headers, `END` and `▸` lines; `▸` folds closed by default; the thread's status as virtual text on the last `END`. View-layer step 0 (a markdown renderer, table formatter and buffer settings in your Neovim config) is done before the smoke test.
 
 ### 3.3 `agent-files-hook` — observed status
 
@@ -134,6 +137,7 @@ Until then the file format is the contract: replacing scripts never touches a th
 | A clunky prototype fails for UX reasons, not the thesis | Friction journaled separately; fixing the worst friction mid-trial is allowed |
 | Replay re-sends the whole thread every turn | Local models or the `claude -p` credit for cheap iteration; a daily spend cap in config |
 | Frequent `:w` while composing sends half a turn | Sending needs an `END` line; saving alone sends nothing |
+| Threads are unpleasant to read in Neovim, so you drift back to the Claude app | View-layer steps 0–1 done before day 1; the journal records where you read threads |
 
 ## 8. Effort
 
