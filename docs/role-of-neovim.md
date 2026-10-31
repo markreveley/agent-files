@@ -1,6 +1,6 @@
 # The role of Neovim
 
-> Status: draft · 2026-10-31 · companion to [ARCHITECTURE.md](../ARCHITECTURE.md) §10
+> Status: draft · 2026-10-31 · companion to [ARCHITECTURE.md](../ARCHITECTURE.md) §11
 > In M1 only the file watcher and the file-writing commands are built; the doorbell (ring, registry, notify) arrives with the supervisor in M3 ([m1-plan](m1-plan.md)).
 
 Neovim is a client, not a host: it is where you read threads, write turns, and notice what needs you. Its RPC server is a **doorbell** — a best-effort signal that tells one Neovim instance to look at one file now, so that the person at that editor notices. Nothing in agent-files depends on it; the files are the mailbox.
