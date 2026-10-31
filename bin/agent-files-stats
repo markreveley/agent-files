@@ -1,0 +1,187 @@
+#!/usr/bin/env python3
+"""agent-files-stats — trial measurement (docs/m1-build-spec.md §7.3). Standard library only."""
+import argparse
+import json
+import os
+import statistics
+import sys
+import time
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "lib"))
+
+from agent_files import fsutil, git  # noqa: E402
+from agent_files import thread as T  # noqa: E402
+
+
+def trailers(body: str) -> dict:
+    out = {}
+    for ln in body.splitlines():
+        if ln.startswith("Agent-Files-") and ": " in ln:
+            k, v = ln.split(": ", 1)
+            out[k] = v.strip()
+    return out
+
+
+def show(root, rev, path):
+    r = git.run(root, "show", f"{rev}:{path}")
+    return r.stdout if r.returncode == 0 else None
+
+
+def body_up_to_last_end(text: str) -> str:
+    th = T.parse(text)
+    n = len(th.fm_raw)
+    lines = text.split("\n")[n:]
+    last = -1
+    for t in th.turns:
+        if t.closed != "none":
+            last = max(last, t.end_line - n)
+    return "\n".join(lines[: last + 1]) + ("\n" if last >= 0 else "")
+
+
+def classify(root, commit, tid):
+    path = f"threads/{tid}/thread.md"
+    after = show(root, commit, path)
+    before = show(root, commit + "^", path)
+    if after is None or before is None:
+        return None
+    b, a = T.parse(before), T.parse(after)
+    kinds = set()
+    pre = body_up_to_last_end(before)
+    a_body = "\n".join(after.split("\n")[len(a.fm_raw):])
+    if pre and not (a_body + "\n").startswith(pre) and not a_body.startswith(pre):
+        kinds.add("context_edit")
+    if b.frontmatter.get("model") != a.frontmatter.get("model"):
+        kinds.add("model_switch")
+    elif b.frontmatter != a.frontmatter:
+        kinds.add("frontmatter_edit")
+    return kinds
+
+
+def compute(root, since=None):
+    res = {}
+    has_git = os.path.isdir(os.path.join(root, ".git"))
+    threads = []
+    for tid, d, bad in fsutil.list_threads(root):
+        try:
+            threads.append((tid, T.parse_file(os.path.join(d, "thread.md"))))
+        except OSError:
+            pass
+    nturns = {tid: len([t for t in th.turns if t.role in ("you", "agent") and t.body.strip()]) for tid, th in threads}
+    forks_now = [tid for tid, th in threads if th.frontmatter.get("kind") == "fork"]
+    # deleted forks, from history
+    deleted_forks = 0
+    sends = []
+    if has_git:
+        fmt = "%H%x1f%aI%x1f%s%x1f%b%x1e"
+        args = ["log", "--reverse", "--first-parent", f"--format={fmt}"]
+        if since:
+            args.append(f"--since={since}")
+        out = git.run(root, *args).stdout
+        for rec in out.split("\x1e"):
+            rec = rec.strip("\n")
+            if not rec:
+                continue
+            h, when, subj, body = rec.split("\x1f", 3)
+            tr = trailers(body)
+            if tr.get("Agent-Files-Event") == "send":
+                sends.append((h, tr["Agent-Files-Thread"]))
+        present = {tid for tid, _ in threads}
+        added = git.run(root, "log", "--diff-filter=A", "--name-only", "--format=%H", "--", "threads/*/thread.md", "threads/**/thread.md").stdout.split("\n")
+        cur = None
+        seen = set()
+        for ln in added:
+            if len(ln) == 40 and " " not in ln and "/" not in ln:
+                cur = ln
+            elif ln.endswith("/thread.md") and ln.startswith("threads/"):
+                tid = ln[len("threads/"):-len("/thread.md")]
+                if tid in present or tid in seen or tid.startswith("_observed"):
+                    continue
+                seen.add(tid)
+                txt = show(root, cur, ln)
+                if txt and T.parse(txt).frontmatter.get("kind") == "fork":
+                    deleted_forks += 1
+    edit_threads, switch_count = set(), 0
+    for h, tid in sends:
+        kinds = classify(root, h, tid)
+        if not kinds:
+            continue
+        if "context_edit" in kinds:
+            edit_threads.add(tid)
+        if "model_switch" in kinds:
+            switch_count += 1
+    counts = sorted(nturns.values())
+    six = [tid for tid, n in nturns.items() if n >= 6]
+    carry_sizes = [(th.carry or "") for tid, th in threads if th.carry]
+    # spend
+    total_spend = today_spend = 0.0
+    today = time.strftime("%Y-%m-%d")
+    for dirpath, _, files in os.walk(os.path.join(root, "threads")):
+        if os.path.basename(dirpath) != "steps":
+            continue
+        for fn in files:
+            if fn.endswith(".response.json"):
+                p = os.path.join(dirpath, fn)
+                try:
+                    c = float(json.load(open(p)).get("cost_usd") or 0)
+                except (OSError, ValueError):
+                    continue
+                total_spend += c
+                if time.strftime("%Y-%m-%d", time.localtime(os.path.getmtime(p))) == today:
+                    today_spend += c
+    def lines_of(p):
+        try:
+            return [l for l in open(os.path.join(root, p), encoding="utf-8").read().split("\n") if l.strip()]
+        except OSError:
+            return []
+    obs = [l.split("\t") for l in lines_of("trial/observed.log")]
+    res.update({
+        "threads": len(threads),
+        "forks": len(forks_now) + deleted_forks,
+        "turns_median": statistics.median(counts) if counts else 0,
+        "turns_max": counts[-1] if counts else 0,
+        "threads_6plus": len(six),
+        "threads_6plus_with_context_edit": len([t for t in six if t in edit_threads]),
+        "threads_with_context_edit": len(edit_threads),
+        "context_edit_pct": round(100 * len([t for t in six if t in edit_threads]) / len(six)) if six else 0,
+        "carry_median_lines": statistics.median([c.count("\n") + 1 for c in carry_sizes]) if carry_sizes else 0,
+        "carry_median_chars": statistics.median([len(c) for c in carry_sizes]) if carry_sizes else 0,
+        "model_switches": switch_count,
+        "searches": len(lines_of("trial/searches.log")),
+        "observed_sessions": len({o[1] for o in obs if len(o) >= 3}),
+        "observed_blocked_events": len([o for o in obs if len(o) >= 3 and o[2] == "blocked"]),
+        "spend_usd": round(total_spend, 4),
+        "spend_today_usd": round(today_spend, 4),
+    })
+    return res
+
+
+def render(r) -> str:
+    def med(x):
+        return str(int(x)) if float(x).is_integer() else f"{x:.1f}"
+    return "\n".join([
+        f"{'threads':<28}{r['threads']:>4}   (forks {r['forks']})",
+        f"{'turns per thread':<28}median {med(r['turns_median'])}, max {r['turns_max']}",
+        f"{'threads with 6+ turns':<28}{r['threads_6plus']:>4}",
+        f"{'  with a context edit':<28}{r['threads_6plus_with_context_edit']:>4}   ({r['context_edit_pct']}%)    H1 go >= 20%, kill < 5%",
+        f"{'forks':<28}{r['forks']:>4}            H2 go >= 5,   kill < 2",
+        f"{'  carry size':<28}median {med(r['carry_median_lines'])} lines / {r['carry_median_chars']/1000:.1f}k chars",
+        f"{'model switches':<28}{r['model_switches']:>4}",
+        f"{'searches (agent-files-grep)':<28}{r['searches']:>3}   H3: \"used\" count is in the journal",
+        f"{'observed sessions':<28}{r['observed_sessions']:>4}   blocked events {r['observed_blocked_events']}",
+        f"{'spend':<28}${r['spend_usd']:.2f} (today ${r['spend_today_usd']:.2f})",
+    ])
+
+
+def main():
+    ap = argparse.ArgumentParser(prog="agent-files-stats")
+    ap.add_argument("--since")
+    ap.add_argument("--json", action="store_true")
+    a = ap.parse_args()
+    root = fsutil.default_root()
+    fsutil.check_root(root)
+    r = compute(root, a.since)
+    print(json.dumps(r, indent=2) if a.json else render(r))
+
+
+if __name__ == "__main__":
+    main()

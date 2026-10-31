@@ -1,0 +1,14 @@
+#!/bin/sh
+# agent-files-grep <pattern> [rg options...] — rg over thread.md files, logging the search (spec §8).
+set -u
+[ $# -ge 1 ] || { echo "usage: agent-files-grep <pattern> [rg options...]" >&2; exit 2; }
+ROOT="${AGENT_FILES_ROOT:-$HOME/agent-files}"
+PATTERN="$1"; shift
+OUT=$(rg --vimgrep "$@" --glob thread.md --glob '!_observed/**' -e "$PATTERN" "$ROOT/threads")
+RC=$?
+[ -n "$OUT" ] && printf '%s\n' "$OUT"
+if [ -n "$OUT" ]; then N=$(printf '%s\n' "$OUT" | wc -l | tr -d ' '); else N=0; fi
+if [ -d "$ROOT/trial" ]; then
+  printf '%s\t%s\t%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$PATTERN" "$N" >> "$ROOT/trial/searches.log"
+fi
+exit $RC
