@@ -1,0 +1,81 @@
+#!/usr/bin/env python3
+"""agent-files-hook — observed status for hand-started `claude` sessions (docs/m1-build-spec.md §6).
+
+Standard library only, no network, always exits 0, prints nothing.
+"""
+import json
+import os
+import re
+import shutil
+import sys
+import time
+
+
+def main():
+    if os.environ.get("AGENT_FILES_RUNNER"):          # D10: the runner's own claude -p calls
+        return
+    ev = json.loads(sys.stdin.read())
+    if not isinstance(ev, dict):
+        return
+    root = os.path.abspath(os.path.expanduser(os.environ.get("AGENT_FILES_ROOT") or "~/agent-files"))
+    base = os.path.join(root, "threads")
+    if not os.path.isdir(base):
+        return
+    name = ev.get("hook_event_name") or ""
+    sid = str(ev.get("session_id") or "")
+    cwd = str(ev.get("cwd") or "")
+    if not sid:
+        return
+    project = re.sub(r"[^a-z0-9._-]+", "-", os.path.basename(cwd.rstrip("/")).lower()).strip("-") or "session"
+    tid = f"_observed/{project}-{sid[:8].lower()}"
+    d = os.path.join(base, "_observed", f"{project}-{sid[:8].lower()}")
+
+    if name == "SessionEnd":
+        shutil.rmtree(d, ignore_errors=True)
+        return
+    status = None
+    if name in ("SessionStart", "Stop"):
+        status = "done"
+    elif name in ("UserPromptSubmit", "PreToolUse", "PostToolUse"):
+        status = "working"
+    elif name == "Notification":
+        ntype = ev.get("notification_type")
+        if ntype == "permission_prompt" or (ntype is None and "permission" in str(ev.get("message", "")).lower()):
+            status = "blocked"
+    elif name == "StopFailure":
+        status = "failed"
+    if status is None:
+        return
+
+    now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+    if not os.path.isdir(d):
+        os.makedirs(d, exist_ok=True)
+        with open(os.path.join(d, "thread.md"), "w", encoding="utf-8") as f:
+            f.write("---\nruntime: observed\n"
+                    f"project: {cwd}\ntranscript: {ev.get('transcript_path') or ''}\nstarted: {now}\n---\n")
+    p = os.path.join(d, "status")
+    old = None
+    try:
+        with open(p, encoding="utf-8") as f:
+            old = f.read().strip()
+    except OSError:
+        pass
+    tmp = f"{p}.tmp.{os.getpid()}"
+    with open(tmp, "w", encoding="utf-8") as f:
+        f.write(status + "\n")
+    os.replace(tmp, p)
+    if old != status:
+        os.makedirs(os.path.join(root, "trial"), exist_ok=True)
+        fd = os.open(os.path.join(root, "trial", "observed.log"), os.O_WRONLY | os.O_APPEND | os.O_CREAT, 0o644)
+        try:
+            os.write(fd, f"{now}\t{tid}\t{status}\n".encode())
+        finally:
+            os.close(fd)
+
+
+if __name__ == "__main__":
+    try:
+        main()
+    except BaseException:       # never disturb the claude session
+        pass
+    sys.exit(0)

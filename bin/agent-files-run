@@ -1,0 +1,40 @@
+#!/usr/bin/env -S uv run --script
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["anthropic", "openai", "pyyaml"]
+# ///
+"""agent-files-run — the replay runtime (docs/m1-build-spec.md §5)."""
+import os
+import sys
+
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "lib"))
+
+from agent_files import fsutil, runner  # noqa: E402
+
+USAGE = "usage: agent-files-run init | watch | once <thread> | check <thread>"
+
+
+def main(argv):
+    if not argv or argv[0] not in ("init", "watch", "once", "check") or (argv[0] in ("once", "check") and len(argv) != 2):
+        print(USAGE, file=sys.stderr)
+        return 1
+    root = fsutil.default_root()
+    fsutil.check_root(root)
+    cmd = argv[0]
+    if cmd == "init":
+        runner.init(root)
+        return 0
+    if not os.path.isdir(os.path.join(root, "threads")):
+        print(f"error: {root} is not initialised (run: agent-files-run init)", file=sys.stderr)
+        return 1
+    if cmd == "watch":
+        return runner.watch(root)
+    tid = argv[1].strip("/")
+    if not os.path.isfile(os.path.join(root, "threads", tid, "thread.md")):
+        print(f"error: no such thread: {tid}", file=sys.stderr)
+        return 1
+    return runner.once(root, tid) if cmd == "once" else runner.check(root, tid)
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
