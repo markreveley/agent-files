@@ -1,6 +1,7 @@
 # M1 plan — a cheap test of the thesis
 
 > Status: draft · 2026-10-31 · companion to [ARCHITECTURE.md](../ARCHITECTURE.md) §13
+> Build spec: [m1-build-spec.md](m1-build-spec.md)
 > Goal: build the smallest agent-files that can prove or disprove the core thesis in two weeks of real use, and decide with evidence whether anything bigger gets built.
 
 **Summary.** M1 is a trial, not a foundation. It ships a replay runner script, a minimal Neovim plugin, observe-only hooks for ordinary Claude Code sessions, and a way to measure use. After ten working days, fixed go/no-go criteria decide whether the rest of the architecture (supervisor, interactive bridge, knowledge base) is worth building. Nothing in M1 uses Elixir; the file format is the contract, so scripts can be replaced later without touching a single thread.
