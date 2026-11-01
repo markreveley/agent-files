@@ -1,23 +1,23 @@
 # M1 plan — a cheap test of the thesis
 
-> Status: draft · 2026-10-31 · companion to [ARCHITECTURE.md](../ARCHITECTURE.md) §14
+> Status: draft · 2026-11-01 · companion to [ARCHITECTURE.md](../ARCHITECTURE.md) §14
 > Build spec: [m1-build-spec.md](m1-build-spec.md)
 > Goal: build the smallest agent-files that can prove or disprove the core thesis in two weeks of real use, and decide with evidence whether anything bigger gets built.
 
-**Summary.** M1 is a trial, not a foundation. It ships a replay runner script, a minimal Neovim plugin, observe-only hooks for ordinary Claude Code sessions, and a way to measure use. After ten working days, fixed go/no-go criteria decide whether the rest of the architecture (supervisor, interactive bridge, knowledge base) is worth building. Nothing in M1 uses Elixir; the file format is the contract, so scripts can be replaced later without touching a single thread.
+**Summary.** M1 is a trial, not a foundation. It ships a replay runner script, a minimal Neovim plugin, observe-only hooks for ordinary Claude Code sessions, and a way to measure use. Claude Code and Codex sessions run in TUIOS, which owns attention for them. After ten working days, fixed go/no-go criteria decide whether the rest of the architecture (supervisor, knowledge base, native loop) is worth building. The file format is the contract, so scripts can be replaced later without touching a single thread.
 
 ## 1. Hypotheses
 
-The thesis is that context you can edit as a file beats an append-only chat. M1 tests it as four hypotheses:
+The thesis is that context you can edit as a file beats an append-only chat. M1 tests it as three hypotheses:
 
 | # | Hypothesis | Core or side benefit |
 |---|---|---|
 | H1 | **Context editing** — you will edit context above `END` when it helps: delete a tangent, fix a premise, compress an output | Core |
 | H2 | **Clean forks** — you will start forks with a small `## carry` section instead of continuing long threads, and those forks will be at least as good | Core |
 | H3 | **Cross-thread search** — plain-text threads will be searched and reused (`rg` / `grep` across `threads/`) | Core |
-| H4 | **Attention from files** — `status` files (tabline, `:AgentsNext`) will help you juggle several Claude Code sessions | Side benefit |
+| ~~H4~~ | *Dropped (2026-11-01).* "Attention from files" for juggling Claude Code sessions is adopted from TUIOS instead ([ARCHITECTURE §12](../ARCHITECTURE.md#12-relation-to-tuios-and-herdr)). The `observed` status files stay, for the record and the fallback measure; `agent-files-stats` still prints observed-session counts as information | — |
 
-If H1–H3 fail, the thesis fails, whatever H4 shows.
+If H1–H3 fail, the thesis fails.
 
 ## 2. Scope
 
@@ -31,13 +31,13 @@ If H1–H3 fail, the thesis fails, whatever H4 shows.
 
 **Deferred until after the M1 decision**
 
-- The supervisor, sub-threads and the inbox (M3); the Elixir version of it (§6).
-- The tier-1 interactive bridge (M2).
+- The supervisor, sub-threads and the inbox (M3).
 - Tier-2 headless harnesses (Agent SDK, Codex, ACP).
 - Tools in the runner — M1 threads are conversation only, so there are no tool folds and no permission questions.
 - Grounding, the knowledge base, council, compaction.
-- The doorbell (`agent-files-ring`, editor registry, `agent-files-notify`). Locally the file watcher is enough; see [role-of-neovim.md](role-of-neovim.md).
-- Multi-machine use.
+- Multi-machine use of agent-files' own runtimes.
+
+**Dropped (2026-11-01), not deferred** — TUIOS does these ([host-analysis](host-analysis.md)): the tier-1 interactive bridge (M2); the doorbell (`agent-files-ring`, editor registry, `agent-files-notify`); the Elixir supervisor.
 - The HTML view (`agent-files-render`, [view-layer.md](view-layer.md) step 2): optional, may be prototyped alongside the trial, outside the go/no-go.
 
 ## 3. Deliverables
@@ -85,6 +85,7 @@ Configured in `~/.claude/settings.json` for ordinary interactive `claude` sessio
 - On a session's first event it creates `threads/_observed/<project>-<session short id>/` with a frontmatter-only `thread.md` (`runtime: observed`, the transcript path).
 - Writes `status`: `UserPromptSubmit`, `PreToolUse`, `PostToolUse` → `working`; `Notification` with `permission_prompt` → `blocked`; `idle_prompt` ignored (it fires ~60 s after a finished turn); `Stop` → `done`; a failure event → `failed` (event name to verify at build time); `SessionEnd` → deletes the directory.
 - Known gap: `Stop` is reported not to fire when you interrupt with Esc, so an interrupted session stays `working` until its next event; the plugin marks it stale after 10 minutes.
+- Works the same whether `claude` runs in TUIOS, tmux or a bare terminal: hooks are configured in Claude Code, not in the host. TUIOS's own integration adds separate hook entries; both run (ARCHITECTURE §5.1).
 
 ### 3.4 Measurement
 
@@ -96,7 +97,7 @@ Configured in `~/.claude/settings.json` for ordinary interactive `claude` sessio
 
 - **Start:** when all deliverables pass a smoke test (one thread, one fork, one interrupt, one observed session).
 - **Length:** ten working days of real use.
-- **Use it for:** discussion, research and design threads — where context editing should matter. Heavy coding stays in the Claude Code TUI, observed through hooks.
+- **Use it for:** discussion, research and design threads — where context editing should matter. Heavy coding stays in the Claude Code TUI, hosted in TUIOS and observed through hooks.
 - **Habits to try:** start each new question as a thread; when a thread drifts, try a fork with a `## carry` section before continuing; once a day, try answering something by searching old threads.
 - **Midpoint check (day 5):** if you are defaulting to the Claude app or plain TUI for this kind of work more than half the time, stop and diagnose before continuing.
 - **Allowed mid-trial:** fixing the worst friction. **Not allowed:** changing the thresholds.
@@ -114,20 +115,18 @@ Set before the trial starts; revise them now if they look wrong, never after.
 
 **Outcomes**
 
-- **H1–H3 mostly go** → the thesis holds. Next, in an order the trial suggests: grow `agent-files-run` into the native loop (tools, `steps/` view — M6), add the supervisor and tier-2 headless agents (M3), then the interactive bridge (M2). Elixir only when a trigger in §6 fires.
-- **Only H4 holds** → the value is attention, not context. Consider adopting an existing tool (Herdr, Juggler) for that, and stop building.
-- **Nothing holds** → stop, and write down why in this doc.
+- **H1–H3 mostly go** → the thesis holds. Next, in an order the trial suggests: grow `agent-files-run` into the native loop (tools, `steps/` view — M6), add the supervisor and tier-2 headless agents (M3), the KB (M5a). Before each, apply the adopt-first rule: grade existing tools against the milestone, as [host-analysis](host-analysis.md) did for M2, and drop what they already do.
+- **Nothing holds** → stop, and write down why in this doc. Keep TUIOS for attention and plain Claude Code for the rest.
 
-## 6. Triggers for the Elixir supervisor
+## 6. Triggers for a long-lived supervisor
 
-Move from scripts to the Elixir/Jido supervisor (ARCHITECTURE §10.2) only when one of these is *real*, not anticipated:
+Replace the scripts with a long-lived supervisor process only when one of these is *real*, not anticipated — and first check whether TUIOS's headless protocol panes (`start-agent --protocol acp|codex`) already cover it:
 
-- Routinely more than ~5 agents running at once, and the scripts' process handling hurts.
+- Routinely more than ~5 headless agents running at once, and the scripts' process handling hurts.
 - Crash-recovery or restart bugs are costing real time.
-- Threads need to run across more than one machine.
 - Tier-2 harness sessions must stay alive across many turns (long-lived SDK clients).
 
-Until then the file format is the contract: replacing scripts never touches a thread.
+Multi-machine is no longer a trigger: harness sessions on other hosts are TUIOS's, and agent-files' own runtimes run on one machine. The Elixir target is dropped (ARCHITECTURE §10.2). Until a trigger fires the file format is the contract: replacing scripts never touches a thread.
 
 ## 7. Risks to the trial itself
 

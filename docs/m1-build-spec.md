@@ -346,7 +346,7 @@ Verify the exact settings shape, event names and the `Notification` input fields
   | `SessionEnd` | delete the directory |
 
 - Status writes are atomic replacements. Hooks for one session can race (Pre/PostToolUse in quick succession); the last writer wins, which is acceptable for a status mirror.
-- Append one line per status change to `trial/observed.log` (`ISO-time<TAB>thread<TAB>status`) for H4 and the fallback measure. Lines under `PIPE_BUF`, opened with `O_APPEND`, so concurrent appends are safe.
+- Append one line per status change to `trial/observed.log` (`ISO-time<TAB>thread<TAB>status`) for the fallback measure (and observed-session counts, printed as information since H4 was dropped). Lines under `PIPE_BUF`, opened with `O_APPEND`, so concurrent appends are safe.
 
 ## 7. Measurement
 
@@ -528,7 +528,7 @@ Each step ends with its tests passing; together under a week, matching m1-plan �
 - **Diagnostics:** `! ` lines in agent turns are shown, styled as runner messages, not as model text.
 - **Sidecars:** status from `status` and `seen` with the same rules as §9.2 (idle, unseen, stale); the token estimate is the same characters ÷ 4.
 - **Read-only and outside the root:** it writes only under `~/.cache/agent-files/view/`, which is outside the root repo, so it never shows up in git or in `agent-files-stats`.
-- **Not measured as a hypothesis.** Its keep/drop question (view-layer §6) is answered from the journal's "read threads in" line, separately from H1–H4.
+- **Not measured as a hypothesis.** Its keep/drop question (view-layer §6) is answered from the journal's "read threads in" line, separately from H1–H3.
 
 ## 13. Not in this build
 

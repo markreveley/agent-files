@@ -6,11 +6,13 @@ Threads as plain-text files. Design: [ARCHITECTURE.md](ARCHITECTURE.md). This bu
 |---|---|
 | `bin/agent-files-run` | replay runtime: `init`, `watch`, `once <thread>`, `check <thread>` |
 | `bin/agent-files-hook` | Claude Code hook → observed status for hand-started sessions |
-| `bin/agent-files-stats` | trial measurement (H1–H4) |
+| `bin/agent-files-stats` | trial measurement (H1–H3; observed sessions as information) |
 | `bin/agent-files-grep` | logged `rg` over all threads |
 | `nvim/` | `agents.nvim`: marks, read-only while working, `:AgentsNew/Send/Stop/Fork/Next/Blocked/Grep` |
 
 **The data root is `~/agent-files/` (or `$AGENT_FILES_ROOT`) — do not clone this repo there.**
+
+Claude Code and Codex sessions run in [TUIOS](https://tuios.dev/), which hosts them and owns attention for them; agent-files observes them through hooks ([docs/host-analysis.md](docs/host-analysis.md)).
 
 ```sh
 ./install.sh                 # symlinks bin/*, prints the hook block for ~/.claude/settings.json

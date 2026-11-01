@@ -1,10 +1,11 @@
 # AGENTS.md — standing instructions for AI sessions in this repo
 
-Durable rules only. What to do next lives in [readme-agents-next.md](readme-agents-next.md) and [readme-operator-next.md](readme-operator-next.md) and gets deleted or rewritten as it is done.
+Durable rules only. What to do next lives in [next/agents-readme-next.md](next/agents-readme-next.md) and [next/operator-readme-next.md](next/operator-readme-next.md) and gets deleted or rewritten as it is done.
 
 ## Where to read first
 - Design: [ARCHITECTURE.md](ARCHITECTURE.md). Current build: [docs/m1-build-spec.md](docs/m1-build-spec.md) (wins over the plan for M1), then [docs/m1-plan.md](docs/m1-plan.md), [docs/view-layer.md](docs/view-layer.md), [docs/role-of-neovim.md](docs/role-of-neovim.md).
 - Do not build anything the spec lists under "Not in this build" (§13).
+- **Adopt before building.** Before building any milestone, grade existing tools against it the way [docs/host-analysis.md](docs/host-analysis.md) graded M2, and drop what they already do. Never build what is marked dropped: the tier-1 bridge, the doorbell (`agent-files-ring`, registry, `agent-files-notify`), the Elixir supervisor. Harness sessions are hosted by TUIOS (ARCHITECTURE §5.1).
 
 ## Layout
 - `bin/` entry points; `lib/agent_files/` shared Python; `nvim/` the `agents.nvim` plugin; `tests/`; `docs/examples/view-fixture/` shared parser/plugin fixture.
