@@ -57,6 +57,12 @@ def classify(root, commit, tid):
     return kinds
 
 
+def fork_identity(th):
+    """What a fork was started with: carry, branch point, first turn. Survives a rename or move."""
+    first = next((t.body.strip() for t in th.turns if t.role == "you"), "")
+    return ((th.carry or "").strip(), str(th.frontmatter.get("branched_at") or ""), first)
+
+
 def compute(root, since=None):
     res = {}
     has_git = os.path.isdir(os.path.join(root, ".git"))
@@ -86,6 +92,7 @@ def compute(root, since=None):
             if tr.get("Agent-Files-Event") == "send":
                 sends.append((h, tr["Agent-Files-Thread"]))
         present = {tid for tid, _ in threads}
+        known = {fork_identity(th) for tid, th in threads if tid in forks_now}   # renamed forks are not deleted
         added = git.run(root, "log", "--diff-filter=A", "--name-only", "--format=%H", "--", "threads/*/thread.md", "threads/**/thread.md").stdout.split("\n")
         cur = None
         seen = set()
@@ -98,7 +105,11 @@ def compute(root, since=None):
                     continue
                 seen.add(tid)
                 txt = show(root, cur, ln)
-                if txt and T.parse(txt).frontmatter.get("kind") == "fork":
+                if not txt:
+                    continue
+                old = T.parse(txt)
+                if old.frontmatter.get("kind") == "fork" and fork_identity(old) not in known:
+                    known.add(fork_identity(old))
                     deleted_forks += 1
     edit_threads, switch_count = set(), 0
     for h, tid in sends:
