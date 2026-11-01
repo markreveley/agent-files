@@ -42,7 +42,7 @@ Items are the planned capabilities from ARCHITECTURE §4–§9 and the M1 spec. 
 ### Conditions of use (ARCHITECTURE §5.1)
 
 - Pin the version. Reach TUIOS only through its JSON CLI from one adapter module, so a switch to herdr touches one file.
-- `[agents.approvals]` stays off: when on, TUIOS holds `PermissionRequest` up to 300 s and the observed status never shows `blocked`.
+- `[agents.approvals]` off is simplest. When on, TUIOS holds `PermissionRequest` up to 300 s and the dialog never appears, but the observed status still shows `blocked` (`agent-files-hook` maps `PermissionRequest` too).
 - Never use features that type agent-written text into a pane: `ask-agent`, `send-agent-message`, agent mail, the delivery queue. herdr's equivalent is `hc` notes into a parent.
 - `agent-files-hook` and `tuios integration install` coexist in `~/.claude/settings.json`: the installer removes only entries containing both ` agent-hook ` and ` --integration ` (`internal/integration/jsonedit.go`) and backs the file up as `settings.json.tuios.bak`. `--statusline` refuses an existing `statusLine` unless given `--then`.
 - Known gaps: Esc leaves a Claude pane "working"; Codex hooks break when the shared app-server was started from another pane (TUIOS #1391); verb meanings have changed between releases.

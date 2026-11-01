@@ -15,7 +15,7 @@ Add this to ~/.claude/settings.json (merge with any existing "hooks"):
 { "hooks": {
 JSON
 first=1
-for ev in SessionStart UserPromptSubmit PreToolUse PostToolUse Notification Stop SessionEnd; do
+for ev in $("$HERE/bin/agent-files-hook" --events); do
   [ $first = 1 ] || printf ',\n'
   first=0
   printf '  "%s": [{ "hooks": [{ "type": "command", "command": "agent-files-hook" }] }]' "$ev"

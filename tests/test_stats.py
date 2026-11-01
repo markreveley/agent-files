@@ -89,6 +89,53 @@ class Stats(unittest.TestCase):
         self.assertIn("H1 go", r.stdout)
         self.assertIn("(forks 2)", r.stdout)
 
+    def stats(self, *args):
+        r = subprocess.run([sys.executable, STATS, "--json", *args], env=self.e.env, capture_output=True, text=True)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        return json.loads(r.stdout)
+
+    def fork(self, tid, carry="carried line\n"):
+        self.e.write_thread(tid, f"## carry\n{carry}\n## you · t1\nq\nEND\n")
+        sub(os.path.join(self.e.tdir(tid), "thread.md"), "kind: main", "kind: fork")
+        self.send(tid)
+
+    def test_renamed_threads_count_once(self):
+        self.e.write_thread("x", "## you · t1\nq\nEND\n")
+        self.send("x")
+        self.fork("x/f1")
+        os.rename(self.e.tdir("x/f1"), self.e.tdir("x/f2"))          # rename a fork
+        txt = self.e.read("x/f2").replace("## you · t3\n\n", "## you · t3\nmore\nEND\n")
+        self.send("x/f2", txt)
+        os.rename(self.e.tdir("x"), self.e.tdir("y"))                # rename its parent (a main thread)
+        txt = self.e.read("y").replace("## you · t3\n\n", "## you · t3\nmore\nEND\n")
+        self.send("y", txt)
+        s = self.stats()
+        self.assertEqual(s["threads"], 2)                             # y, y/f2
+        self.assertEqual(s["forks"], 1)
+
+    def test_fork_created_and_deleted_same_day(self):
+        self.e.write_thread("x", "## you · t1\nq\nEND\n")
+        self.send("x")
+        self.fork("x/sent")                                           # sent once, then deleted: a fork you made
+        subprocess.run(["rm", "-rf", self.e.tdir("x/sent")])
+        os.makedirs(self.e.tdir("x/never"))                           # created, never sent, deleted: not in history
+        self.e.write_thread("x/never", "## carry\nc\n\n## you · t1\ndraft\n")
+        subprocess.run(["rm", "-rf", self.e.tdir("x/never")])
+        s = self.stats()
+        self.assertEqual(s["threads"], 1)
+        self.assertEqual(s["forks"], 1)
+
+    def test_since_filters_sends_not_threads(self):
+        self.e.write_thread("a", "## you · t1\nq1\nEND\n")
+        self.send("a")
+        txt = self.e.read("a").replace("q1", "q1 edited").replace("## you · t3\n\n", "## you · t3\nq3\nEND\n")
+        self.send("a", txt)                                           # a context edit, today
+        self.fork("a/f")
+        s = self.stats("--since", "2999-01-01")
+        self.assertEqual(s["model_switches"], 0)
+        self.assertEqual(s["threads_6plus_with_context_edit"], 0)     # sends are filtered...
+        self.assertEqual((s["threads"], s["forks"]), (2, 1))          # ...thread and fork counts are not (spec §7.3)
+
 
 if __name__ == "__main__":
     unittest.main()

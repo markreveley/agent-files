@@ -83,8 +83,8 @@ A few hundred lines of Lua.
 Configured in `~/.claude/settings.json` for ordinary interactive `claude` sessions. It sends nothing to Claude; it only mirrors status, and it is the single writer of its observed threads.
 
 - On a session's first event it creates `threads/_observed/<project>-<session short id>/` with a frontmatter-only `thread.md` (`runtime: observed`, the transcript path).
-- Writes `status`: `UserPromptSubmit`, `PreToolUse`, `PostToolUse` → `working`; `Notification` with `permission_prompt` → `blocked`; `idle_prompt` ignored (it fires ~60 s after a finished turn); `Stop` → `done`; a failure event → `failed` (event name to verify at build time); `SessionEnd` → deletes the directory.
-- Known gap: `Stop` is reported not to fire when you interrupt with Esc, so an interrupted session stays `working` until its next event; the plugin marks it stale after 10 minutes.
+- Writes `status`: `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PostToolUseFailure` → `working`; `PermissionRequest`, or `Notification` with `permission_prompt` → `blocked`; `idle_prompt` ignored (it fires ~60 s after a finished turn); `Stop` → `done`; `StopFailure` → `failed`; `SessionEnd` → deletes the directory (verified against the hooks reference, build spec §6).
+- Known gap: `Stop` does not fire when you interrupt with Esc (documented), so an interrupted session stays `working` until its next event; the plugin marks it stale after 10 minutes.
 - Works the same whether `claude` runs in TUIOS, tmux or a bare terminal: hooks are configured in Claude Code, not in the host. TUIOS's own integration adds separate hook entries; both run (ARCHITECTURE §5.1).
 
 ### 3.4 Measurement

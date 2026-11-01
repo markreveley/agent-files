@@ -10,6 +10,12 @@ import shutil
 import sys
 import time
 
+# The events install.sh registers (`agent-files-hook --events`). Checked against the Claude Code
+# hooks reference on 2026-11-01. Stop does not fire on a user interrupt (Esc), so an interrupted
+# session stays `working` until its next event.
+EVENTS = ("SessionStart", "UserPromptSubmit", "PreToolUse", "PermissionRequest", "PostToolUse",
+          "PostToolUseFailure", "Notification", "Stop", "StopFailure", "SessionEnd")
+
 
 def main():
     if os.environ.get("AGENT_FILES_RUNNER"):          # D10: the runner's own claude -p calls
@@ -36,11 +42,12 @@ def main():
     status = None
     if name in ("SessionStart", "Stop"):
         status = "done"
-    elif name in ("UserPromptSubmit", "PreToolUse", "PostToolUse"):
+    elif name in ("UserPromptSubmit", "PreToolUse", "PostToolUse", "PostToolUseFailure"):
         status = "working"
+    elif name == "PermissionRequest":
+        status = "blocked"          # fires when the dialog opens; the notification below waits ~6 s
     elif name == "Notification":
-        ntype = ev.get("notification_type")
-        if ntype == "permission_prompt" or (ntype is None and "permission" in str(ev.get("message", "")).lower()):
+        if ev.get("notification_type") == "permission_prompt":     # also covers sandbox network prompts
             status = "blocked"
     elif name == "StopFailure":
         status = "failed"
@@ -74,6 +81,9 @@ def main():
 
 
 if __name__ == "__main__":
+    if sys.argv[1:] == ["--events"]:
+        print("\n".join(EVENTS))
+        sys.exit(0)
     try:
         main()
     except BaseException:       # never disturb the claude session
