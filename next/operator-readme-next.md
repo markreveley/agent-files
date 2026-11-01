@@ -2,13 +2,18 @@
 
 M1 is built and tested against the mock backend only. Nothing has run against a real model, your editor or a real `claude` session yet. This is what you do to finish the build and start the ten-day trial. The agent-side backlog is in [agents-readme-next.md](agents-readme-next.md).
 
+## Where you are (checked 2026-11-01)
+- Done: clone at `~/code/agent-files`, `./install.sh` run (links in `~/.local/bin`, on `PATH`). Present: `uv`, `git`, Python 3.14, Neovim 0.12.5.
+- Not done: `agent-files-run init` (no `~/agent-files` yet), `rg`, `ANTHROPIC_API_KEY` (unset in the shell checked), the hook block in `~/.claude/settings.json`, TUIOS.
+- **Next:** `agent-files-run init`, `brew install ripgrep`, then step 2. Hold steps 3 and 3a until agent item 2 lands (see step 3).
+
 ## 1. Install (about 10 minutes)
 ```sh
 git clone https://github.com/markreveley/agent-files ~/code/agent-files   # NOT ~/agent-files, that is the data root
 cd ~/code/agent-files && ./install.sh                                     # links bin/* into ~/.local/bin
 agent-files-run init                                                       # creates ~/agent-files with config.toml, agents/, trial/
 ```
-Requirements: Python 3.11+, `uv`, `git`, `rg`, Neovim (0.10+ per the spec; 0.9.5 passed the tests).
+Requirements: Python 3.11+, `uv`, `git`, `rg`, Neovim (0.10+ per the spec; 0.9.5 passed the tests). `rg` must be a standalone binary (`brew install ripgrep`): the `rg` inside a Claude Code shell is a wrapper around Claude Code's bundled copy and is not on your own `PATH`. `agent-files-grep` and `:AgentsGrep` (S10) need it.
 
 ## 2. Configure
 - Edit `~/agent-files/config.toml`: set `[prices.<model>]` for every model you will use (unknown models count as $0 and the spend cap then protects nothing) and check `daily_spend_cap_usd`.
@@ -16,11 +21,14 @@ Requirements: Python 3.11+, `uv`, `git`, `rg`, Neovim (0.10+ per the spec; 0.9.5
 - For local models, make sure Ollama or LM Studio is running at the `base_url` in the config.
 
 ## 3. Hook up Claude Code
-Paste the block `install.sh` printed into `~/.claude/settings.json` (merge with existing `hooks`). The hook's event names and `Notification` fields have not been verified against current docs; S9 below is the check.
+**Wait for agent item 2** (hook verified against current Claude Code docs, plus a check that its block merges cleanly next to TUIOS's entries) before doing this step or 3a; both edit `~/.claude/settings.json`. When it lands, `git pull` in `~/code/agent-files` and re-run `./install.sh` so you paste the corrected block. Steps 4-6 do not depend on the hook (except S9), so do them meanwhile.
+
+Paste the block `install.sh` printed into `~/.claude/settings.json` (merge with existing `hooks`). Until item 2 lands, the hook's event names and `Notification` fields are unverified against current docs; S9 below is the end-to-end check.
 
 ## 3a. Host Claude Code and Codex in TUIOS
 Since 2026-11-01 TUIOS hosts harness sessions and owns attention for them ([docs/host-analysis.md](../docs/host-analysis.md), ARCHITECTURE §5.1).
 - Install TUIOS (Homebrew or a release binary, per [tuios.dev](https://tuios.dev/)) and **pin the version** you start the trial with; do not upgrade mid-trial.
+- Installing the binary can happen any time; run the next bullet only after step 3, so the `agent-files-hook` entries are already there for it to leave alone.
 - `tuios integration install` for Claude Code (and Codex) so its Inbox gets hook-reported state. It adds its own entries to `~/.claude/settings.json`, leaves the `agent-files-hook` entries alone and keeps a `settings.json.tuios.bak`. Check both sets of hooks are present afterwards.
 - Keep `[agents.approvals]` **off**: when on, TUIOS holds permission prompts for up to 300 s and the observed status never shows `blocked`.
 - Don't pass `--statusline` unless you also pass `--then <your current statusline command>`; it refuses to replace an existing one otherwise.
