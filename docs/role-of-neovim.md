@@ -1,9 +1,9 @@
 # The role of Neovim
 
-> Status: draft · 2026-10-31 · companion to [ARCHITECTURE.md](../ARCHITECTURE.md) §11
-> In M1 only the file watcher and the file-writing commands are built; the doorbell (ring, registry, notify) arrives with the supervisor in M3 ([m1-plan](m1-plan.md)).
+> Status: draft · 2026-11-01 · companion to [ARCHITECTURE.md](../ARCHITECTURE.md) §11
+> Built: the file watcher and the file-writing commands. **The doorbell (§3–§6, §9–§10 and the ring rows of §8: ring, registry, notify) is dropped (2026-11-01) and kept here as a record.** Attention for Claude Code and Codex sessions is the TUIOS Inbox ([host-analysis](host-analysis.md)); for agent-files' own threads the local file watcher is enough.
 
-Neovim is a client, not a host: it is where you read threads, write turns, and notice what needs you. Its RPC server is a **doorbell** — a best-effort signal that tells one Neovim instance to look at one file now, so that the person at that editor notices. Nothing in agent-files depends on it; the files are the mailbox.
+Neovim is a client, not a host: it is where you read threads, write turns, and notice what needs you — for agent-files' own threads. Its RPC server was to be a **doorbell** — a best-effort signal that tells one Neovim instance to look at one file now, so that the person at that editor notices. Nothing in agent-files depends on it; the files are the mailbox.
 
 ## 1. Three roles, and what Neovim is not
 
@@ -11,12 +11,12 @@ Neovim does three jobs in agent-files, all on the human side of the system.
 
 1. **Viewer.** It renders thread files: folds for tool output, a status mark per thread in the tabline, the needs-you list in quickfix.
 2. **Editor.** It is where you write your turns, fork threads, and answer permission questions. Ending your turn with `END` (`:AgentsSend`) is sending; saving a draft is not.
-3. **Attention surface.** When an agent needs you, this is where you find out: a tabline mark, a popup, the terminal bell, an entry in the quickfix list.
+3. **Attention surface — for agent-files' threads.** When a `direct` thread (or an `observed` mirror) needs you: a tabline mark, a popup, the terminal bell, an entry in the quickfix list. Harness sessions ask for you in the TUIOS Inbox.
 
 What Neovim is **not**:
 
 - **Not a store.** No thread state lives only in Neovim. Close every editor and nothing is lost.
-- **Not a host.** Agents run under their runtimes (tier-1 TUIs in tmux), not inside the editor. One M1 exception: a `claude` you choose to start in Neovim's own `:terminal` lives and dies with that Neovim. Start it in tmux if it should outlive the editor.
+- **Not a host.** Agents run under their runtimes, and tier-1 TUIs run in TUIOS, not inside the editor. A `claude` you start in Neovim's own `:terminal` lives and dies with that Neovim; start it in TUIOS if it should outlive the editor.
 - **Not a transport.** Messages to agents travel as file writes, never over Neovim's socket.
 - **Not a requirement.** `cat`, `grep`, `tail -f`, any other editor, or a tmux status-line script can do everything Neovim does here, less comfortably.
 
@@ -24,16 +24,18 @@ What Neovim is **not**:
 
 Every party talks through files, one machine writer per file (ARCHITECTURE §4.4); ringing is an optional extra on top.
 
-| Party | Writes | Reads | Rings the doorbell? |
+| Party | Writes | Reads | Rings the doorbell? (dropped) |
 |---|---|---|---|
 | **You** (in Neovim or any editor) | Your turns (each ending with `END`), permission answers, edits above `END`, frontmatter, `STOP` files, new branches | Thread files | No — you are the one being called |
-| **A thread's runtime** (`agent-files-run` in M1; the bridge or supervisor later) | Agent turns, notes, scaffolds, `status`, `session`, `steps/`, `out/` — for the threads it owns | Your turns, `STOP`, `inbox/` | Yes, through the Notifier, on state changes (from M3) |
-| **Claude Code hooks** | M1: `status` of `observed` threads; from M2: one event line each into `events.jsonl` for the bridge | Hook input on stdin | Tier 1, when they know a Neovim address (from M3) |
+| **A thread's runtime** (`agent-files-run` in M1; the supervisor later) | Agent turns, notes, scaffolds, `status`, `session`, `steps/`, `out/` — for the threads it owns | Your turns, `STOP`, `inbox/` | No |
+| **Claude Code hooks** | `status` of `observed` threads | Hook input on stdin | No |
 | **Extensions** (`agent-files-<name>` executables) | Their own outputs (`reviews/`, KB proposals), notes into a thread's `inbox/` | Whatever they need | Optionally, with the related thread's path |
 | **agents.nvim** (the plugin inside each Neovim) | What you type and save, the files its commands create, `seen` when you view a thread, its entry in the editor registry | Thread files and sidecars, on watcher events and rings | Never — it answers the door |
 | **Other clients** (`tail -f`, a phone reading a synced folder, a tmux status script) | Nothing, or your turns | Thread files | No |
 
 ## 3. The doorbell, explicitly
+
+> Dropped (2026-11-01). Sections 3–6 and 9–10 describe a design that will not be built; see the status note at the top.
 
 Every Neovim instance runs a msgpack-RPC server at startup. Its address is `v:servername` (a Unix socket by default; pin it with `nvim --listen <path>`), and Neovim exports it as `$NVIM` to every `:terminal` and job it starts. "Ringing" means calling that server with one tiny request.
 
@@ -262,6 +264,8 @@ end
 5. **Prune only dead entries** — when the socket file is gone, not when an editor is merely slow.
 
 ## 11. Open questions
+
+*Questions 1–3 are closed with the doorbell (2026-11-01): escalation for harness sessions is TUIOS notifications; remote editors are not planned; there is no registry.*
 
 1. **Escalation ladder.** When no editor answers a `blocked` ring, which comes next — an OS notification, a tmux status flag, a phone push — and after how long?
 2. **Remote editing.** A headless `nvim --headless --listen <socket>` on a remote machine, attached from a laptop with `nvim --remote-ui --server <socket>` over a forwarded socket, would let a runtime ring the editor where the threads live. Worth supporting, or later?

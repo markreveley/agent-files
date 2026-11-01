@@ -126,7 +126,7 @@ The same fixture is used by the parser and plugin tests ([m1-build-spec §10.1](
 
 ### Step 3 — only if step 2 earns its keep
 
-Candidates, each optional and in this order: a jump-to-line link that opens a turn in Neovim through the doorbell ([role-of-neovim.md §3](role-of-neovim.md)); a diff view of edits above `END` (the H1 measurement made visible); search across `threads/`; buttons that write files (send, fork, stop) through a small local endpoint that only creates the same files the plugin does.
+Candidates, each optional and in this order: a jump-to-line link that opens a turn in Neovim (the doorbell meant to carry it is dropped, [role-of-neovim.md](role-of-neovim.md); a plain `nvim +N <file>` handler is the fallback); a diff view of edits above `END` (the H1 measurement made visible); search across `threads/`; buttons that write files (send, fork, stop) through a small local endpoint that only creates the same files the plugin does.
 
 ## 6. How we decide
 

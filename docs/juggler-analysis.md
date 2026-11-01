@@ -40,10 +40,10 @@
 | Conversation tree (Miller columns) | Threads are directories; branches are subdirectories; `tree threads/` is the branch view | **Adopted** (ARCHITECTURE §4.1) |
 | Non-destructive compaction | An explicit rewrite the runtime performs while holding the turn; originals moved to `archive/`, a `## note` records it | **Adopted** (ARCHITECTURE §4.5 rule 9) |
 | Step inspection | `steps/NNNN.request.json` + `.response.json`; inspect with `jq`, compare turns with `diff` | **Adopted** in layout — only where we call the model API ourselves (direct, native loop); inside Claude Code or Codex we only have transcripts |
-| Turn as named states (model → tools → approval → next call) | Stable turn ids are **adopted** (`## agent · tN`); intra-turn states go in a sidecar (not the frontmatter, which is yours), so a restarted runtime knows where to resume | Proposed |
+| Turn as named states (model → tools → approval → next call) | Stable turn ids are **adopted** (`## agent · tN`); intra-turn states go in a sidecar (not the frontmatter, which is yours), so a restarted runtime knows where to resume. Recovery rules, taken from Pi Durable ([host-analysis](host-analysis.md)): (1) each tool is declared replay-safe or not — on resume after a crash only replay-safe tool calls re-run, and the others are reported to the model as interrupted, instead of closing the whole turn `END (interrupted)`; (2) the turn id `tN` is the idempotency key for a send, so a send can never be applied twice; (3) a recorded answer (`> y`, `> grant`) is first-write-wins and never rewritten | Proposed (M6) |
 | Narrow, editable approval rules | One text rules file per project, in Claude Code's allow/deny syntax | Proposed |
 | Token budget per sub-agent, spend ceiling per conversation | `budget:` in frontmatter, enforced by the supervisor | Proposed — matters once SDK credit / API billing is in play |
-| Workspace per conversation | `workspace: worktree` in frontmatter → the runtime runs `git worktree add` in the code repo | Proposed |
+| Workspace per conversation | For harness sessions: TUIOS `worktree new` / `ship` / `fan` (ARCHITECTURE §12) | **Adopted from TUIOS** (2026-11-01) — not built here |
 | Read-only explore/research sub-agents in parallel | Sub-thread template with read-only tools; many may run at once | Proposed |
 | Extension SDK | Executables on `PATH`: `agent-files-<name>`, arguments/JSON in, JSON out | **Adopted** as principle 3 |
 | Export to Markdown/HTML | Markdown stays the source; a read-only HTML view is generated from it ([view-layer.md](view-layer.md)) | Proposed |
@@ -111,12 +111,14 @@ The one place a CRDT would clearly win is real-time collaboration between people
 
 **Scope of the native loop:** work where transparency matters more than coding horsepower — research, review, KB curation and extraction, summarization, triage, glue between threads. Default tools: read / grep / glob, web fetch, write only to the thread and to `kb/` as `status: proposed`; shell gated by the approval rules file. Coding-heavy threads go to Claude Code or Codex.
 
-**Shape:** it grows from M1's `agent-files-run` replay runner (a script) by adding tools and a `steps/` view; every request written to `steps/`. If and when the supervisor moves to Elixir ([m1-plan §6](m1-plan.md#6-triggers-for-the-elixir-supervisor)), the loop moves with it: ReqLLM for providers, Jido actions as tools, an MCP client for external tools. Tier 3 ("direct") is then the special case of this loop with no tools and one step — one code path instead of two.
+**Shape:** it grows from M1's `agent-files-run` replay runner (a script) by adding tools and a `steps/` view; every request written to `steps/`, and an MCP client for external tools. Tier 3 ("direct") is then the special case of this loop with no tools and one step — one code path instead of two. (The Elixir target, with ReqLLM and Jido, is dropped: ARCHITECTURE §10.2.)
 
-**Milestone:** M6, only if the M1 trial says go; the trial's results set its priority relative to M2–M5.
+**Adopt-first check before M6:** Pi (`pi --mode rpc`; four tools, a tiny system prompt, multi-provider, MIT) is an existing small loop. If its RPC mode or extensions can write each exact request to `steps/` and run from a replayed `thread.md`, use it instead of growing our own (ARCHITECTURE §13 Q12). Not verified.
+
+**Milestone:** M6, only if the M1 trial says go; the trial's results set its priority relative to M3–M5.
 
 ## 7. Open questions
 
-1. **How does Juggler drive `claude` on Pro/Max?** Its site says the unmodified CLI, but not whether interactively or with `-p` (which now draws from the Agent SDK credit). Read its source before building the M2 interactive bridge.
+1. *Closed (2026-11-01):* how Juggler drives `claude` on Pro/Max mattered only for the M2 bridge, which is dropped.
 2. Is the `events.jsonl` sidecar worth its weight from M1, or only once the native loop exists?
 3. Locks across machines — an advisory `lock` file naming the host, or simply "runtimes only on one machine"? (ARCHITECTURE §13.)
