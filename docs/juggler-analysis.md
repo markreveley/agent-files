@@ -94,6 +94,8 @@ The one place a CRDT would clearly win is real-time collaboration between people
 
 **Recommendation: yes, but deliberately small — and not as the main coding harness.**
 
+> **Decided 2026-11-02:** yes, as the **planning harness** (M6): planning, research, review, extraction, proposing nodes and writing briefs; coding farmed out to Claude Code and Codex, which come back as records ([direction-analysis §3](direction-analysis.md#3-weaknesses-and-the-planning-harness), ARCHITECTURE §5.3, §8.1). Juggler as checked on 2026-11-02 (features page): Claude through "your own unmodified `claude` CLI" on Pro/Max or an API key; `~/.juggler` "is plain files", with export to Markdown or HTML; project memory in `.juggler/MEMORY.md`; no knowledge base or decision record. A general coding harness of our own would compete with it on its strengths; a planning harness does not.
+
 **For a native loop:**
 
 - **Complete step inspection.** Only a loop we run lets us write every exact request to `steps/`. Inside Claude Code or Codex we see transcripts, not requests.

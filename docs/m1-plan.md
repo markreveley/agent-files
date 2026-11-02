@@ -4,7 +4,7 @@
 > Build spec: [m1-build-spec.md](m1-build-spec.md)
 > Goal: build the smallest agent-files that can prove or disprove the core thesis in two weeks of real use, and decide with evidence whether anything bigger gets built.
 
-**Summary.** M1 is a trial, not a foundation. It ships a replay runner script, a minimal Neovim plugin, observe-only hooks for ordinary Claude Code sessions, and a way to measure use. Claude Code and Codex sessions run in TUIOS, which owns attention for them. After ten working days, fixed go/no-go criteria decide whether the rest of the architecture (supervisor, knowledge base, native loop) is worth building. The file format is the contract, so scripts can be replaced later without touching a single thread.
+**Summary.** M1 is a trial, not a foundation. It ships a replay runner script, a minimal Neovim plugin, observe-only hooks for ordinary Claude Code sessions, and a way to measure use. Claude Code and Codex sessions run in TUIOS, which owns attention for them. After ten working days, fixed go/no-go criteria decide whether the rest of the architecture is worth building: the record trial, the knowledge base on artifact-dag and the planning harness ([direction-analysis](direction-analysis.md)). M1 tests only the context-engineering part of the logbook; its hypotheses and thresholds are unchanged by that direction. The file format is the contract, so scripts can be replaced later without touching a single thread.
 
 ## 1. Hypotheses
 
@@ -59,7 +59,7 @@ A single executable script (Python, a few hundred lines). Per principle 3 it is 
 |---|---|---|---|
 | Anthropic Messages API (API key) | API rates; cache writes 1.25×, reads 0.1× | Yes | Cleanest replay |
 | OpenAI-compatible endpoint (Ollama, LM Studio, llama.cpp) | Free locally | Yes | Good for cheap iteration |
-| `claude -p` | Draws from the monthly Agent SDK credit on Pro/Max (billed as tier 2, headless) | No — Claude Code adds its own prompt and tools | Verify flags at build time |
+| `claude -p` | Draws from the Pro/Max plan's limits (the separate Agent SDK credit announced 2026-05-13 was paused 2026-06-15) | No — Claude Code adds its own prompt and tools | Verify flags at build time |
 
 ### 3.2 `agents.nvim` — minimal plugin
 
@@ -115,8 +115,8 @@ Set before the trial starts; revise them now if they look wrong, never after.
 
 **Outcomes**
 
-- **H1–H3 mostly go** → the thesis holds. Next, in an order the trial suggests: grow `agent-files-run` into the native loop (tools, `steps/` view — M6), add the supervisor and tier-2 headless agents (M3), the KB (M5a). Before each, apply the adopt-first rule: grade existing tools against the milestone, as [host-analysis](host-analysis.md) did for M2, and drop what they already do.
-- **Nothing holds** → stop, and write down why in this doc. Keep TUIOS for attention and plain Claude Code for the rest.
+- **H1–H3 mostly go** → the thesis holds. Next, the proposed order in [ARCHITECTURE §14](../ARCHITECTURE.md#14-milestones): the record trial (capture of coding sessions, commit links, the KB on artifact-dag — M5a), then the planning harness (M6), then the record viewer (M8); M3 and M4 as needed. Before each, apply the adopt-first rule: grade existing tools against the milestone, as [host-analysis](host-analysis.md) did for M2, and drop what they already do (Entire for capture, Pi for M6).
+- **Nothing holds** → stop building replay features, and write down why in this doc. Keep TUIOS for attention and plain Claude Code for the rest. Editable context has failed, not the record: whether the record trial still runs is decided at day 10 ([direction-analysis §8](direction-analysis.md#8-the-trials)).
 
 ## 6. Triggers for a long-lived supervisor
 

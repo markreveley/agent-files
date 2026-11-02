@@ -52,6 +52,7 @@ Items are the planned capabilities from ARCHITECTURE §4–§9 and the M1 spec. 
 
 | Tool | Verdict | Why |
 |---|---|---|
+| **Superlogical Rex** | Not graded (found 2026-11-02) | Mitchell Hashimoto's company. A terminal replacement on libghostty with persistent sessions, remote connections, program status (OSC 7501, which Superlogical wrote) and live sharing; public beta since 2026-10-05; "free… no account". Grade it if hosts are re-graded after the trial ([direction-analysis §4](direction-analysis.md#4-the-host-fork-reconsidered)). |
 | **tmux** | Works, without attention | Stable and scriptable; no agent awareness. Fine as a bare host; TUIOS adds the planned attention layer on top and has a tmux shim. |
 | **workmux** | Not adopted | Worktree per tmux window, agent status in window names. TUIOS covers the same and more. |
 | **cmux** | A terminal app, not a host | macOS app on libghostty; "does not checkpoint arbitrary live process state", so agents die with the app unless its `local-tmux` mode is used. GPL. Fine as a place to run Neovim. |
