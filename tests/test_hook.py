@@ -46,6 +46,47 @@ class Hook(unittest.TestCase):
         self.fire("PostToolUse")
         self.assertEqual(self.status(), "working")
 
+    def test_every_registered_event_is_handled(self):
+        # status after each event; None = no change (SessionEnd: directory removed)
+        want = {"SessionStart": "done", "UserPromptSubmit": "working", "PreToolUse": "working",
+                "PermissionRequest": "blocked", "PostToolUse": "working", "PostToolUseFailure": "working",
+                "Notification": None, "Stop": "done", "StopFailure": "failed", "SessionEnd": None}
+        events = subprocess.run([sys.executable, HOOK, "--events"], capture_output=True, text=True).stdout.split()
+        self.assertEqual(set(events), set(want))
+        for ev in events:
+            if ev == "SessionEnd":
+                continue
+            self.fire("SessionStart" if ev != "SessionStart" else "UserPromptSubmit")
+            before = self.status()
+            self.fire(ev)
+            self.assertEqual(self.status(), want[ev] or before, ev)
+
+    def test_permission_request_blocks_at_once(self):
+        self.fire("UserPromptSubmit")
+        self.fire("PermissionRequest", tool_name="Bash", tool_input={"command": "rm -rf build"})
+        self.assertEqual(self.status(), "blocked")
+        self.fire("PostToolUseFailure", tool_name="Bash", error="Exit code 1")   # approved, then failed
+        self.assertEqual(self.status(), "working")
+
+    def test_stop_failure(self):
+        self.fire("UserPromptSubmit")
+        self.fire("StopFailure", error="rate_limit", last_assistant_message="API Error: Rate limit reached")
+        self.assertEqual(self.status(), "failed")
+
+    def test_notification_without_type_is_ignored(self):
+        self.fire("UserPromptSubmit")
+        self.fire("Notification", message="Claude needs your permission")
+        self.assertEqual(self.status(), "working")
+
+    def test_installer_registers_the_hook_events(self):
+        dest = os.path.join(self.tmp, "bin")
+        out = subprocess.run(["sh", os.path.join(REPO, "install.sh"), dest], capture_output=True, text=True).stdout
+        block = json.loads(out[out.index('{ "hooks"'):out.index("}}") + 2])
+        events = subprocess.run([sys.executable, HOOK, "--events"], capture_output=True, text=True).stdout.split()
+        self.assertEqual(list(block["hooks"]), events)
+        for groups in block["hooks"].values():
+            self.assertEqual(groups, [{"hooks": [{"type": "command", "command": "agent-files-hook"}]}])
+
     def test_session_end_deletes(self):
         self.fire("SessionStart")
         self.assertTrue(os.path.isdir(self.dir))

@@ -303,21 +303,17 @@ Before each send, sum `cost_usd` from every `steps/*.response.json` modified tod
 
 ## 6. `agent-files-hook`
 
-Configured once in `~/.claude/settings.json` (`install.sh` prints the block):
+Configured once in `~/.claude/settings.json`. `install.sh` prints the block, one group per event, from the hook's own list (`agent-files-hook --events`), so the two cannot drift:
 
 ```json
 { "hooks": {
-  "SessionStart":     [{ "hooks": [{ "type": "command", "command": "agent-files-hook" }] }],
-  "UserPromptSubmit": [{ "hooks": [{ "type": "command", "command": "agent-files-hook" }] }],
-  "PreToolUse":       [{ "hooks": [{ "type": "command", "command": "agent-files-hook" }] }],
-  "PostToolUse":      [{ "hooks": [{ "type": "command", "command": "agent-files-hook" }] }],
-  "Notification":     [{ "hooks": [{ "type": "command", "command": "agent-files-hook" }] }],
-  "Stop":             [{ "hooks": [{ "type": "command", "command": "agent-files-hook" }] }],
-  "SessionEnd":       [{ "hooks": [{ "type": "command", "command": "agent-files-hook" }] }]
+  "SessionStart": [{ "hooks": [{ "type": "command", "command": "agent-files-hook" }] }],
+  "PermissionRequest": [{ "hooks": [{ "type": "command", "command": "agent-files-hook" }] }],
+  …one group each for every event in the table below…
 }}
 ```
 
-Verify the exact settings shape, event names and the `Notification` input fields against the current Claude Code hooks docs at build time; add the failure event if one exists.
+Verified against the Claude Code hooks reference on 2026-11-01: event names; no `matcher` needed (omitted means every occurrence); `Notification` input carries `notification_type`; `StopFailure` fires instead of `Stop` when a turn ends on an API error; `PermissionRequest` fires when the permission dialog opens, while the `permission_prompt` notification waits about six seconds (and is the only signal for sandbox network prompts); `Stop` does not fire on a user interrupt; matching hooks from different tools run in parallel.
 
 **Behaviour.** Reads one JSON object on stdin (`session_id`, `transcript_path`, `cwd`, `hook_event_name`, plus event fields). Always exits 0 and prints nothing; must finish in under 100 ms (standard library only, no network). Exits immediately if `AGENT_FILES_RUNNER` is set (D10).
 
@@ -338,11 +334,12 @@ Verify the exact settings shape, event names and the `Notification` input fields
   | Event | Status |
   |---|---|
   | `SessionStart` | `done` |
-  | `UserPromptSubmit`, `PreToolUse`, `PostToolUse` | `working` |
+  | `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PostToolUseFailure` | `working` |
+  | `PermissionRequest` | `blocked` |
   | `Notification`, type `permission_prompt` | `blocked` |
-  | `Notification`, type `idle_prompt` or other | no change |
+  | `Notification`, type `idle_prompt`, any other type, or no type | no change |
   | `Stop` | `done` |
-  | failure event (if it exists) | `failed` |
+  | `StopFailure` | `failed` |
   | `SessionEnd` | delete the directory |
 
 - Status writes are atomic replacements. Hooks for one session can race (Pre/PostToolUse in quick succession); the last writer wins, which is acceptable for a status mirror.
@@ -394,7 +391,7 @@ observed sessions           41   blocked events 19
 spend                       $3.12 (today $0.40)
 ```
 
-`--json` prints the same numbers as one object. Forks are threads with `kind: fork` present now, plus fork directories deleted later (found as `thread.md` paths in history).
+`--json` prints the same numbers as one object. Forks are threads with `kind: fork` present now, plus fork directories deleted later (found as `thread.md` paths in history). A fork is identified by what it started with — its `## carry`, `branched_at` and first turn — so renaming or moving a fork (or its parent) does not count it again; two deleted forks started with identical carry and question count once. `--since` filters sends (context edits, model switches); thread, fork, search and observed counts are all-time.
 
 ### 7.4 Journal template (`trial/journal.md`)
 
