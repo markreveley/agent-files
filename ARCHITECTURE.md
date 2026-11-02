@@ -523,6 +523,7 @@ Numbers are stable; closed questions keep their number.
 12. **Pi as a harness.** Pi (`pi --mode rpc`, MIT, multi-provider) could serve as a tier-2 harness for non-Claude models, or as the M6 loop instead of growing our own. Open: can its RPC mode or extensions write the exact requests we want in `steps/`? Pi Durable itself is ruled out as a foundation: it owns opaque state and history is immutable, so it cannot replay an edited file ([host-analysis](docs/host-analysis.md)).
 13. **Claude Code's own features vs. M3.** Its subagents, `/rewind` and session forking overlap sub-threads for coding work. Grade them against M3 before building it, as TUIOS was graded against M2.
 14. **TUIOS gaps to watch in the trial:** Esc leaves a Claude pane "working"; Codex hooks break when the shared app-server was started from another pane (TUIOS issue #1391); verb meanings have changed between releases.
+15. **T3 Code as a host.** T3 Code runs Claude Code, Codex and others from one GUI, on the operator's own subscriptions. It could replace TUIOS beside agent-files only if its Claude sessions fire `agent-files-hook` (S9 run in T3 Code). CLIProxyAPI is rejected for Claude: it proxies subscription tokens, which Anthropic forbids. See [docs/multi-subscription-analysis.md](docs/multi-subscription-analysis.md).
 
 ## 14. Milestones
 
