@@ -5,7 +5,9 @@ M1 is built and tested against the mock backend only. Nothing has run against a 
 ## Where you are (checked 2026-11-01)
 - Done: clone at `~/code/agent-files`, `./install.sh` run (links in `~/.local/bin`, on `PATH`). Present: `uv`, `git`, Python 3.14, Neovim 0.12.5.
 - Not done: `agent-files-run init` (no `~/agent-files` yet), `rg`, `ANTHROPIC_API_KEY` (unset in the shell checked), the hook block in `~/.claude/settings.json`, TUIOS.
-- **Next:** `agent-files-run init`, `brew install ripgrep`, then step 2. Hold steps 3 and 3a until agent item 2 lands (see step 3).
+- Landed since: agent item 2, the hook verified against the hooks reference (PR #10). Steps 3 and 3a are no longer on hold.
+- **Next:** `agent-files-run init`, `brew install ripgrep`, step 2, then steps 3-8 in order.
+- **Hold:** agent items 1 and 5 wait until after the trial. Item 1 changes the runner, so if you want it, have it done before S6, not mid-trial. Build nothing new before the day-10 decision ([m1-plan §5](../docs/m1-plan.md#5-decision-criteria)).
 
 ## 1. Install (about 10 minutes)
 ```sh
@@ -21,16 +23,16 @@ Requirements: Python 3.11+, `uv`, `git`, `rg`, Neovim (0.10+ per the spec; 0.9.5
 - For local models, make sure Ollama or LM Studio is running at the `base_url` in the config.
 
 ## 3. Hook up Claude Code
-**Wait for agent item 2** (hook verified against current Claude Code docs, plus a check that its block merges cleanly next to TUIOS's entries) before doing this step or 3a; both edit `~/.claude/settings.json`. When it lands, `git pull` in `~/code/agent-files` and re-run `./install.sh` so you paste the corrected block. Steps 4-6 do not depend on the hook (except S9), so do them meanwhile.
+First `git pull` in `~/code/agent-files` and re-run `./install.sh`: the hook was verified against the Claude Code hooks reference (PR #10) and its block now registers ten events, including `PermissionRequest`, `PostToolUseFailure` and `StopFailure`. If you pasted an older block, replace it.
 
-Paste the block `install.sh` printed into `~/.claude/settings.json` (merge with existing `hooks`). Until item 2 lands, the hook's event names and `Notification` fields are unverified against current docs; S9 below is the end-to-end check.
+Paste the block `install.sh` printed into `~/.claude/settings.json` (merge with existing `hooks`). Do this before 3a. S9 below is the end-to-end check.
 
 ## 3a. Host Claude Code and Codex in TUIOS
 Since 2026-11-01 TUIOS hosts harness sessions and owns attention for them ([docs/host-analysis.md](../docs/host-analysis.md), ARCHITECTURE §5.1).
 - Install TUIOS (Homebrew or a release binary, per [tuios.dev](https://tuios.dev/)) and **pin the version** you start the trial with; do not upgrade mid-trial.
 - Installing the binary can happen any time; run the next bullet only after step 3, so the `agent-files-hook` entries are already there for it to leave alone.
 - `tuios integration install` for Claude Code (and Codex) so its Inbox gets hook-reported state. It adds its own entries to `~/.claude/settings.json`, leaves the `agent-files-hook` entries alone and keeps a `settings.json.tuios.bak`. Check both sets of hooks are present afterwards.
-- Keep `[agents.approvals]` **off**: when on, TUIOS holds permission prompts for up to 300 s and the observed status never shows `blocked`.
+- `[agents.approvals]` **off** is simplest. If you turn it on, TUIOS holds permission prompts for up to 300 s and Claude's own dialog doesn't appear, but the observed status still shows `blocked` (`agent-files-hook` maps `PermissionRequest`).
 - Don't pass `--statusline` unless you also pass `--then <your current statusline command>`; it refuses to replace an existing one otherwise.
 - Don't use `ask-agent`, agent mail or the delivery queue on Claude sessions: they type agent-written text into the TUI (ARCHITECTURE §5.1 policy rule).
 - If TUIOS misbehaves during the trial, note it in the journal and switch to herdr. Known gaps: Esc leaves a pane "working"; Codex hooks can break when its app-server was started from another pane (TUIOS #1391).
@@ -55,9 +57,9 @@ agent-files-run watch     # leave running; a second copy exits with code 2
 | S6 | `model: claude-opus-5-5`, send twice within 5 min | real reply; second `steps/*.response.json` has `cache_read_input_tokens > 0` |
 | S7 | delete an earlier agent turn, rewrite your first turn, send | reply arrives, no 400 |
 | S8 | `model: ollama/<name>`, send | reply, `cost_usd: 0` |
-| S9 | start `claude` in a project **inside TUIOS**, trigger a permission prompt | `_observed/...` appears, `:AgentsNext` shows `blocked`, then `working`, `done`, gone on exit; the TUIOS Inbox shows the same prompt |
+| S9 | start `claude` in a project **inside TUIOS**, trigger a permission prompt | `_observed/...` appears; `:AgentsNext` shows `blocked` as soon as the permission dialog opens (not ~6 s later), then `working`, `done`, gone on exit; the TUIOS Inbox shows the same prompt |
 | S10 | `:AgentsGrep <word>` | quickfix hits, one line in `trial/searches.log` |
-| S11 | open a smoke thread and the view fixture | headers/`END` highlighted, end mark shows status and `~Nk`, tool fold closed |
+| S11 | open a smoke thread and the view fixture | headers/`END` highlighted, end mark shows status and `~Nk`, tool fold closed. Also (agent item 3): during a running turn the spinner moves and the buffer is read-only; when the reply lands the buffer reloads with no "file changed" prompt and becomes writable again |
 
 If one fails, note it and hand it to an agent with the exact symptom and the thread's `steps/` files.
 
