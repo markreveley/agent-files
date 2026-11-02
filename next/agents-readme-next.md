@@ -38,7 +38,7 @@ You are continuing the M1 build of agent-files. Read [docs/m1-build-spec.md](../
    - Look up the server-side fallback option and beta flag in the current API docs, and wire them in.
    - Add the `! served by <model>` diagnostic path. The runner already emits it when `served_model` differs.
    - Test with the fake SDK in `tests/fakes/anthropic` (add a scenario), as `tests/test_backends.py` does.
-4. **After the trial:** the residue list for AGENTS.md (ARCHITECTURE §9.7). For each rule in `AGENTS.md`, name the test that enforces it (e.g. is the hook's 100 ms limit tested?), or list the rule under a new "Residue" heading as enforced by review only. Add no new tests; record what exists.
+4. **After the trial:** the residue list for AGENTS.md (ARCHITECTURE §9.7). For each rule in `AGENTS.md`, name the test that enforces it (e.g. is the hook's 100 ms limit tested?), or list the rule under a new "Residue" heading as enforced by review only. Add no new tests; record what exists. Include the tier-1 rule from ARCHITECTURE §5.1 that agents don't write to `threads/`. On 2026-11-01 the operator decided to record it as residue rather than add a deny-rule install step.
 5. **After the trial, optional:** T3 Code as a host (ARCHITECTURE §13 Q15, [docs/multi-subscription-analysis.md](../docs/multi-subscription-analysis.md)). First ask the operator to run S9 with T3 Code as the host. Only if it passes, grade T3 Code against host-analysis §1. Don't use CLIProxyAPI for Claude.
 
 Build nothing new before the day-10 decision ([m1-plan §5](../docs/m1-plan.md#5-decision-criteria)) beyond the fixes in item 1.

@@ -33,7 +33,7 @@ Unix analogy: program vs. process. The file is the program and its state; the ru
 5. **Structure is directories.** A thread is a directory; a branch is a subdirectory; its id is its path. `ls` and `tree` are the index.
 6. **Processes are disposable.** Runners start and stop freely. Control is a file (`touch STOP` in the thread's directory) or a signal. Any long-lived process state must be rebuildable from files.
 7. **Indexes are caches.** Any database or index (search, the KB graph) is derived: delete it and rebuild it from files.
-8. **Protocols are doorbells.** RPC, sockets and channels only say "look at this file". Content travels through files. (Streams from harnesses at the edge — ACP, SDK, stream-json — are written to files as they arrive.)
+8. **Protocols only signal.** RPC, sockets and channels only say "look at this file". Content travels through files. (Streams from harnesses at the edge — ACP, SDK, stream-json — are written to files as they arrive.)
 9. **The editor is a client.** Neovim is the best viewer, not a dependency. Every operation can be done from a shell.
 10. **Humans author, machines append.** You write the human parts of a thread (§4.3); the thread's runtime appends the rest. Text a human did not write never enters the interactive tier.
 11. **One machine writer per file.** Every file has exactly one process allowed to write it (§4.4). Many readers, one writer, no locks to get wrong.
@@ -52,7 +52,7 @@ Unix analogy: program vs. process. The file is the program and its state; the ru
 | Note | System-written text for a thread (a child's report, a retraction warning) — never a human turn | `inbox/` until consumed, then a `## note` section |
 | Agent | Declaration: runtime, model, tools, permissions, grounding; body = system prompt | `agents/<name>.md` |
 | Process | The one runtime instance that owns a thread while it runs | in memory; its state is the sidecar files |
-| Status | `working \| blocked \| done \| interrupted \| failed \| closed` — written only by the thread's runtime | `threads/<id>/status` (one line) |
+| Status | `working \| blocked \| done \| interrupted \| failed \| closed` — written only by the thread's runtime (for `observed` threads, `agent-files-hook`) | `threads/<id>/status` (one line) |
 | Seen | Your acknowledgment; a thread whose status is older than `seen` shows as idle | `threads/<id>/seen` (empty file; its mtime) |
 | Control file | An out-of-band request to a running turn | `threads/<id>/STOP`, present only until handled |
 | Snippet | Reusable prompt text, expanded from `/name` (tiers 2–3) | `snippets/<name>.md` (+ `.claude/commands`, skills) |
@@ -178,7 +178,7 @@ A line is a **marker** only at column 0, outside fenced code blocks and outside 
 | `seen` | the editor, on your behalf | `touch seen` |
 | `STOP` | — (the runtime deletes it after handling) | you |
 | `inbox/<n>.md` | whoever reports (a child's runtime, an extension); one file per note | — |
-| `events.jsonl` | append-only; the runtime, and in tier 1 the Claude Code hooks (single-line appends) | — |
+| `events.jsonl` | append-only; the runtime. Tier 1 has none: `agent-files-hook` writes the observed thread's `status` and one line per change to the root's `trial/observed.log` | — |
 | `checks/`, `commits` (own thread) | the thread's runtime | — |
 | `.agent-files/checks.toml` and other protected paths (in the code repo) | — (agents are denied) | you, by commit (§9.4) |
 | New branch directories | whoever creates the branch (§8) | you, via `:AgentsFork` or `mkdir` |
@@ -192,7 +192,7 @@ A line is a **marker** only at column 0, outside fenced code blocks and outside 
 5. **Session actions.** `/fork` creates a branch exactly as `:AgentsFork` does (§8). `/clear` in replay mode starts a fork with an empty `## carry`. `/compact` is compaction (rule 9 below). In tier 1 these are Claude Code's own commands.
 6. **Tool calls** are one-line `▸` summaries with output indented beneath (folded by indentation in Neovim) or moved to `out/` and linked. All folds closed = the collapsed natural-language transcript.
 7. **Permissions (tiers 2–3).** The runtime writes one `? PERMISSION pN …` line, sets `blocked`, and waits; there is at most one pending question per thread. You answer `> y`, `> n` or `> always` on the line below it and save — the one place you write inside an agent turn, safe because the runtime is waiting, not writing. `always` allows that exact tool call pattern for the rest of the runtime's process (a persistent rules file is proposed; [juggler analysis §3](docs/juggler-analysis.md#3-what-we-borrow--translated-to-files)). Tier-1 permissions are answered in the TUI, or from the TUIOS Inbox (§5.1).
-8. **Status.** Only the thread's runtime writes `status`. "Idle" is not a status: a thread whose `status` file is older than its `seen` file is shown as idle. `closed` is terminal and applies to sub-threads (§8).
+8. **Status.** Only the thread's runtime writes `status`; for an `observed` thread that is `agent-files-hook`. "Idle" is not a status: a thread whose `status` file is older than its `seen` file is shown as idle. `closed` is terminal and applies to sub-threads (§8).
 9. **Compaction** is the one machine rewrite above `END`: an explicit operation the runtime performs while holding the turn (its `status` is `working`), moving the replaced turns to `archive/` and recording a `## note · compaction`. Turn ids of surviving turns are unchanged.
 
 ## 5. Runtimes — three tiers
@@ -214,7 +214,7 @@ The tier-1 bridge (`agent-files-bridge`: tmux hosting, Channels input, transcrip
 - **Coexisting with TUIOS's integration.** `tuios integration install` adds its own hook entries to `~/.claude/settings.json` and removes only its own (it backs the file up as `settings.json.tuios.bak`); `agent-files-hook` entries are left alone, and Claude Code runs both. `[agents.approvals]` off is simplest. If it is on, TUIOS holds `PermissionRequest` for up to 300 s and the dialog and its `Notification` never appear; the observed status still shows `blocked`, because `agent-files-hook` maps `PermissionRequest` itself.
 - **Adapter rule.** Anything agent-files does with TUIOS goes through its JSON CLI from one module, so switching to herdr changes one file. M1 needs none.
 - **Constraints:** resume-only (`context: resume`); no grounding is injected (use the project's `CLAUDE.md` instead); no snippet expansion (§4.5 rule 4).
-- **Policy rule (hard):** only text a human wrote enters a tier-1 session. Never use the TUIOS (or herdr) features that type agent-written text into a pane: `ask-agent`, `send-agent-message`, agent mail and the delivery queue (herdr: `hc` notes into a parent, so run it with notes off). `fan` and `send-text` carrying your own prompt are fine. Notes, child reports, council output, scheduled prompts and agent-to-agent messages go through tier 2 or 3, or you copy what you want into the TUI yourself. Agents in tier 1 are denied write access to `threads/` through Claude Code's permission rules. This keeps tier 1 within "ordinary, individual usage".
+- **Policy rule (hard):** only text a human wrote enters a tier-1 session. Never use the TUIOS (or herdr) features that type agent-written text into a pane: `ask-agent`, `send-agent-message`, agent mail and the delivery queue (herdr: `hc` notes into a parent, so run it with notes off). `fan` and `send-text` carrying your own prompt are fine. Notes, child reports, council output, scheduled prompts and agent-to-agent messages go through tier 2 or 3, or you copy what you want into the TUI yourself. Agents in tier 1 should also not write to `threads/`. Nothing enforces this yet (no install step sets a Claude Code deny rule for it), so it is residue (§9.7): enforced only by you reading. This keeps tier 1 within "ordinary, individual usage".
 
 ### 5.2 Tier 2 — headless
 
@@ -395,7 +395,7 @@ The point of a record is that a change can be explained after the fact, from tex
   Agent-Files-Exception: layers e1
   ```
 
-  The hook finds the thread from the tier-1 or observed session running in that repo. `git log --format='%(trailers:key=Agent-Files-Thread)'` lists the threads that changed the code; `git blame` → commit → thread → turn explains a line.
+  The hook finds the thread from the tier-1 (`observed`) session running in that repo. `git log --format='%(trailers:key=Agent-Files-Thread)'` lists the threads that changed the code; `git blame` → commit → thread → turn explains a line.
 - **Thread → commits.** A `commits` sidecar in the thread directory, one line per commit (`<repo> <sha> <subject>`), written by the thread's runtime (principle 11).
 - **Commit → checks.** `agent-files-check` attaches its results for each commit as a git note under `refs/notes/agent-files/checks` (JSON: checks, versions, results, exceptions). Notes can be read with `git notes show`, survive rebases with `notes.rewriteRef`, and are pushed explicitly.
 - **The PR, read this way:** linked threads (the intent and the conversation), the decisions it touches, the check record, and the list of exceptions. Reading the diff becomes optional; reading the exceptions does not.
@@ -453,7 +453,7 @@ Dropped on 2026-11-01. The case for Elixir/OTP + Jido was a daemon supervising m
 
 ## 11. Neovim client — `agents.nvim`
 
-Runs in Ghostty, or in a TUIOS pane. TUIOS hosts tier-1 TUI sessions (detached, attachable), not the editor. The split of attention: the TUIOS Inbox is where harness sessions ask for you; `agents.nvim` shows agent-files' own threads (`direct`, and `observed` mirrors), which TUIOS cannot see.
+Runs in Ghostty, or in a TUIOS pane. TUIOS hosts tier-1 TUI sessions (detached, attachable), not the editor. The split of attention: the TUIOS Inbox is where harness sessions ask for you; `agents.nvim` is where agent-files' own threads (`direct`) ask for you, which TUIOS cannot see. `observed` threads are the same harness sessions TUIOS hosts. `agents.nvim` lists them too, as the record, but for those sessions the TUIOS Inbox is the place to look.
 
 - **Watcher:** a `vim.uv.new_fs_event` watch per thread directory (recursive watching is not available on every OS); `autoread`/`checktime` for open buffers.
 - **Tabline:** per-thread state from `status` and `seen`, e.g. ` 1 api ⠋   2 docs ●   3 tests ✓ ` (spinner working, red dot blocked, check done-unseen).
