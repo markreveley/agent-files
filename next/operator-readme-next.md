@@ -72,7 +72,7 @@ agent-files-stats --json
 Keep the data root under git; it records your edits for the H1 measurement.
 
 ## 8. Day 10: decide
-Use the go and kill thresholds printed by `agent-files-stats` (H1 go at 20% or more, kill under 5%; H2 go at 5 forks or more, kill under 2), plus the journal's "Used instead" and "Read threads in" lines. H4 is not part of the decision. The HTML view is judged separately from the journal, not from H1-H3.
+Use the go and kill thresholds in [m1-plan §5](../docs/m1-plan.md#5-decision-criteria) (H1-H3 and the fallback rate; `agent-files-stats` prints the numbers), plus the journal's "Used instead" and "Read threads in" lines. H4 is not part of the decision. The HTML view is judged separately from the journal, not from H1-H3.
 
 ## Things to watch
 - `status` shows `?` for a turn working more than 10 minutes with no heartbeat: the runner probably died; restart `watch` and it will close the turn as interrupted.

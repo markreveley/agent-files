@@ -22,6 +22,7 @@ You are continuing the M1 build of agent-files. Read [docs/m1-build-spec.md](../
 
 ## Environment facts (operator's Mac)
 - The repo checkout is `/Users/mark/dev/repos/agent-files`, and parallel sessions share it. Make branches in a `git worktree` (AGENTS.md, Workflow).
+- GitHub deletes a PR's branch when it merges (turned on 2026-11-01), and it retargets PRs stacked on that branch to `main`. After a merge, remove only your worktree and local branch.
 - The operator's install clone is `~/code/agent-files`, a separate clone that the `~/.local/bin/agent-files-*` links point at. It is at `7f6e6ee`, behind `main`, until the operator pulls it.
 - Tool versions: Claude Code 2.1.316 (logged in with claude.ai, so `claude -p` works without an API key), Neovim 0.12.5, TUIOS 0.12.1, Python 3.14.
 - **No standalone `rg`.** In a Claude Code shell, `rg` is a function that subprocesses can't see, so `tests.test_stats.Stats.test_numbers` fails with exit 127. It is a known failure until the operator runs `brew install ripgrep`, not a regression. Don't touch the test.
