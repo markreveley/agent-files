@@ -3,10 +3,11 @@
 M1 is built and tested against the mock backend only. Nothing has run against a real model, your editor or a real `claude` session yet. This is what you do to finish the build and start the ten-day trial. The agent-side backlog is in [agents-readme-next.md](agents-readme-next.md).
 
 ## Where you are (checked 2026-11-01)
-- Done: clone at `~/code/agent-files`, `./install.sh` run (links in `~/.local/bin`, on `PATH`). Present: `uv`, `git`, Python 3.14, Neovim 0.12.5.
-- Not done: `agent-files-run init` (no `~/agent-files` yet), `rg`, `ANTHROPIC_API_KEY` (unset in the shell checked), the hook block in `~/.claude/settings.json`, TUIOS.
+- Done: clone at `~/code/agent-files`, `./install.sh` run (links in `~/.local/bin`, on `PATH`). Present: `uv`, `git`, Python 3.14, Neovim 0.12.5, TUIOS 0.12.1 (Homebrew, not pinned yet: `brew pin tuios`).
+- Not done: `agent-files-run init` (no `~/agent-files` yet), `rg`, `ANTHROPIC_API_KEY` (unset in the shell checked), the hook block in `~/.claude/settings.json`, `tuios integration install`.
+- Stale: `~/code/agent-files` is at `7f6e6ee`, behind `main` (no PR #8-#11). The `~/.local/bin` links run whatever that clone holds, so pull it first.
 - Landed since: agent item 2, the hook verified against the hooks reference (PR #10). Steps 3 and 3a are no longer on hold.
-- **Next:** `agent-files-run init`, `brew install ripgrep`, step 2, then steps 3-8 in order.
+- **Next:** `git -C ~/code/agent-files pull`, `agent-files-run init`, `brew install ripgrep`, `brew pin tuios`, step 2, then steps 3-8 in order.
 - **Hold:** agent items 1 and 5 wait until after the trial. Item 1 changes the runner, so if you want it, have it done before S6, not mid-trial. Build nothing new before the day-10 decision ([m1-plan §5](../docs/m1-plan.md#5-decision-criteria)).
 
 ## 1. Install (about 10 minutes)
