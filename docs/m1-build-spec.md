@@ -534,5 +534,10 @@ Exactly as m1-plan §2: no tools in the runner (so no `▸` folds, `out/` only f
 ## 14. Open questions for the build
 
 1. **`claude -p` flags** (m1-plan §9.1): verify at step 7; if Claude Code's own prompt cannot be removed, the backend is still useful for cheap iteration but its turns should be excluded from cache and request comparisons.
+   **Answered 2026-11-01** (Claude Code 2.1.316, one real turn with the backend's exact argv from a clean environment). The §5.4.2 flags work. The session's init event lists no tools, MCP servers, slash commands or skills. User settings (and so their hooks) and `CLAUDE.md` are not loaded. `--system-prompt` replaces Claude Code's prompt: the whole request came to 666 input tokens. Two parts can't be removed:
+   - Claude Code still adds a `userEmail` reminder and an `# Environment` block, which includes the temporary working directory. `--bare` would drop them, but it accepts only `ANTHROPIC_API_KEY`, which defeats this backend's purpose.
+   - The exact request isn't observable: the stream shows the session config, not the request.
+
+   Both are in `backend_caveats`. Every `response.json` from this backend says `"backend": "claude_cli"`, so its turns can be filtered out of any cache or request comparison; `agent-files-stats` makes none today.
 2. **Effort per thread.** M1 uses one `effort` from config. If the trial wants a per-thread knob, add an optional `effort:` frontmatter field — a format addition, not a change.
 3. **Spinner cost.** A 120 ms timer redrawing the tabline is cheap, but if it flickers in Ghostty, fall back to a static `…`.

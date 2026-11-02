@@ -144,6 +144,6 @@ Under a week: runner about a day, plugin one to two days, hooks and stats half a
 
 ## 9. Open questions
 
-1. `claude -p` as a replay backend: which flags minimize Claude Code's own system prompt and tools, and is the exact request observable at all?
+1. `claude -p` as a replay backend: which flags minimize Claude Code's own system prompt and tools, and is the exact request observable at all? *Answered 2026-11-01 in [build spec §14.1](m1-build-spec.md#14-open-questions-for-the-build): the §5.4.2 flags remove tools, settings and the system prompt; a small `userEmail`/`Environment` block remains; the exact request is not observable.*
 2. One global root (`~/agent-files/`) is the M1 default. Do per-project roots pay off later?
 3. Is characters ÷ 4 a good enough token estimate for the status line, or should the runner record exact counts from API usage (in `steps/`)?
