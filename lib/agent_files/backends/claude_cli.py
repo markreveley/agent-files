@@ -13,6 +13,8 @@ CAVEATS = [
     "claude -p wraps the request in Claude Code's own harness; steps/ records what we sent, not the exact model request",
     "Claude Code adds a userEmail reminder and an Environment block (incl. the temp working directory) that no flag "
     "removes; --bare would, but it accepts only ANTHROPIC_API_KEY",
+    "claude -p has no flags for cache breakpoints, cache TTL, stop sequences or sampling; caching is whatever "
+    "Claude Code does",
 ]
 
 
