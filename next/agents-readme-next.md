@@ -1,7 +1,7 @@
 ---
 type: handoff
 audience: agent
-updated: 2026-11-01
+updated: 2026-11-02
 ---
 
 # Next steps for agents (AI coding sessions)
@@ -18,7 +18,7 @@ You are continuing the M1 build of agent-files. Read [docs/m1-build-spec.md](../
   - The hook, against the Claude Code hooks reference (PR #10).
   - The `claude -p` flags, with one real turn (PR #13; results in spec §14.1, remaining gaps in `claude_cli.CAVEATS`).
 - Not verified: anything through the runner against a real model (S6-S8), the hook in a live `claude` session (S9), and the interactive Neovim behaviour (S11). All three wait on the operator's install and smoke tests.
-- Harness sessions run in TUIOS, and H4 is not a trial hypothesis ([docs/host-analysis.md](../docs/host-analysis.md)). No M1 code changes because of that.
+- Harness sessions run in TUIOS, and H4 is not a trial hypothesis ([docs/host-analysis.md](../docs/host-analysis.md)). No M1 code changes because of that. ARCHITECTURE.md was checked against that decision and the code on 2026-11-01, and its stale lines were fixed (PR #18), so don't re-audit it.
 
 ## Environment facts (operator's Mac)
 - The repo checkout is `/Users/mark/dev/repos/agent-files`, and parallel sessions share it. Make branches in a `git worktree` (AGENTS.md, Workflow).
