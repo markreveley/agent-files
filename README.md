@@ -1,6 +1,8 @@
 # agent-files
 
-Threads as plain-text files. Design: [ARCHITECTURE.md](ARCHITECTURE.md). This build: [docs/m1-build-spec.md](docs/m1-build-spec.md).
+The logbook for human–agent work: every exchange a file you can edit as context, every settled conclusion a node that records who or what accepted it, every change linked to the turns and decisions behind it — beside any harness, under any host.
+
+Direction: [docs/direction-analysis.md](docs/direction-analysis.md). Design: [ARCHITECTURE.md](ARCHITECTURE.md). This build (M1, threads as plain-text files): [docs/m1-build-spec.md](docs/m1-build-spec.md).
 
 | Piece | What |
 |---|---|

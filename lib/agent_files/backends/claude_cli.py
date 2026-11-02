@@ -1,4 +1,4 @@
-"""`claude -p` backend (§5.4.2). Draws on the Agent SDK credit; Claude Code still adds some context (see CAVEATS)."""
+"""`claude -p` backend (§5.4.2). Draws from the operator's plan limits; Claude Code still adds some context (see CAVEATS)."""
 from __future__ import annotations
 
 import json

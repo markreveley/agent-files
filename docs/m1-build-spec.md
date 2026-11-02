@@ -265,7 +265,7 @@ Chosen by the `model` string:
 
 #### 5.4.2 `claude -p`
 
-Draws on the Agent SDK monthly credit on Pro/Max. Claude Code adds its own system prompt and tools, so `steps/` records what we sent, not the exact model request.
+Draws from the Pro/Max plan's limits (the separate Agent SDK credit announced 2026-05-13 was paused 2026-06-15). Claude Code adds its own system prompt and tools, so `steps/` records what we sent, not the exact model request.
 
 - Render the assembled messages as one transcript prompt (`[you]` / `[agent]` blocks) on stdin; the agent's system prompt via the flag that replaces the system prompt.
 - Run in an empty temporary directory, with all tools disabled, session persistence off, project/user settings not loaded, `--output-format stream-json`, and `AGENT_FILES_RUNNER=1` in the environment.
