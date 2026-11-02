@@ -76,9 +76,10 @@ Use the go and kill thresholds printed by `agent-files-stats` (H1 go at 20% or m
 
 ## Things to watch
 - `status` shows `?` for a turn working more than 10 minutes with no heartbeat: the runner probably died; restart `watch` and it will close the turn as interrupted.
+- Refusals: the fallback to another model is built after the trial (your decision, 2026-11-01), and `fallbacks = true` in `config.toml` does nothing yet. A refused turn ends as a failed turn with `! error: refusal (<category>)`. Rephrase and send again, or switch `model:` for that thread.
 - `claude-cli` turns carry a small `userEmail`/`Environment` block that Claude Code adds and no flag removes (spec §14.1); leave them out of any cache or request comparison.
 - Do not edit a thread's `thread.md` from another tool while a turn is running; the runner treats that as a conflict and ends the turn with `END (conflict)` (output saved in `out/`).
 - Pull requests from the agent side land on `main` of this repo; the data root is separate and never pushed by these programs.
 
 ## Questions
-- **Refusal fallback** (agent next step 2): have it built **before S6**, which delays the smoke tests by one agent session, or **after the trial**, so the trial runs without it? It changes the runner, so it can't go in mid-trial.
+- None open.

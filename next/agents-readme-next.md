@@ -32,18 +32,17 @@ You are continuing the M1 build of agent-files. Read [docs/m1-build-spec.md](../
 
 ## Next, in order
 1. **(Blocked on operator)** Act on smoke results. When the operator reports S6-S11, fix each failure from the symptom and the thread's `steps/` files. S11 includes the interactive Neovim check: `FileChangedShell` reload into a briefly non-modifiable buffer, and the spinner timer (the plugin uses `vim.uv or vim.loop`).
-2. **(Blocked on operator decision)** Anthropic refusal fallback (`lib/agent_files/backends/anthropic.py`). `fallbacks = true` only records a caveat in `steps/*.response.json` today.
+2. **After the trial starts, optional:** `agent-files-render` (view-layer step 2, spec §12). It must import `thread.py` and write only under `~/.cache/agent-files/view/`.
+3. **After the trial:** Anthropic refusal fallback (`lib/agent_files/backends/anthropic.py`). The operator decided on 2026-11-01 to build this after the trial, not before S6. Reasons: refusals should be rare in the trial's threads, a refusal already shows as a failed turn, it doesn't affect H1-H3, and no new building is allowed before day 10. `fallbacks = true` only records a caveat in `steps/*.response.json` today.
    - Look up the server-side fallback option and beta flag in the current API docs, and wire them in.
    - Add the `! served by <model>` diagnostic path. The runner already emits it when `served_model` differs.
    - Test with the fake SDK in `tests/fakes/anthropic` (add a scenario), as `tests/test_backends.py` does.
-   - Do it before S6 or after the trial, never mid-trial; the operator picks.
-3. **After the trial starts, optional:** `agent-files-render` (view-layer step 2, spec §12). It must import `thread.py` and write only under `~/.cache/agent-files/view/`.
 4. **After the trial:** the residue list for AGENTS.md (ARCHITECTURE §9.7). For each rule in `AGENTS.md`, name the test that enforces it (e.g. is the hook's 100 ms limit tested?), or list the rule under a new "Residue" heading as enforced by review only. Add no new tests; record what exists.
 
-Build nothing new before the day-10 decision ([m1-plan §5](../docs/m1-plan.md#5-decision-criteria)) beyond the fixes in item 1, and item 2 if the operator picks "before S6".
+Build nothing new before the day-10 decision ([m1-plan §5](../docs/m1-plan.md#5-decision-criteria)) beyond the fixes in item 1.
 
 ## Pending operator decisions
-- Refusal fallback (item 2): before S6, or after the trial?
+- None.
 
 ## Do not do
 - No tools in the runner, no `inbox/`, notes writing, compaction, `resume` context or grounding (spec §13).
