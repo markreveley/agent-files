@@ -1,21 +1,49 @@
+---
+type: handoff
+audience: agent
+updated: 2026-11-01
+---
+
 # Next steps for agents (AI coding sessions)
 
-You are continuing the M1 build of agent-files. Read [docs/m1-build-spec.md](../docs/m1-build-spec.md) first; where it is silent, [docs/m1-plan.md](../docs/m1-plan.md) and [ARCHITECTURE.md](../ARCHITECTURE.md) apply. The operator's checklist is in [operator-readme-next.md](operator-readme-next.md).
+Read with [operator-readme-next.md](operator-readme-next.md). Rewrite both at the end of each thread and delete finished steps.
 
-Since 2026-11-01 harness sessions run in TUIOS and H4 is no longer a trial hypothesis ([docs/host-analysis.md](../docs/host-analysis.md)). Nothing in the M1 code changes because of that.
+You are continuing the M1 build of agent-files. Read [docs/m1-build-spec.md](../docs/m1-build-spec.md) first; where it is silent, [docs/m1-plan.md](../docs/m1-plan.md) and [ARCHITECTURE.md](../ARCHITECTURE.md) apply. Standing rules and the pre-push checks are in [AGENTS.md](../AGENTS.md).
 
-Done and recorded elsewhere: the hook (PR #10), and the `claude -p` flags, verified with one real turn on 2026-11-01 (spec §14.1; the remaining gaps are in `claude_cli.CAVEATS`). Re-run that check after a Claude Code upgrade: run the backend's exact `command()` argv once from a shell with no `CLAUDE*` env vars, and read the stream's `system`/`init` event (`tools`, `mcp_servers`, `slash_commands`, `skills` should all be empty) and the result's input tokens (hundreds, not thousands).
+## State
+- M1 is built. `main` is pushed and clean, and no PRs are open.
+- Verified:
+  - Mock-backend tests and smoke S1-S5.
+  - Headless plugin tests on Neovim 0.12.5 (44 checks).
+  - The hook, against the Claude Code hooks reference (PR #10).
+  - The `claude -p` flags, with one real turn (PR #13; results in spec §14.1, remaining gaps in `claude_cli.CAVEATS`).
+- Not verified: anything through the runner against a real model (S6-S8), the hook in a live `claude` session (S9), and the interactive Neovim behaviour (S11). All three wait on the operator's install and smoke tests.
+- Harness sessions run in TUIOS, and H4 is not a trial hypothesis ([docs/host-analysis.md](../docs/host-analysis.md)). No M1 code changes because of that.
 
-This checkout is shared by parallel sessions: make new branches in a `git worktree`, not by switching branches here.
+## Environment facts (operator's Mac)
+- The repo checkout is `/Users/mark/dev/repos/agent-files`, and parallel sessions share it. Make branches in a `git worktree` (AGENTS.md, Workflow).
+- The operator's install clone is `~/code/agent-files`, a separate clone that the `~/.local/bin/agent-files-*` links point at. It is at `7f6e6ee`, behind `main`, until the operator pulls it.
+- Tool versions: Claude Code 2.1.316 (logged in with claude.ai, so `claude -p` works without an API key), Neovim 0.12.5, TUIOS 0.12.1, Python 3.14.
+- **No standalone `rg`.** In a Claude Code shell, `rg` is a function that subprocesses can't see, so `tests.test_stats.Stats.test_numbers` fails with exit 127. It is a known failure until the operator runs `brew install ripgrep`, not a regression. Don't touch the test.
+- To re-check the `claude -p` flags after a Claude Code upgrade:
+  1. Run the backend's exact `claude_cli.command()` argv once, from a shell with every `CLAUDE*` env var removed.
+  2. In the stream's `system`/`init` event, `tools`, `mcp_servers`, `slash_commands` and `skills` should all be empty.
+  3. The result's input tokens should be in the hundreds, not thousands.
 
-## Rules and checks
-Standing rules and the pre-push test commands are in [AGENTS.md](../AGENTS.md).
+## Next, in order
+1. **(Blocked on operator)** Act on smoke results. When the operator reports S6-S11, fix each failure from the symptom and the thread's `steps/` files. S11 includes the interactive Neovim check: `FileChangedShell` reload into a briefly non-modifiable buffer, and the spinner timer (the plugin uses `vim.uv or vim.loop`).
+2. **(Blocked on operator decision)** Anthropic refusal fallback (`lib/agent_files/backends/anthropic.py`). `fallbacks = true` only records a caveat in `steps/*.response.json` today.
+   - Look up the server-side fallback option and beta flag in the current API docs, and wire them in.
+   - Add the `! served by <model>` diagnostic path. The runner already emits it when `served_model` differs.
+   - Test with the fake SDK in `tests/fakes/anthropic` (add a scenario), as `tests/test_backends.py` does.
+   - Do it before S6 or after the trial, never mid-trial; the operator picks.
+3. **After the trial starts, optional:** `agent-files-render` (view-layer step 2, spec §12). It must import `thread.py` and write only under `~/.cache/agent-files/view/`.
+4. **After the trial:** the residue list for AGENTS.md (ARCHITECTURE §9.7). For each rule in `AGENTS.md`, name the test that enforces it (e.g. is the hook's 100 ms limit tested?), or list the rule under a new "Residue" heading as enforced by review only. Add no new tests; record what exists.
 
-## Open items, in priority order
-1. **Anthropic refusal fallback** (`lib/agent_files/backends/anthropic.py`). `fallbacks = true` currently only records a caveat in `steps/*.response.json`. Look up the server-side fallback option and beta flag in the current API docs, wire it in, and add the `! served by <model>` diagnostic path (runner already emits it when `served_model` differs). Test it with the fake SDK in `tests/fakes/anthropic` (add a scenario), as `tests/test_backends.py` does.
-2. **Neovim 0.10+ — interactive half only.** The headless plugin tests pass on Neovim 0.12.5, the operator's version (44 checks, 2026-11-01). Still to confirm by hand, in a real editor: `FileChangedShell` reload into a briefly non-modifiable buffer, and the spinner timer. The operator can do this during smoke S11. The plugin uses `vim.uv or vim.loop`.
-3. **Optional, after the trial starts:** `agent-files-render` (view-layer step 2, spec §12). It must import `thread.py` and write only under `~/.cache/agent-files/view/`.
-4. **Residue list for AGENTS.md** (ARCHITECTURE §9.7). For each rule in `AGENTS.md`, name the test that enforces it (e.g. is the hook's 100 ms limit tested?), or list it under a new "Residue" heading as enforced by review only. Add no new tests in this item; record what exists.
+Build nothing new before the day-10 decision ([m1-plan §5](../docs/m1-plan.md#5-decision-criteria)) beyond the fixes in item 1, and item 2 if the operator picks "before S6".
+
+## Pending operator decisions
+- Refusal fallback (item 2): before S6, or after the trial?
 
 ## Do not do
 - No tools in the runner, no `inbox/`, notes writing, compaction, `resume` context or grounding (spec §13).

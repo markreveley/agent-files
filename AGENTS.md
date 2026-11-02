@@ -30,5 +30,6 @@ Smoke S6-S11 need a real model, editor or `claude` session and are the operator'
 
 ## Workflow
 - Work on a feature branch, push, open a draft PR against `main`.
+- Parallel sessions share the main checkout. Create your branch in a `git worktree`, never by switching branches in the main checkout, which moves every session's `HEAD`. Don't `git stash` there either: it stashes other sessions' edits too.
 - Say plainly what was not verified (live API, real `claude`, Neovim version) in the PR body.
 - Do not put model identifiers in commits, PR text or code comments.
