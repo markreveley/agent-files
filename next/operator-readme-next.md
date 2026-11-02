@@ -1,22 +1,23 @@
+---
+type: handoff
+audience: operator
+updated: 2026-11-01
+---
+
 # Next steps for the operator
 
-M1 is built and tested against the mock backend only. Nothing has run against a real model, your editor or a real `claude` session yet. This is what you do to finish the build and start the ten-day trial. The agent-side backlog is in [agents-readme-next.md](agents-readme-next.md).
+Read with [agents-readme-next.md](agents-readme-next.md). M1 is built and tested against the mock backend. Nothing has yet run through the runner against a real model, in your editor, or with a live `claude` session. These steps finish the build and start the ten-day trial.
 
-## Where you are (checked 2026-11-01)
-- Done: clone at `~/code/agent-files`, `./install.sh` run (links in `~/.local/bin`, on `PATH`). Present: `uv`, `git`, Python 3.14, Neovim 0.12.5, TUIOS 0.12.1 (Homebrew, not pinned yet: `brew pin tuios`).
-- Not done: `agent-files-run init` (no `~/agent-files` yet), `rg`, `ANTHROPIC_API_KEY` (unset in the shell checked), the hook block in `~/.claude/settings.json`, `tuios integration install`.
-- Stale: `~/code/agent-files` is at `7f6e6ee`, behind `main` (no PR #8-#11). The `~/.local/bin` links run whatever that clone holds, so pull it first.
-- Landed since: the hook verified against the hooks reference (PR #10), so steps 3 and 3a are no longer on hold; the `claude -p` flags verified with one real turn (`claude-cli` turns carry a small `userEmail`/`Environment` block Claude Code adds; see spec §14.1).
-- **Next:** `git -C ~/code/agent-files pull`, `agent-files-run init`, `brew install ripgrep`, `brew pin tuios`, step 2, then steps 3-8 in order.
-- **Hold:** agent items 1 (refusal fallback) and 4 (residue list) wait until after the trial. Item 1 changes the runner, so if you want it, have it done before S6, not mid-trial. Build nothing new before the day-10 decision ([m1-plan §5](../docs/m1-plan.md#5-decision-criteria)).
+Already done on this Mac (checked 2026-11-01): the clone at `~/code/agent-files`, `./install.sh` (links in `~/.local/bin`, on `PATH`), `uv`, `git`, Python 3.14, Neovim 0.12.5, and TUIOS 0.12.1.
 
-## 1. Install (about 10 minutes)
+## 1. Finish the install
 ```sh
-git clone https://github.com/markreveley/agent-files ~/code/agent-files   # NOT ~/agent-files, that is the data root
-cd ~/code/agent-files && ./install.sh                                     # links bin/* into ~/.local/bin
-agent-files-run init                                                       # creates ~/agent-files with config.toml, agents/, trial/
+git -C ~/code/agent-files pull   # the ~/.local/bin links run this clone, and it is behind main (at 7f6e6ee)
+agent-files-run init             # creates ~/agent-files (the data root) with config.toml, agents/, trial/
+brew install ripgrep             # agent-files-grep and :AgentsGrep (S10) need a standalone rg
+brew pin tuios                   # keep TUIOS 0.12.1 for the whole trial
 ```
-Requirements: Python 3.11+, `uv`, `git`, `rg`, Neovim (0.10+ per the spec; 0.9.5 passed the tests). `rg` must be a standalone binary (`brew install ripgrep`): the `rg` inside a Claude Code shell is a wrapper around Claude Code's bundled copy and is not on your own `PATH`. `agent-files-grep` and `:AgentsGrep` (S10) need it.
+Claude Code's `rg` doesn't count: it only exists inside a Claude Code shell.
 
 ## 2. Configure
 - Edit `~/agent-files/config.toml`: set `[prices.<model>]` for every model you will use (unknown models count as $0 and the spend cap then protects nothing) and check `daily_spend_cap_usd`.
@@ -24,15 +25,12 @@ Requirements: Python 3.11+, `uv`, `git`, `rg`, Neovim (0.10+ per the spec; 0.9.5
 - For local models, make sure Ollama or LM Studio is running at the `base_url` in the config.
 
 ## 3. Hook up Claude Code
-First `git pull` in `~/code/agent-files` and re-run `./install.sh`: the hook was verified against the Claude Code hooks reference (PR #10) and its block now registers ten events, including `PermissionRequest`, `PostToolUseFailure` and `StopFailure`. If you pasted an older block, replace it.
-
-Paste the block `install.sh` printed into `~/.claude/settings.json` (merge with existing `hooks`). Do this before 3a. S9 below is the end-to-end check.
+Re-run `./install.sh` in `~/code/agent-files` (after the pull in step 1) and paste the hook block it prints into `~/.claude/settings.json`, merging with the existing `hooks`. The block registers ten events, including `PermissionRequest`, `PostToolUseFailure` and `StopFailure`; it was verified against the Claude Code hooks reference. Do this before 3a. S9 below is the end-to-end check.
 
 ## 3a. Host Claude Code and Codex in TUIOS
 Since 2026-11-01 TUIOS hosts harness sessions and owns attention for them ([docs/host-analysis.md](../docs/host-analysis.md), ARCHITECTURE §5.1).
-- Install TUIOS (Homebrew or a release binary, per [tuios.dev](https://tuios.dev/)) and **pin the version** you start the trial with; do not upgrade mid-trial.
-- Installing the binary can happen any time; run the next bullet only after step 3, so the `agent-files-hook` entries are already there for it to leave alone.
-- `tuios integration install` for Claude Code (and Codex) so its Inbox gets hook-reported state. It adds its own entries to `~/.claude/settings.json`, leaves the `agent-files-hook` entries alone and keeps a `settings.json.tuios.bak`. Check both sets of hooks are present afterwards.
+- TUIOS is installed and pinned in step 1; do not upgrade it mid-trial.
+- Run this after step 3, so the `agent-files-hook` entries are already there for it to leave alone: `tuios integration install` for Claude Code (and Codex) so its Inbox gets hook-reported state. It adds its own entries to `~/.claude/settings.json`, leaves the `agent-files-hook` entries alone and keeps a `settings.json.tuios.bak`. Check both sets of hooks are present afterwards.
 - `[agents.approvals]` **off** is simplest. If you turn it on, TUIOS holds permission prompts for up to 300 s and Claude's own dialog doesn't appear, but the observed status still shows `blocked` (`agent-files-hook` maps `PermissionRequest`).
 - Don't pass `--statusline` unless you also pass `--then <your current statusline command>`; it refuses to replace an existing one otherwise.
 - Don't use `ask-agent`, agent mail or the delivery queue on Claude sessions: they type agent-written text into the TUI (ARCHITECTURE §5.1 policy rule).
@@ -49,6 +47,7 @@ Do view-layer step 0 (a generic markdown renderer, about an hour) and confirm yo
 ```sh
 agent-files-run watch     # leave running; a second copy exits with code 2
 ```
+Tell the agent when `watch` is running, or which of steps 1-5 failed and how.
 
 ## 6. Run the manual smoke tests (spec §10.2)
 `sh tests/smoke.sh` already covers S1-S5 with the mock backend. By hand:
@@ -60,9 +59,9 @@ agent-files-run watch     # leave running; a second copy exits with code 2
 | S8 | `model: ollama/<name>`, send | reply, `cost_usd: 0` |
 | S9 | start `claude` in a project **inside TUIOS**, trigger a permission prompt | `_observed/...` appears; `:AgentsNext` shows `blocked` as soon as the permission dialog opens (not ~6 s later), then `working`, `done`, gone on exit; the TUIOS Inbox shows the same prompt |
 | S10 | `:AgentsGrep <word>` | quickfix hits, one line in `trial/searches.log` |
-| S11 | open a smoke thread and the view fixture | headers/`END` highlighted, end mark shows status and `~Nk`, tool fold closed. Also (agent item 2, Neovim interactive): during a running turn the spinner moves and the buffer is read-only; when the reply lands the buffer reloads with no "file changed" prompt and becomes writable again |
+| S11 | open a smoke thread and the view fixture | headers/`END` highlighted, end mark shows status and `~Nk`, tool fold closed. Also (the interactive Neovim check): during a running turn the spinner moves and the buffer is read-only; when the reply lands the buffer reloads with no "file changed" prompt and becomes writable again |
 
-If one fails, note it and hand it to an agent with the exact symptom and the thread's `steps/` files.
+Report the result of each of S6-S11 to the agent. For a failure, include the exact symptom and the thread's `steps/` files.
 
 ## 7. Start the trial
 When S1-S11 pass, write the date at the top of `~/agent-files/trial/journal.md`: that is day 1. Each day fill the journal template. Daily commands:
@@ -77,5 +76,9 @@ Use the go and kill thresholds printed by `agent-files-stats` (H1 go at 20% or m
 
 ## Things to watch
 - `status` shows `?` for a turn working more than 10 minutes with no heartbeat: the runner probably died; restart `watch` and it will close the turn as interrupted.
+- `claude-cli` turns carry a small `userEmail`/`Environment` block that Claude Code adds and no flag removes (spec §14.1); leave them out of any cache or request comparison.
 - Do not edit a thread's `thread.md` from another tool while a turn is running; the runner treats that as a conflict and ends the turn with `END (conflict)` (output saved in `out/`).
 - Pull requests from the agent side land on `main` of this repo; the data root is separate and never pushed by these programs.
+
+## Questions
+- **Refusal fallback** (agent next step 2): have it built **before S6**, which delays the smoke tests by one agent session, or **after the trial**, so the trial runs without it? It changes the runner, so it can't go in mid-trial.
