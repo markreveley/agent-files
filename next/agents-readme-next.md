@@ -26,11 +26,12 @@ You are continuing the M1 build of agent-files. For what agent-files is for and 
   - Before building any capture of coding sessions, grade **Entire** (§12.1, §13 Q16).
   - Principle 13 keeps the format, the hook, the links and the HTML viewer extractable.
   - **M1 is unchanged** (spec, H1–H3, thresholds). The record trial (attribution and the DAG) is the next trial.
-- Operator steps 1-6 were checked on 2026-11-02 and none had been started: the install clone was at `7f6e6ee`, there was no `~/agent-files`, no standalone `rg`, TUIOS wasn't pinned, there were no hook entries in `~/.claude/settings.json`, and `watch` wasn't running.
+- Operator steps 1-6 were last checked at the end of 2026-11-02, and none had been started: the install clone was at `7f6e6ee`, there was no `~/agent-files`, no standalone `rg`, TUIOS wasn't pinned, there were no hook entries in `~/.claude/settings.json`, and `watch` wasn't running.
 
 ## Environment facts (operator's Mac)
 - The repo checkout is `/Users/mark/dev/repos/agent-files`, and parallel sessions share it. Make branches in a `git worktree` (AGENTS.md, Workflow).
 - GitHub deletes a PR's branch when it merges (turned on 2026-11-01), and it retargets PRs stacked on that branch to `main`. After a merge, remove only your worktree and local branch.
+- `threads/` at the repo root holds session logs the operator saves, such as `2026-11-02-01.md`, the thread behind direction-analysis. They are not data-root threads, and no program reads them. The repo is public, so commit a log only after trimming it to the prompts and prose replies, labelled `U:`/`A:`. Auto mode blocked a push of an untrimmed transcript that still had tool output and request IDs.
 - The operator's install clone is `~/code/agent-files`, a separate clone that the `~/.local/bin/agent-files-*` links point at. It is at `7f6e6ee`, behind `main`, until the operator pulls it.
 - Tool versions: Claude Code 2.1.316 (logged in with claude.ai, so `claude -p` works without an API key), Neovim 0.12.5, TUIOS 0.12.1, Python 3.14.
 - **No standalone `rg`.** In a Claude Code shell, `rg` is a function that subprocesses can't see, so `tests.test_stats.Stats.test_numbers` fails with exit 127. It is a known failure until the operator runs `brew install ripgrep`, not a regression. Don't touch the test.
