@@ -6,9 +6,9 @@ M1 is built and tested against the mock backend only. Nothing has run against a 
 - Done: clone at `~/code/agent-files`, `./install.sh` run (links in `~/.local/bin`, on `PATH`). Present: `uv`, `git`, Python 3.14, Neovim 0.12.5, TUIOS 0.12.1 (Homebrew, not pinned yet: `brew pin tuios`).
 - Not done: `agent-files-run init` (no `~/agent-files` yet), `rg`, `ANTHROPIC_API_KEY` (unset in the shell checked), the hook block in `~/.claude/settings.json`, `tuios integration install`.
 - Stale: `~/code/agent-files` is at `7f6e6ee`, behind `main` (no PR #8-#11). The `~/.local/bin` links run whatever that clone holds, so pull it first.
-- Landed since: agent item 2, the hook verified against the hooks reference (PR #10). Steps 3 and 3a are no longer on hold.
+- Landed since: the hook verified against the hooks reference (PR #10), so steps 3 and 3a are no longer on hold; the `claude -p` flags verified with one real turn (`claude-cli` turns carry a small `userEmail`/`Environment` block Claude Code adds; see spec §14.1).
 - **Next:** `git -C ~/code/agent-files pull`, `agent-files-run init`, `brew install ripgrep`, `brew pin tuios`, step 2, then steps 3-8 in order.
-- **Hold:** agent items 1 and 5 wait until after the trial. Item 1 changes the runner, so if you want it, have it done before S6, not mid-trial. Build nothing new before the day-10 decision ([m1-plan §5](../docs/m1-plan.md#5-decision-criteria)).
+- **Hold:** agent items 1 (refusal fallback) and 4 (residue list) wait until after the trial. Item 1 changes the runner, so if you want it, have it done before S6, not mid-trial. Build nothing new before the day-10 decision ([m1-plan §5](../docs/m1-plan.md#5-decision-criteria)).
 
 ## 1. Install (about 10 minutes)
 ```sh
@@ -60,7 +60,7 @@ agent-files-run watch     # leave running; a second copy exits with code 2
 | S8 | `model: ollama/<name>`, send | reply, `cost_usd: 0` |
 | S9 | start `claude` in a project **inside TUIOS**, trigger a permission prompt | `_observed/...` appears; `:AgentsNext` shows `blocked` as soon as the permission dialog opens (not ~6 s later), then `working`, `done`, gone on exit; the TUIOS Inbox shows the same prompt |
 | S10 | `:AgentsGrep <word>` | quickfix hits, one line in `trial/searches.log` |
-| S11 | open a smoke thread and the view fixture | headers/`END` highlighted, end mark shows status and `~Nk`, tool fold closed. Also (agent item 3): during a running turn the spinner moves and the buffer is read-only; when the reply lands the buffer reloads with no "file changed" prompt and becomes writable again |
+| S11 | open a smoke thread and the view fixture | headers/`END` highlighted, end mark shows status and `~Nk`, tool fold closed. Also (agent item 2, Neovim interactive): during a running turn the spinner moves and the buffer is read-only; when the reply lands the buffer reloads with no "file changed" prompt and becomes writable again |
 
 If one fails, note it and hand it to an agent with the exact symptom and the thread's `steps/` files.
 

@@ -1,4 +1,4 @@
-"""`claude -p` backend (§5.4.2). Draws on the Agent SDK credit; Claude Code adds its own prompt/tools."""
+"""`claude -p` backend (§5.4.2). Draws on the Agent SDK credit; Claude Code still adds some context (see CAVEATS)."""
 from __future__ import annotations
 
 import json
@@ -9,7 +9,11 @@ import threading
 
 from .base import BackendError
 
-CAVEATS = ["claude -p wraps the request in Claude Code's own harness; steps/ records what we sent, not the exact model request"]
+CAVEATS = [
+    "claude -p wraps the request in Claude Code's own harness; steps/ records what we sent, not the exact model request",
+    "Claude Code adds a userEmail reminder and an Environment block (incl. the temp working directory) that no flag "
+    "removes; --bare would, but it accepts only ANTHROPIC_API_KEY",
+]
 
 
 def render_prompt(req: dict) -> str:
@@ -24,7 +28,8 @@ def build_body(req: dict, model: str | None) -> dict:
 
 
 def command(cmd: str, body: dict) -> list:
-    # Flags verified against `claude --help` (Claude Code CLI): see docs/m1-build-spec.md §5.4.2.
+    # Flags verified against `claude --help` and one real turn (Claude Code 2.1.316, 2026-11-01): no tools,
+    # MCP servers, slash commands, skills, user settings, hooks or CLAUDE.md. See docs/m1-build-spec.md §14.1.
     args = [cmd, "-p", "--output-format", "stream-json", "--verbose", "--include-partial-messages",
             "--no-session-persistence", "--tools", "", "--setting-sources", "",
             "--disable-slash-commands", "--strict-mcp-config"]
