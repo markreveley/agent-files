@@ -1,7 +1,7 @@
 ---
 type: handoff
 audience: operator
-updated: 2026-11-01
+updated: 2026-11-02
 ---
 
 # Next steps for the operator
