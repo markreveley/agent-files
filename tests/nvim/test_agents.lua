@@ -185,6 +185,66 @@ ok(#marks == 1, "one end mark")
 local vt = marks[1] and marks[1][4].virt_text[1][1] or ""
 ok(vt:find("✗") and vt:find("failed") and vt:find("~%d+k"), "end mark shows status and tokens: " .. vt)
 
+-- helpers for the sections below ------------------------------------------------------------------
+local function append(d, text) local h = io.open(d .. "/thread.md", "a"); h:write(text); h:close() end
+local function buf_lines(b) return vim.api.nvim_buf_get_lines(b, 0, -1, false) end
+local function count(ls, text) local k = 0; for _, x in ipairs(ls) do if x == text then k = k + 1 end end; return k end
+local function has(b, text) return count(buf_lines(b), text) > 0 end
+
+-- draft: text typed right after a send survives a streamed reply once ----------------------------
+vim.cmd("AgentsNew draft-stream")
+vim.cmd("stopinsert")
+local sd = tmp .. "/threads/draft-stream"
+local sb = vim.api.nvim_get_current_buf()
+vim.api.nvim_buf_set_lines(sb, -1, -1, false, { "question" })
+vim.cmd("AgentsSend")
+vim.api.nvim_buf_set_lines(sb, -1, -1, false, { "", "my next thought" })
+write_status(sd, "working")
+local stream_ok, stream = true, { "\n## agent · t2\n", "line 1\n", "line 2\n", "line 3\n" }
+for i, chunk in ipairs(stream) do
+  append(sd, chunk)
+  local want = i == 1 and "## agent · t2" or ("line " .. (i - 1))
+  ok(vim.wait(3000, function() return has(sb, want) end, 20), "stream step " .. i .. " reloaded")
+  local bl = buf_lines(sb)
+  if count(bl, "## you · t1") ~= 1 or count(bl, want) ~= 1 or #bl ~= #readf(sd .. "/thread.md") + 2
+     or bl[#bl] ~= "my next thought" then
+    stream_ok = false
+  end
+end
+ok(stream_ok, "while the reply streams the buffer is the file plus the draft, nothing duplicated: " .. #buf_lines(sb))
+append(sd, "\nEND\n\n## you · t3\n\n")
+write_status(sd, "done")
+ok(vim.wait(3000, function() return has(sb, "## you · t3") and vim.bo[sb].modifiable end, 20), "reply finished")
+local want_sb = readf(sd .. "/thread.md")
+want_sb[#want_sb + 1] = "my next thought"
+eq(buf_lines(sb), want_sb, "draft once, under the new scaffold")
+vim.bo[sb].modified = false
+
+-- draft: a partly saved turn, sent from outside, does not duplicate the saved part ----------------
+vim.cmd("AgentsNew draft-partial")
+vim.cmd("stopinsert")
+local pd = tmp .. "/threads/draft-partial"
+local pb = vim.api.nvim_get_current_buf()
+vim.api.nvim_buf_set_lines(pb, -1, -1, false, { "saved part" })
+vim.cmd("silent write")
+vim.api.nvim_buf_set_lines(pb, -1, -1, false, { "unsaved part" })
+append(pd, "END\n")
+ok(vim.wait(3000, function() return has(pb, "END") end, 20), "partial: reloaded")
+local pl = buf_lines(pb)
+eq(vim.list_slice(pl, #pl - 4), { "", "saved part", "END", "", "unsaved part" }, "partial: only the unsaved text is re-applied")
+
+-- draft: an unsaved edit above the last END is kept in place when the file grows ------------------
+vim.cmd("silent edit!")
+local el
+for i, x in ipairs(buf_lines(pb)) do if x == "saved part" then el = i end end
+vim.api.nvim_buf_set_lines(pb, el - 1, el, false, { "saved part, edited" })
+append(pd, "\n## agent · t2\nreply\nEND\n")
+ok(vim.wait(3000, function() return has(pb, "reply") end, 20), "mid edit: reloaded")
+pl = buf_lines(pb)
+ok(pl[el] == "saved part, edited" and count(pl, "saved part") == 0 and count(pl, "reply") == 1, "mid edit kept in place: " .. vim.inspect(pl))
+ok(vim.bo[pb].modified, "mid edit: buffer still modified")
+vim.bo[pb].modified = false
+
 print(("%d checks, %d failed"):format(n, fails))
 vim.fn.delete(tmp, "rf")
 os.exit(fails == 0 and 0 or 1)

@@ -424,7 +424,7 @@ Neovim 0.10+. Configured with `require('agents').setup({ root = '~/agent-files' 
 - A buffer is a thread buffer if its path is `<root>/threads/**/thread.md` (observed threads included, read-only, no commands that write turns).
 - For each thread buffer: one `vim.uv.new_fs_event` on the thread directory. On any event, debounced 100 ms: re-read `status` and `seen`, `:checktime` the buffer, refresh marks.
 - While `status` is `working`: `modifiable = false`, `readonly = true`. Restored when it changes.
-- **Draft re-apply.** Before a reload (`FileChangedShell`, and set `v:fcs_choice = 'reload'` so there is never a prompt): if the buffer is modified, save the text after the last closed turn's `END` (the draft region). After reload, if the file's new last section is an empty `## you · tN` scaffold, put the draft there; otherwise append it at the end. Notify once: "draft re-applied".
+- **Draft re-apply.** Before a reload (`FileChangedShell`, and set `v:fcs_choice = 'reload'` so there is never a prompt): if the buffer is modified, save what the user typed: how the buffer differs from the file as the buffer last read or wrote it. Text that came from the file, such as a streaming reply, is never part of it. After reload, an edit inside the old file's lines goes back in place if the file did not change those lines. Everything else is the draft: text typed after the old end of the file, or an edit to lines the file also changed. If the file's new last section is an empty `## you · tN` scaffold, put the draft there; otherwise append it at the end. Notify once per draft: "draft re-applied".
 
 ### 9.2 Marks and status line
 

@@ -2,11 +2,12 @@
 local T = require("agents.thread")
 local S = require("agents.status")
 local D = require("agents.display")
+local Draft = require("agents.draft")
 local uv = vim.uv or vim.loop
 
 local M = {}
 M.opts = { root = nil, tabline = false, grep_cmd = "agent-files-grep" }
-M.attached = {}   -- bufnr -> { dir=, watcher=, timer=, observed= }
+M.attached = {}   -- bufnr -> { dir=, watcher=, timer=, observed=, disk=, pending= }
 
 local group = vim.api.nvim_create_augroup("AgentsNvim", { clear = true })
 
@@ -114,43 +115,24 @@ local function touch_seen(buf)
   end
 end
 
--- draft re-apply --------------------------------------------------------------------------------
-local function capture_draft(buf)
-  if not vim.bo[buf].modified then return nil end
-  local lines = lines_of(buf)
-  local p = T.parse(lines)
-  local last = T.last(p)
-  local draft = {}
-  if last and last.role == "you" and last.closed == "none" then
-    for n = last.header + 1, #lines do draft[#draft + 1] = lines[n] end
-  else
-    local from = 1
-    if last and last.end_line then from = last.end_line + 1 end
-    for n = from, #lines do draft[#draft + 1] = lines[n] end
-  end
-  while #draft > 0 and not draft[#draft]:match("%S") do draft[#draft] = nil end
-  while #draft > 0 and not draft[1]:match("%S") do table.remove(draft, 1) end
-  if #draft == 0 then return nil end
-  return draft
+-- draft re-apply (agents.draft) ----------------------------------------------------------------
+-- a.disk is the file as the buffer last read or wrote it; the user's text is what differs from it.
+local function disk_lines(buf)
+  if not vim.bo[buf].modified then return lines_of(buf) end
+  local ok, l = pcall(vim.fn.readfile, vim.api.nvim_buf_get_name(buf))
+  return ok and l or lines_of(buf)
 end
 
-local function reapply_draft(buf, draft)
-  local lines = lines_of(buf)
-  local p = T.parse(lines)
-  local last = T.last(p)
-  local was = vim.bo[buf].modifiable
-  vim.bo[buf].modifiable = true
-  if last and last.role == "you" and last.closed == "none" and last.empty then
-    local new = { "" }
-    vim.list_extend(new, draft)
-    vim.api.nvim_buf_set_lines(buf, last.header, -1, false, new)
-  else
-    local new = { "" }
-    vim.list_extend(new, draft)
-    vim.api.nvim_buf_set_lines(buf, #lines, #lines, false, new)
-  end
-  vim.bo[buf].modifiable = was
-  vim.notify("agents: draft re-applied", vim.log.levels.INFO)
+local function reapply_draft(buf, a, p)
+  local merged, drafted = Draft.merge(p.old, p.mine, lines_of(buf))
+  if not merged then return end
+  local ma, ro = vim.bo[buf].modifiable, vim.bo[buf].readonly
+  vim.bo[buf].modifiable, vim.bo[buf].readonly = true, false
+  Draft.set(buf, merged)
+  vim.bo[buf].modifiable, vim.bo[buf].readonly = ma, ro
+  -- once per draft, not on every reload of a streaming reply
+  if drafted and not a.draft_noted then vim.notify("agents: draft re-applied", vim.log.levels.INFO) end
+  a.draft_noted = drafted
 end
 
 -- attach ----------------------------------------------------------------------------------------
@@ -184,7 +166,7 @@ function M.attach(buf)
   local path = vim.api.nvim_buf_get_name(buf)
   local dir, observed = thread_info(path)
   if not dir then return end
-  local a = { dir = dir, observed = observed }
+  local a = { dir = dir, observed = observed, disk = disk_lines(buf) }
   M.attached[buf] = a
   vim.bo[buf].autoread = true
   if observed then
@@ -201,17 +183,26 @@ function M.attach(buf)
   end)
   vim.api.nvim_create_autocmd("BufWipeout", { group = group, buffer = buf, callback = function() detach(buf) end })
   vim.api.nvim_create_autocmd("FileChangedShell", { group = group, buffer = buf, callback = function()
-    a.draft = capture_draft(buf)
+    a.pending = vim.bo[buf].modified and { old = a.disk, mine = lines_of(buf) } or nil
+    if not a.pending then a.draft_noted = false end
     vim.bo[buf].modifiable = true
     vim.v.fcs_choice = "reload"
   end })
   vim.api.nvim_create_autocmd("FileChangedShellPost", { group = group, buffer = buf, callback = function()
-    if a.draft then
-      local d = a.draft
-      a.draft = nil
-      vim.schedule(function() reapply_draft(buf, d) end)
+    local p = a.pending
+    a.pending = nil
+    -- still modified: the reload did not happen (e.g. the file was deleted); keep the buffer as is
+    if not vim.bo[buf].modified then
+      a.disk = lines_of(buf)
+      if p then reapply_draft(buf, a, p) end
     end
     vim.schedule(function() refresh_buf(buf); D.apply(buf, a.info) end)
+  end })
+  vim.api.nvim_create_autocmd({ "BufReadPost", "BufWritePost" }, { group = group, buffer = buf, callback = function(ev)
+    local function real(p) return vim.fn.resolve(vim.fn.fnamemodify(p, ":p")) end
+    if real(ev.match) ~= real(vim.api.nvim_buf_get_name(buf)) then return end -- :w {other file}
+    a.disk = lines_of(buf)
+    if ev.event == "BufWritePost" or not a.pending then a.draft_noted = false end
   end })
   vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, { group = group, buffer = buf, callback = function()
     D.apply(buf, a.info)
