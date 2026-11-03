@@ -6,11 +6,11 @@ updated: 2026-11-02
 
 # Next steps for the operator
 
-Read with [agents-readme-next.md](agents-readme-next.md). M1 is built and tested against the mock backend. Nothing has yet run through the runner against a real model, in your editor, or with a live `claude` session. These steps finish the build and start the ten-day trial.
+Read with [agents-readme-next.md](agents-readme-next.md). M1 is built and tested against the mock backend, and the bugs an audit found on 2026-11-02 are fixed (PR #24). Nothing has yet run through the runner against a real model, in your editor, or with a live `claude` session. These steps finish the build and start the ten-day trial.
 
 Where this goes after the trial: [docs/direction-analysis.md](../docs/direction-analysis.md) (decided 2026-11-02). It changes nothing below.
 
-Already done on this Mac: the clone at `~/code/agent-files` (pulled to `f627b15` on 2026-11-02), `./install.sh` (links in `~/.local/bin`, on `PATH`), `uv`, `git`, Python 3.14, Neovim 0.12.5, TUIOS 0.12.1 (pinned with `brew pin tuios`), ripgrep 15.2.0, and `agent-files-run init`. The data root is at `~/dev/repos/agent-files-data`, with `~/agent-files` linking to it. It has no remote; add a private one if you want an offsite backup, and push it yourself.
+Already done on this Mac: the clone at `~/code/agent-files` (at `f627b15`; step 2 pulls the audit fixes), `./install.sh` (links in `~/.local/bin`, on `PATH`), `uv`, `git`, Python 3.14, Neovim 0.12.5, TUIOS 0.12.1 (pinned with `brew pin tuios`), ripgrep 15.2.0, and `agent-files-run init`. The data root is at `~/dev/repos/agent-files-data`, with `~/agent-files` linking to it. It has no remote; add a private one if you want an offsite backup, and push it yourself.
 
 ## 1. Configure
 - Prices are done (agent, at your request, 2026-11-02): `~/agent-files/config.toml` has blocks for `claude-opus-5-5`, `claude-fable-5-1`, `claude-sonnet-5-5` and `claude-haiku-5-5`, checked against Anthropic's pricing page that day. The edit is not committed in the data root; commit it if you want it in history. Any other paid model needs its own block, keyed by the exact `model:` name in quotes; without one it counts as $0 and the spend cap doesn't protect it. Local `ollama/...` and `lmstudio/...` models need none.
