@@ -142,6 +142,7 @@ def compute(root, since=None):
             switch_count += 1
     counts = sorted(nturns.values())
     six = [tid for tid, n in nturns.items() if n >= 6]
+    six_edited = len([t for t in six if t in edit_threads])
     carry_sizes = [(th.carry or "") for tid, th in threads if th.carry]
     # spend
     total_spend = today_spend = 0.0
@@ -171,9 +172,10 @@ def compute(root, since=None):
         "turns_median": statistics.median(counts) if counts else 0,
         "turns_max": counts[-1] if counts else 0,
         "threads_6plus": len(six),
-        "threads_6plus_with_context_edit": len([t for t in six if t in edit_threads]),
+        "threads_6plus_with_context_edit": six_edited,
         "threads_with_context_edit": len(edit_threads),
-        "context_edit_pct": round(100 * len([t for t in six if t in edit_threads]) / len(six)) if six else 0,
+        # cut, not rounded, to one decimal: a share below 5% or 20% never prints as reaching it
+        "context_edit_pct": (1000 * six_edited // len(six)) / 10 if six else 0.0,
         "carry_median_lines": statistics.median([c.count("\n") + 1 for c in carry_sizes]) if carry_sizes else 0,
         "carry_median_chars": statistics.median([len(c) for c in carry_sizes]) if carry_sizes else 0,
         "model_switches": switch_count,
@@ -193,7 +195,7 @@ def render(r) -> str:
         f"{'threads':<28}{r['threads']:>4}   (forks {r['forks']})",
         f"{'turns per thread':<28}median {med(r['turns_median'])}, max {r['turns_max']}",
         f"{'threads with 6+ turns':<28}{r['threads_6plus']:>4}",
-        f"{'  with a context edit':<28}{r['threads_6plus_with_context_edit']:>4}   ({r['context_edit_pct']}%)    H1 go >= 20%, kill < 5%",
+        f"{'  with a context edit':<28}{r['threads_6plus_with_context_edit']:>4}   ({r['context_edit_pct']:.1f}%)    H1 go >= 20%, kill < 5%",
         f"{'forks':<28}{r['forks']:>4}            H2 go >= 5,   kill < 2",
         f"{'  carry size':<28}median {med(r['carry_median_lines'])} lines / {r['carry_median_chars']/1000:.1f}k chars",
         f"{'model switches':<28}{r['model_switches']:>4}",

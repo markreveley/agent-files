@@ -382,7 +382,7 @@ Prints, from `git log` (trailers + the diffs in §7.2), `threads/`, `trial/searc
 threads                     23   (forks 7)
 turns per thread            median 6, max 31
 threads with 6+ turns       11
-  with a context edit        4   (36%)    H1 go ≥ 20%, kill < 5%
+  with a context edit        4   (36.3%)  H1 go ≥ 20%, kill < 5%
 forks                        7            H2 go ≥ 5,   kill < 2
   carry size                median 14 lines / 1.1k chars
 model switches               3
@@ -391,7 +391,7 @@ observed sessions           41   blocked events 19
 spend                       $3.12 (today $0.40)
 ```
 
-`--json` prints the same numbers as one object. Forks are threads with `kind: fork` present now, plus fork directories deleted later (found as `thread.md` paths in history). A fork is identified by what it started with — its `## carry`, `branched_at` and first turn — so renaming or moving a fork (or its parent) does not count it again; two deleted forks started with identical carry and question count once. `--since` filters sends (context edits, model switches); thread, fork, search and observed counts are all-time.
+`--json` prints the same numbers as one object; `context_edit_pct` is a number with one decimal, cut rather than rounded (1 of 21 is 4.7, not 5), so it never reads as reaching a threshold it has not. Forks are threads with `kind: fork` present now, plus fork directories deleted later (found as `thread.md` paths in history). A fork is identified by what it started with — its `## carry`, `branched_at` and first turn — so renaming or moving a fork (or its parent) does not count it again; two deleted forks started with identical carry and question count once. `--since` filters sends (context edits, model switches); thread, fork, search and observed counts are all-time.
 
 ### 7.4 Journal template (`trial/journal.md`)
 

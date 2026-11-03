@@ -79,7 +79,7 @@ class Stats(unittest.TestCase):
         self.assertEqual(s["forks"], 2)                           # a/fork1 + deleted 'gone'
         self.assertEqual(s["threads_6plus"], 1)
         self.assertEqual(s["threads_6plus_with_context_edit"], 1)
-        self.assertEqual(s["context_edit_pct"], 100)
+        self.assertEqual(s["context_edit_pct"], 100.0)
         self.assertEqual(s["model_switches"], 1)
         self.assertEqual(s["searches"], 2)
         self.assertEqual(s["observed_sessions"], 2)
@@ -87,6 +87,7 @@ class Stats(unittest.TestCase):
         self.assertEqual(s["carry_median_lines"], 2)
         r = subprocess.run([sys.executable, STATS], env=self.e.env, capture_output=True, text=True)
         self.assertIn("H1 go", r.stdout)
+        self.assertIn("(100.0%)", r.stdout)
         self.assertIn("(forks 2)", r.stdout)
 
     def stats(self, *args):
@@ -194,6 +195,27 @@ class Stats(unittest.TestCase):
                 self.commit(tid, before)
                 self.commit(tid, after, event="send")
                 self.assertEqual(self.stats()["threads_with_context_edit"] - n, int(edit))
+
+    # ---- fix: the H1 percentage is not rounded across a threshold ---------------------------
+
+    def test_context_edit_pct_is_cut_to_one_decimal(self):
+        body = turns(3)                                               # 6 turns each
+        for n, k, pct in ((21, 1, 4.7), (41, 8, 19.5), (101, 5, 4.9)):
+            with self.subTest(f"{k}/{n}"):
+                self.e.cleanup()
+                self.e = Env().init()
+                for i in range(n):
+                    self.e.write_thread(f"s{i:03d}", body)
+                self.e.git("add", "-A", "threads")
+                self.e.git("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "seed")
+                for i in range(k):
+                    self.commit(f"s{i:03d}", body.replace("q1", "q1 edited"), event="send")
+                s = self.stats()
+                self.assertEqual((s["threads_6plus"], s["threads_6plus_with_context_edit"]), (n, k))
+                self.assertEqual(s["context_edit_pct"], pct)
+                self.assertLess(s["context_edit_pct"], 20 if pct > 5 else 5)    # below the threshold, as k/n is
+                r = subprocess.run([sys.executable, STATS], env=self.e.env, capture_output=True, text=True)
+                self.assertIn(f"({pct}%)", r.stdout)
 
 
 if __name__ == "__main__":
