@@ -228,7 +228,7 @@ Git failures are logged and never fail the turn.
 
 **Start-up recovery** (`watch` and `once`, before anything else): for each direct thread with status `working` — if the last turn is an open agent turn, append `END (interrupted)` and the scaffold; set `interrupted`; commit `recover <thread id>`. Then process pending sends (D9).
 
-**Concurrency.** `watch` runs each active turn in its own thread; at most one turn per thread directory; no global limit in M1.
+**Concurrency.** `watch` runs each active turn in its own thread; at most one turn per thread directory; no global limit in M1. A process-wide lock serialises every `git add` + `git commit`, so concurrent turns do not collide on `.git/index.lock`.
 
 ### 5.3 Assembly (replay)
 

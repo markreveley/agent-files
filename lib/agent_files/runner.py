@@ -34,6 +34,13 @@ def warn_once(key: str, thread_id: str, msg: str) -> None:
         log(thread_id, "warn", msg)
 
 
+def commit(root: str, tid: str, paths: list, message: str, trailers: dict) -> None:
+    """git.commit, logging a failure (§5.2: git failures are logged and never fail the turn)."""
+    err = git.commit(root, paths, message, trailers)
+    if err:
+        log(tid, "git-error", f"{message}: {err}")
+
+
 # ---- init -------------------------------------------------------------------
 
 GITIGNORE = "threads/**/status\nthreads/**/seen\nthreads/**/STOP\nthreads/**/last_turn\nthreads/_observed/\n"
@@ -267,7 +274,7 @@ class Turn:
             if cap and spend_today(self.root) >= cap:
                 fail = ("spend_cap", f"daily spend cap reached (${cap:.2f})", None)
 
-        git.commit(self.root, paths, f"send {tid} t{k}", trailers("send", k, model))   # step 2
+        commit(self.root, tid, paths, f"send {tid} t{k}", trailers("send", k, model))   # step 2
         fsutil.write_status(d, "working")                                                # step 3
         stop = os.path.join(d, "STOP")
         try:   # a STOP left over from before this send must not kill it
@@ -378,7 +385,7 @@ class Turn:
                     resp["backend_caveats"] = info["backend_caveats"]
                 fsutil.atomic_write(os.path.join(d, "steps", f"t{N:04d}.response.json"), assemble.dumps(resp) + "\n")
         fsutil.write_status(d, status)                                                    # step 12
-        git.commit(self.root, paths, f"reply {tid} t{N}", trailers("reply", N, model))   # step 13
+        commit(self.root, tid, paths, f"reply {tid} t{N}", trailers("reply", N, model))   # step 13
         log(tid, "done" if status == "done" else status, f"t{N}")
 
 
@@ -417,8 +424,8 @@ def recover(root: str) -> None:
             fsutil.atomic_write(os.path.join(d, "last_turn"), f"t{nid}\n")
         fsutil.write_status(d, "interrupted")
         rel = os.path.relpath(d, root)
-        git.commit(root, [f"{rel}/thread.md", f"{rel}/steps", f"{rel}/out"], f"recover {tid}",
-                   {"Agent-Files-Event": "recover", "Agent-Files-Thread": tid})
+        commit(root, tid, [f"{rel}/thread.md", f"{rel}/steps", f"{rel}/out"], f"recover {tid}",
+               {"Agent-Files-Event": "recover", "Agent-Files-Thread": tid})
         log(tid, "recover", "closed an interrupted turn")
 
 

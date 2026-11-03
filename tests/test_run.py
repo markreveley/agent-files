@@ -125,6 +125,17 @@ class Once(RunnerBase):
         self.assertIn("EDITED ABOVE", json.dumps(req))
         self.assertEqual(req["request"]["messages"][-1]["content"], "more")
 
+    def test_git_failure_is_logged_and_turn_completes(self):
+        self.e.write_thread("t", Q)
+        open(os.path.join(self.e.root, ".git", "index.lock"), "w").close()   # git add/commit now fail
+        r = self.e.run("once", "t")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        self.assertEqual(self.e.status("t"), "done")
+        with open(os.path.join(self.e.state, "agent-files", "run.log")) as f:
+            log = f.read()
+        for what in ("send t t1", "reply t t2"):
+            self.assertRegex(log, rf" t git-error {what}: .*index\.lock")
+
     def test_check_does_not_call_model(self):
         self.e.write_thread("t", Q, model="mock/fail")
         r = self.e.run("check", "t")
@@ -166,6 +177,19 @@ class Watch(RunnerBase):
         self.e.write_thread("t", Q)
         self.start()
         self.assertTrue(wait_for(lambda: self.e.status("t") == "done"))
+
+    def test_concurrent_turns_all_commit(self):
+        names = [f"c{i}" for i in range(8)]
+        for n in names:
+            self.e.write_thread(n, Q)
+        self.start()
+        want = {f"{ev} {n} t{k}" for n in names for ev, k in (("send", 1), ("reply", 2))}
+        subjects = lambda: set(self.e.git("log", "--format=%s").split("\n"))
+        # the reply commit (step 13) follows the `done` status (step 12), so wait for the commits themselves
+        wait_for(lambda: want <= subjects())
+        self.assertEqual(want - subjects(), set())   # every send commit landed, so stats sees every turn
+        self.assertTrue(all(self.e.status(n) == "done" for n in names))
+        self.assertEqual(self.e.git("status", "--porcelain", "--", "threads"), "")
 
     def test_stop(self):
         self.e.write_thread("t", Q, model="mock/slow")
