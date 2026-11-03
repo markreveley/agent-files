@@ -1,7 +1,7 @@
 ---
 type: handoff
 audience: agent
-updated: 2026-11-02
+updated: 2026-11-03
 ---
 
 # Next steps for agents (AI coding sessions)
@@ -26,6 +26,7 @@ You are continuing the M1 build of agent-files. For what agent-files is for and 
   - Before building any capture of coding sessions, grade **Entire** (§12.1, §13 Q16).
   - Principle 13 keeps the format, the hook, the links and the HTML viewer extractable.
   - **M1 is unchanged** (spec, H1–H3, thresholds). The record trial (attribution and the DAG) is the next trial.
+- **DAG-grounded orchestration analysed (2026-11-03):** [analysis/orchestrator-analysis.md](../analysis/orchestrator-analysis.md). An orchestrator picks DAG nodes for a question and briefs an agent; answers label every claim (`grounded`, `sourced`, `derived`, `contradicted`, `unsupported`). It maps onto M6 and the brief (§8.1); it builds nothing before day 10. Operator's answers: knowledge graphs first, code graphs possibly too; "resource DAGs" means other projects' DAGs and DAGs built from outside material. Its §9 questions are open.
 - The install is finished (2026-11-02; the agent ran it at the operator's request): install clone at `f627b15`, which is behind the audit fixes (operator step 2 pulls), `agent-files-run init` run, ripgrep 15.2.0 installed, TUIOS pinned at 0.12.1. Operator steps 1-5 (configure, hook, TUIOS integration, editor, `watch`) and the smoke tests are not started: on 2026-11-02 there were no `agent-files-hook` entries in `~/.claude/settings.json` and `watch` wasn't running.
 - On 2026-11-02 the operator asked the agent to fill `[prices]` in `~/agent-files/config.toml`. Blocks for Opus 5.5, Fable 5.1, Sonnet 5.5 and Haiku 5.5 were appended (5-minute cache-write rates; Haiku at its ≤100K-prompt rate) and left uncommitted. That was a one-off request: the rule against editing `config.toml` still stands.
 - Known quirk, not a bug to fix before day 10: `claude-cli` turns store the CLI's `total_cost_usd` (API-equivalent even on a plan), and `spend_today` adds it to the daily cap. If the operator wants plan turns excluded, that is a post-trial change. With plain `model: claude-cli` (no `/<model>`), `claude -p` runs Claude Code's default model, which was `claude-fable-5-1` on 2026-11-02.
@@ -64,7 +65,7 @@ You are continuing the M1 build of agent-files. For what agent-files is for and 
 Build nothing new before the day-10 decision ([m1-plan §5](../docs/m1-plan.md#5-decision-criteria)) beyond the fixes in item 1.
 
 ## Pending operator decisions
-- None.
+- [analysis/orchestrator-analysis.md §9](../analysis/orchestrator-analysis.md#9-open-questions): the `unsupported` policy, whether a merged DAG node counts as accepted, and when to measure graph against grep. None blocks M1.
 
 ## Do not do
 - No tools in the runner, no `inbox/`, notes writing, compaction, `resume` context or grounding (spec §13).

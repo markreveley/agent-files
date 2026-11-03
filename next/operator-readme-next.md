@@ -1,7 +1,7 @@
 ---
 type: handoff
 audience: operator
-updated: 2026-11-02
+updated: 2026-11-03
 ---
 
 # Next steps for the operator
@@ -92,4 +92,9 @@ Then, with the agent:
 - Pull requests from the agent side land on `main` of this repo; the data root is separate and never pushed by these programs.
 
 ## Questions
-- None open.
+From [analysis/orchestrator-analysis.md](../analysis/orchestrator-analysis.md) §9 (2026-11-03). None blocks M1; answer when convenient.
+1. `unsupported` claims: label them in answers and forbid them in briefs (recommended), or one policy everywhere?
+2. Does a DAG node merged to its collection's main branch count as accepted by whoever merged it? Today no node in identikey-dev or lightning-mesh-dev has `status` or `accepted_by`.
+3. Measure graph against grep in the record trial, or in the adopt-first check before M6?
+4. Can a node accepted in another project ground an answer here, or only with a flag?
+5. Which code graph to grade first: Serena (precise, needs language servers) or Codebase-Memory (syntactic, every language)?
