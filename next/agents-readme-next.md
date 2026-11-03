@@ -11,12 +11,12 @@ Read with [operator-readme-next.md](operator-readme-next.md). Rewrite both at th
 You are continuing the M1 build of agent-files. For what agent-files is for and where it goes after M1, read [docs/direction-analysis.md](../docs/direction-analysis.md). For M1 itself, read [docs/m1-build-spec.md](../docs/m1-build-spec.md) first; where it is silent, [docs/m1-plan.md](../docs/m1-plan.md) and [ARCHITECTURE.md](../ARCHITECTURE.md) apply. Standing rules and the pre-push checks are in [AGENTS.md](../AGENTS.md).
 
 ## State
-- M1 is built. `main` is pushed and clean, and no PRs are open.
+- M1 is built. On 2026-11-02 an adversarial audit found real bugs, and they are fixed in branch `claude/audit-fixes-2026-11-02` (draft PR, see Next step 0). What is left is in [audit-2026-11-02.md](audit-2026-11-02.md).
 - Verified:
   - Mock-backend tests and smoke S1-S5.
-  - Headless plugin tests on Neovim 0.12.5 (44 checks).
+  - Headless plugin tests on Neovim 0.12.5 (75 checks after the audit fixes; 93 unit tests).
   - The hook, against the Claude Code hooks reference (PR #10).
-  - The `claude -p` flags, with one real turn (PR #13; results in spec §14.1, remaining gaps in `claude_cli.CAVEATS`).
+  - The `claude -p` flags, with one real turn (PR #13), re-checked on Claude Code 2.1.317 on 2026-11-02 (spec §14.1; remaining gaps in `claude_cli.CAVEATS`).
 - Not verified: anything through the runner against a real model (S6-S8), the hook in a live `claude` session (S9), and the interactive Neovim behaviour (S11). All three wait on the operator's configuration and smoke tests.
 - Harness sessions run in TUIOS, and H4 is not a trial hypothesis ([docs/host-analysis.md](../docs/host-analysis.md)). No M1 code changes because of that. ARCHITECTURE.md was checked against that decision and the code on 2026-11-01 (PR #18); v0.6 (0046b91) changed it since, and the 2026-11-02 docs audit found nothing in it that contradicts the code.
 - **Direction, decided with the operator on 2026-11-02** ([docs/direction-analysis.md](../docs/direction-analysis.md), ARCHITECTURE v0.6):
@@ -28,7 +28,7 @@ You are continuing the M1 build of agent-files. For what agent-files is for and 
   - **M1 is unchanged** (spec, H1–H3, thresholds). The record trial (attribution and the DAG) is the next trial.
 - The install is finished (2026-11-02; the agent ran it at the operator's request): install clone pulled to `f627b15`, `agent-files-run init` run, ripgrep 15.2.0 installed, TUIOS pinned at 0.12.1. Operator steps 1-5 (configure, hook, TUIOS integration, editor, `watch`) and the smoke tests are not started: on 2026-11-02 there were no `agent-files-hook` entries in `~/.claude/settings.json` and `watch` wasn't running.
 - On 2026-11-02 the operator asked the agent to fill `[prices]` in `~/agent-files/config.toml`. Blocks for Opus 5.5, Fable 5.1, Sonnet 5.5 and Haiku 5.5 were appended (5-minute cache-write rates; Haiku at its ≤100K-prompt rate) and left uncommitted. That was a one-off request: the rule against editing `config.toml` still stands.
-- Known quirk, not a bug to fix before day 10: `claude-cli` turns store the CLI's `total_cost_usd` (API-equivalent even on a plan), and `spend_today` (`runner.py:103`) adds it to the daily cap. If the operator wants plan turns excluded, that is a post-trial change.
+- Known quirk, not a bug to fix before day 10: `claude-cli` turns store the CLI's `total_cost_usd` (API-equivalent even on a plan), and `spend_today` adds it to the daily cap. If the operator wants plan turns excluded, that is a post-trial change. With plain `model: claude-cli` (no `/<model>`), `claude -p` runs Claude Code's default model, which was `claude-fable-5-1` on 2026-11-02.
 
 ## Environment facts (operator's Mac)
 - The repo checkout is `/Users/mark/dev/repos/agent-files`, and parallel sessions share it. Make branches in a `git worktree` (AGENTS.md, Workflow).
@@ -44,7 +44,7 @@ You are continuing the M1 build of agent-files. For what agent-files is for and 
   3. The result's input tokens should be in the hundreds, not thousands.
 
 ## Next, in order
-0. **Audit findings, before the operator runs the smoke tests.** A full adversarial audit ran on 2026-11-02; see [audit-2026-11-02.md](audit-2026-11-02.md). Its A list (wrong trial numbers, wedged threads, `claude-cli` billing the API) and B list (operator steps that fail verbatim) should be fixed before day 1. Whether to fix them now is the operator's call (see Pending operator decisions).
+0. **Merge the audit fixes** (branch `claude/audit-fixes-2026-11-02`) once the operator approves, then the operator pulls the install clone (operator step 2 says so). The remaining edge cases in [audit-2026-11-02.md](audit-2026-11-02.md) are not for now: fix one only if it causes friction in the trial, or after day 10.
 1. **(Blocked on operator)** Act on smoke results. When the operator reports S6-S11, fix each failure from the symptom and the thread's `steps/` files. S11 includes the interactive Neovim check: `FileChangedShell` reload into a briefly non-modifiable buffer, and the spinner timer (the plugin uses `vim.uv or vim.loop`).
 2. **After the trial starts, optional:** `agent-files-render` (view-layer step 2, spec §12). It must import `thread.py` and write only under `~/.cache/agent-files/view/`. It is the first piece of the record viewer (M8, principle 13), so keep its output a static HTML page.
 3. **After the trial:** Anthropic refusal fallback (`lib/agent_files/backends/anthropic.py`). The operator decided on 2026-11-01 to build this after the trial, not before S6. Reasons: refusals should be rare in the trial's threads, a refusal already shows as a failed turn, it doesn't affect H1-H3, and no new building is allowed before day 10. `fallbacks = true` only records a caveat in `steps/*.response.json` today.
@@ -62,8 +62,7 @@ You are continuing the M1 build of agent-files. For what agent-files is for and 
 Build nothing new before the day-10 decision ([m1-plan §5](../docs/m1-plan.md#5-decision-criteria)) beyond the fixes in item 1.
 
 ## Pending operator decisions
-- Fix the audit's A and B lists before the trial (recommended), or start the trial as is?
-- An audit probe ran the hook without `AGENT_FILES_ROOT` and wrote `~/agent-files/threads/_observed/api-abcdef12/` and `~/agent-files/trial/observed.log` (one fake `working` line, untracked). Delete both once the operator confirms the `rm`.
+- Merge the audit-fixes PR?
 
 ## Do not do
 - No tools in the runner, no `inbox/`, notes writing, compaction, `resume` context or grounding (spec §13).

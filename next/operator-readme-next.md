@@ -85,6 +85,7 @@ Then, with the agent:
 ## Things to watch
 - `status` shows `?` for a turn working more than 10 minutes with no heartbeat: the runner probably died; restart `watch` and it will close the turn as interrupted.
 - Refusals: the fallback to another model is built after the trial (your decision, 2026-11-01), and `fallbacks = true` in `config.toml` does nothing yet. A refused turn ends as a failed turn with `! error: refusal (<category>)`. Rephrase and send again, or switch `model:` for that thread.
+- `model: claude-cli` runs on your plan: the runner keeps `ANTHROPIC_API_KEY` away from `claude -p` (fixed 2026-11-02). With no `/<model>` suffix it uses Claude Code's default model, which was Fable 5.1 on this Mac; write `claude-cli/claude-opus-5-5` to pin one.
 - `claude-cli` turns record the `total_cost_usd` that `claude -p` reports, which is an API-equivalent figure even on your plan, and it counts toward `daily_spend_cap_usd`. Several `claude-cli` threads in a day can hit the cap though you paid nothing extra; raise the cap if that blocks you.
 - `claude-cli` turns carry a small `userEmail`/`Environment` block that Claude Code adds and no flag removes (spec §14.1); leave them out of any cache or request comparison.
 - Do not edit a thread's `thread.md` from another tool while a turn is running; the runner treats that as a conflict and ends the turn with `END (conflict)` (output saved in `out/`).

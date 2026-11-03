@@ -30,7 +30,7 @@ def build_body(req: dict, model: str | None) -> dict:
 
 
 def command(cmd: str, body: dict) -> list:
-    # Flags verified against `claude --help` and one real turn (Claude Code 2.1.316, 2026-11-01): no tools,
+    # Flags verified against `claude --help` and one real turn (Claude Code 2.1.316, 2026-11-01; re-checked 2.1.317, 2026-11-02): no tools,
     # MCP servers, slash commands, skills, user settings, hooks or CLAUDE.md. See docs/m1-build-spec.md §14.1.
     args = [cmd, "-p", "--output-format", "stream-json", "--verbose", "--include-partial-messages",
             "--no-session-persistence", "--tools", "", "--setting-sources", "",
