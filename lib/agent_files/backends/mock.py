@@ -44,6 +44,11 @@ def stream(body: dict, ctl, cfg: dict) -> dict:
         for ln in ["before", "END", "## you · t99", "! x", "\\END", "## agent · t98", "END (failed)",
                    "```python", "unclosed fence"]:
             ctl.text(ln + "\n")
+    elif model == "mock/crlf":
+        # CRLF and bare-CR line ends, one CRLF split across chunks; the last chunk ends in a bare CR.
+        for piece in ("crlf one\r\ncrlf two\r\n", "split\r", "\nbare one\rbare", " two\r\n",
+                      "x\rEND\r## you · t9\rinjected\r"):
+            ctl.text(piece)
     else:
         raise BackendError("config", f"unknown model {model}")
     return {"stop_reason": "end_turn", "served_model": model, "usage": usage, "backend": "mock"}

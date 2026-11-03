@@ -1,7 +1,8 @@
 import json, os, signal, subprocess, sys, time, unittest
+from unittest import mock
 sys.path.insert(0, os.path.dirname(__file__))
 from helpers import Env, wait_for, RUN
-from agent_files import thread as T
+from agent_files import runner, thread as T
 
 Q = "## you · t1\nhello there\nEND\n"
 # The user quotes an agent header inside a fence; mock/echo streams it back as
@@ -116,6 +117,32 @@ class Once(RunnerBase):
         self.answer(3)
         self.assertEqual(self.e.run("once", "t").returncode, 0)
         self.assertEqual(self.turns()[3:], [("agent", 4, "ok"), ("you", 5, "none")])
+
+    def test_carriage_returns_are_line_ends(self):
+        # A bare \r is a line end to read() and parse_file; unsplit, it would let the model write
+        # an unescaped END and `## you · t9`.
+        self.e.write_thread("t", Q, model="mock/crlf")
+        r = self.e.run("once", "t")
+        self.assertEqual(self.e.status("t"), "done", r.stderr)
+        self.assertEqual(self.turns(), [("you", 1, "ok"), ("agent", 2, "ok"), ("you", 3, "none")])
+        self.assertEqual(T.parse(self.e.read("t")).turns[1].body,
+                         "crlf one\ncrlf two\nsplit\nbare one\nbare two\nx\nEND\n## you · t9\ninjected")
+        self.assertEqual(self.e.read("t", "last_turn").strip(), "t3")
+        with open(os.path.join(self.e.tdir("t"), "thread.md"), newline="") as f:
+            self.assertNotIn("\r", f.read())
+
+    def test_carriage_returns_are_not_a_conflict(self):
+        path = self.e.write_thread("t", Q)
+        with mock.patch.dict(os.environ, XDG_STATE_HOME=self.e.state, AGENT_FILES_ROOT=self.e.root):
+            turn = runner.Turn(self.e.root, "t")
+            turn.sync_expected()
+            for chunk in ("a\r\nb\rc", "\r", "\nd\r\n"):
+                turn.on_text(chunk)
+            st = os.stat(path)
+            os.utime(path, ns=(st.st_atime_ns, st.st_mtime_ns + 10**9))   # e.g. an editor saving unchanged text
+            self.assertFalse(turn.check_foreign())
+        with open(path, newline="") as f:
+            self.assertTrue(f.read().endswith(Q + "a\nb\nc\nd\n"))
 
     def test_fail(self):
         self.e.write_thread("t", Q, model="mock/fail")

@@ -246,13 +246,20 @@ class Turn:
 
     def on_text(self, chunk: str) -> None:
         self.tick()
-        self.buf += chunk
-        if "\n" not in self.buf:
+        self.feed(chunk)
+
+    def feed(self, chunk: str, final: bool = False) -> None:
+        """Append the complete lines in buf + chunk, escaped. \\r\\n and a bare \\r end a line, as they do for
+        read() and parse_file; a trailing \\r waits for the next chunk in case it starts with \\n."""
+        buf = self.buf + chunk
+        hold = "\r" if buf.endswith("\r") and not final else ""
+        buf = buf[:len(buf) - len(hold)].replace("\r\n", "\n").replace("\r", "\n")
+        head, nl, rest = buf.rpartition("\n")
+        self.buf = rest + hold
+        if not nl:
             return
-        head, _, self.buf = self.buf.rpartition("\n")
-        lines = head.split("\n")
         self.out_text.append(head + "\n")
-        self.append("".join(T.escape_line(l) + "\n" for l in lines))
+        self.append("".join(T.escape_line(l) + "\n" for l in head.split("\n")))
         self.written_any = True
 
     # the sequence --------------------------------------------------------
@@ -343,6 +350,7 @@ class Turn:
             log(tid, "conflict", f"t{N} thread.md changed during the turn; output in out/")
         else:
             # flush the last partial line
+            self.feed("", final=True)
             if self.buf:
                 self.append(T.escape_line(self.buf) + "\n")
                 self.out_text.append(self.buf)

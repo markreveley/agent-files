@@ -213,7 +213,7 @@ For a thread where `is_send` is true, with your turn `tK`:
 3. Write `working` to `status`.
 4. Assemble the request (§5.3); write `steps/tNNNN.request.json` where `NNNN` is the agent turn id `N = next_id()` (D3).
 5. Append `\n## agent · tN\n` to `thread.md`; write `last_turn`. Record the file's size and a hash of its contents: this is the **expected state**.
-6. Stream. Buffer output by line; for each complete line, escape and append; update the expected state after each write. Every 60 s, rewrite `status` (`working`) as a heartbeat so the plugin does not mark it stale.
+6. Stream. Buffer output by line (`\r\n` and a bare `\r` end a line, as `\n` does, so the file holds only `\n`); for each complete line, escape and append; update the expected state after each write. Every 60 s, rewrite `status` (`working`) as a heartbeat so the plugin does not mark it stale.
 7. Between writes (at least every 300 ms), check:
    - `STOP` exists → cancel the stream; close with `END (interrupted)`; status `interrupted`; delete `STOP`.
    - `thread.md` no longer matches the expected state → **conflict**: cancel; write the remaining buffered text to `out/tNNNN-conflict.txt`; do *not* write to `thread.md` again for this turn except to append, at the end, the fence line that closes a fence the turn left open (§4.4) and `END (conflict)`; status `interrupted`.
@@ -252,7 +252,7 @@ Chosen by the `model` string:
 | `claude-*` | Anthropic Messages API | §5.4.1 |
 | `<name>/<model>` where `<name>` is a key in `[backends.openai_compat]` | OpenAI-compatible chat completions, streaming | `system` sent as a `system` message; no caching; usage recorded if the server returns it |
 | `claude-cli` or `claude-cli/<model>` | `claude -p` subprocess | §5.4.2 |
-| `mock/echo`, `mock/slow`, `mock/fail`, `mock/markers` | built-in, no network | §5.4.3 — for tests and the smoke test |
+| `mock/echo`, `mock/slow`, `mock/fail`, `mock/markers`, `mock/crlf` | built-in, no network | §5.4.3 — for tests and the smoke test |
 | anything else | — | failed turn: `! error: unknown model <x>` |
 
 #### 5.4.1 Anthropic
@@ -280,6 +280,7 @@ Draws from the Pro/Max plan's limits (the separate Agent SDK credit announced 20
 | `mock/slow` | Streams 200 numbered lines, one every 100 ms (for interrupt and conflict tests) |
 | `mock/fail` | Streams two lines, then raises an API-style error |
 | `mock/markers` | Streams lines that look like `END`, `## you · t99`, `! x`, `\END`, and an unclosed ```` ``` ```` fence (for escaping tests) |
+| `mock/crlf` | Streams text with CRLF and bare-`\r` line ends, some split across chunks, including `x\rEND\r## you · t9\rinjected` (for newline tests: the turn still ends with the runner's `END`) |
 
 Mock turns write `steps/` like real ones, with `"backend": "mock"`.
 
