@@ -34,6 +34,13 @@ def warn_once(key: str, thread_id: str, msg: str) -> None:
         log(thread_id, "warn", msg)
 
 
+def commit(root: str, tid: str, paths: list, message: str, trailers: dict) -> None:
+    """git.commit, logging a failure (§5.2: git failures are logged and never fail the turn)."""
+    err = git.commit(root, paths, message, trailers)
+    if err:
+        log(tid, "git-error", f"{message}: {err}")
+
+
 # ---- init -------------------------------------------------------------------
 
 GITIGNORE = "threads/**/status\nthreads/**/seen\nthreads/**/STOP\nthreads/**/last_turn\nthreads/_observed/\n"
@@ -120,6 +127,19 @@ def spend_today(root: str) -> float:
 
 def read_thread(root: str, tid: str) -> T.Thread:
     return T.parse_file(os.path.join(thread_dir(root, tid), "thread.md"))
+
+
+def closing_fence(text: str, n: int) -> str:
+    """What to write before agent turn tN's END so it lands outside any fence the turn left open (§4.4):
+    the matching fence line plus a newline, or "". The header is matched as a whole line, so model text
+    quoting it (written escaped, `\\## agent · tN`) cannot be taken for it."""
+    lines = text.split("\n")
+    for i in range(len(lines) - 1, -1, -1):
+        m = T.RE_AGENT.match(lines[i].rstrip())
+        if m and int(m.group(1)) == n:
+            fence = T.open_fence_line(lines[i + 1:])
+            return fence + "\n" if fence else ""
+    return ""
 
 
 def is_direct(th: T.Thread) -> bool:
@@ -226,13 +246,20 @@ class Turn:
 
     def on_text(self, chunk: str) -> None:
         self.tick()
-        self.buf += chunk
-        if "\n" not in self.buf:
+        self.feed(chunk)
+
+    def feed(self, chunk: str, final: bool = False) -> None:
+        """Append the complete lines in buf + chunk, escaped. \\r\\n and a bare \\r end a line, as they do for
+        read() and parse_file; a trailing \\r waits for the next chunk in case it starts with \\n."""
+        buf = self.buf + chunk
+        hold = "\r" if buf.endswith("\r") and not final else ""
+        buf = buf[:len(buf) - len(hold)].replace("\r\n", "\n").replace("\r", "\n")
+        head, nl, rest = buf.rpartition("\n")
+        self.buf = rest + hold
+        if not nl:
             return
-        head, _, self.buf = self.buf.rpartition("\n")
-        lines = head.split("\n")
         self.out_text.append(head + "\n")
-        self.append("".join(T.escape_line(l) + "\n" for l in lines))
+        self.append("".join(T.escape_line(l) + "\n" for l in head.split("\n")))
         self.written_any = True
 
     # the sequence --------------------------------------------------------
@@ -267,7 +294,7 @@ class Turn:
             if cap and spend_today(self.root) >= cap:
                 fail = ("spend_cap", f"daily spend cap reached (${cap:.2f})", None)
 
-        git.commit(self.root, paths, f"send {tid} t{k}", trailers("send", k, model))   # step 2
+        commit(self.root, tid, paths, f"send {tid} t{k}", trailers("send", k, model))   # step 2
         fsutil.write_status(d, "working")                                                # step 3
         stop = os.path.join(d, "STOP")
         try:   # a STOP left over from before this send must not kill it
@@ -292,15 +319,19 @@ class Turn:
         log(tid, "start", f"t{N} model={model}")
 
         if not fail:                                                                     # steps 6-7
+            ctl = Control(self.on_text, self.tick)
+            # what the provider reported before a stop or failure, so billed tokens still reach response.json
+            partial = lambda: dict(ctl.seen, partial=True) if ctl.seen else {}
             try:
-                info = stream(body, Control(self.on_text, self.tick))
+                info = stream(body, ctl)
             except Cancelled:
-                pass
+                info = partial()
             except BackendError as e:
                 fail = (e.kind, e.message, e.http_status)
-                info = e.info or {}
+                info = e.info or partial()
             except Exception as e:  # noqa: BLE001 - a backend bug must not wedge the thread
                 fail = ("backend", f"{type(e).__name__}: {e}", None)
+                info = partial()
         # conflict / stop checked once more at the very end
         if not self.conflict and not fail:
             try:
@@ -317,11 +348,13 @@ class Turn:
             fsutil.atomic_write(os.path.join(d, "out", f"t{N:04d}-conflict.txt"),
                                 "".join(self.out_text) + unsent)
             status, closing = "interrupted", "END (conflict)"
+            fence = closing_fence(self.read(), N)
             with open(self.path, "a", encoding="utf-8") as f:
-                f.write("\nEND (conflict)\n")
+                f.write("\n" + fence + "END (conflict)\n")
             log(tid, "conflict", f"t{N} thread.md changed during the turn; output in out/")
         else:
             # flush the last partial line
+            self.feed("", final=True)
             if self.buf:
                 self.append(T.escape_line(self.buf) + "\n")
                 self.out_text.append(self.buf)
@@ -341,10 +374,7 @@ class Turn:
                 diag.append(f"! served by {info['served_model']}")
             # step 8/9: balance fences, diagnostics, END
             text = self.read()
-            agent_start = text.rfind(f"## agent · t{N}\n")
-            agent_lines = text[agent_start:].split("\n")[1:]
-            fence = T.open_fence_line(agent_lines)
-            tail = (fence + "\n") if fence else ""
+            tail = closing_fence(text, N)
             if (text + tail) and not (text + tail).endswith("\n\n") and (self.written_any or diag):
                 tail += "\n"
             tail += "".join(x + "\n" for x in diag) + closing + "\n"
@@ -376,9 +406,11 @@ class Turn:
                         "chars_out": sum(len(x) for x in self.out_text)}
                 if info.get("backend_caveats"):
                     resp["backend_caveats"] = info["backend_caveats"]
+                if info.get("partial"):
+                    resp["partial"] = True
                 fsutil.atomic_write(os.path.join(d, "steps", f"t{N:04d}.response.json"), assemble.dumps(resp) + "\n")
         fsutil.write_status(d, status)                                                    # step 12
-        git.commit(self.root, paths, f"reply {tid} t{N}", trailers("reply", N, model))   # step 13
+        commit(self.root, tid, paths, f"reply {tid} t{N}", trailers("reply", N, model))   # step 13
         log(tid, "done" if status == "done" else status, f"t{N}")
 
 
@@ -411,14 +443,17 @@ def recover(root: str) -> None:
         last = th.last_turn()
         if last and last.role == "agent" and last.closed == "none" and not th.malformed:
             nid = T.next_id(th, d)
-            with open(os.path.join(d, "thread.md"), "a", encoding="utf-8") as f:
-                text = open(os.path.join(d, "thread.md"), encoding="utf-8").read()
-                f.write(("" if text.endswith("\n") else "\n") + f"END (interrupted)\n\n## you · t{nid}\n\n")
+            path = os.path.join(d, "thread.md")
+            with open(path, encoding="utf-8") as f:
+                text = f.read()
+            with open(path, "a", encoding="utf-8") as f:
+                f.write(("" if text.endswith("\n") else "\n") + closing_fence(text, last.id)
+                        + f"END (interrupted)\n\n## you · t{nid}\n\n")
             fsutil.atomic_write(os.path.join(d, "last_turn"), f"t{nid}\n")
         fsutil.write_status(d, "interrupted")
         rel = os.path.relpath(d, root)
-        git.commit(root, [f"{rel}/thread.md", f"{rel}/steps", f"{rel}/out"], f"recover {tid}",
-                   {"Agent-Files-Event": "recover", "Agent-Files-Thread": tid})
+        commit(root, tid, [f"{rel}/thread.md", f"{rel}/steps", f"{rel}/out"], f"recover {tid}",
+               {"Agent-Files-Event": "recover", "Agent-Files-Thread": tid})
         log(tid, "recover", "closed an interrupted turn")
 
 

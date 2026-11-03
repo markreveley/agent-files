@@ -185,6 +185,154 @@ ok(#marks == 1, "one end mark")
 local vt = marks[1] and marks[1][4].virt_text[1][1] or ""
 ok(vt:find("✗") and vt:find("failed") and vt:find("~%d+k"), "end mark shows status and tokens: " .. vt)
 
+-- helpers for the sections below ------------------------------------------------------------------
+local function append(d, text) local h = io.open(d .. "/thread.md", "a"); h:write(text); h:close() end
+local function buf_lines(b) return vim.api.nvim_buf_get_lines(b, 0, -1, false) end
+local function count(ls, text) local k = 0; for _, x in ipairs(ls) do if x == text then k = k + 1 end end; return k end
+local function has(b, text) return count(buf_lines(b), text) > 0 end
+
+-- draft: text typed right after a send survives a streamed reply once ----------------------------
+vim.cmd("AgentsNew draft-stream")
+vim.cmd("stopinsert")
+local sd = tmp .. "/threads/draft-stream"
+local sb = vim.api.nvim_get_current_buf()
+vim.api.nvim_buf_set_lines(sb, -1, -1, false, { "question" })
+vim.cmd("AgentsSend")
+vim.api.nvim_buf_set_lines(sb, -1, -1, false, { "", "my next thought" })
+write_status(sd, "working")
+local stream_ok, stream = true, { "\n## agent · t2\n", "line 1\n", "line 2\n", "line 3\n" }
+for i, chunk in ipairs(stream) do
+  append(sd, chunk)
+  local want = i == 1 and "## agent · t2" or ("line " .. (i - 1))
+  ok(vim.wait(3000, function() return has(sb, want) end, 20), "stream step " .. i .. " reloaded")
+  local bl = buf_lines(sb)
+  if count(bl, "## you · t1") ~= 1 or count(bl, want) ~= 1 or #bl ~= #readf(sd .. "/thread.md") + 2
+     or bl[#bl] ~= "my next thought" then
+    stream_ok = false
+  end
+end
+ok(stream_ok, "while the reply streams the buffer is the file plus the draft, nothing duplicated: " .. #buf_lines(sb))
+append(sd, "\nEND\n\n## you · t3\n\n")
+write_status(sd, "done")
+ok(vim.wait(3000, function() return has(sb, "## you · t3") and vim.bo[sb].modifiable end, 20), "reply finished")
+local want_sb = readf(sd .. "/thread.md")
+want_sb[#want_sb + 1] = "my next thought"
+eq(buf_lines(sb), want_sb, "draft once, under the new scaffold")
+vim.bo[sb].modified = false
+
+-- draft: a partly saved turn, sent from outside, does not duplicate the saved part ----------------
+vim.cmd("AgentsNew draft-partial")
+vim.cmd("stopinsert")
+local pd = tmp .. "/threads/draft-partial"
+local pb = vim.api.nvim_get_current_buf()
+vim.api.nvim_buf_set_lines(pb, -1, -1, false, { "saved part" })
+vim.cmd("silent write")
+vim.api.nvim_buf_set_lines(pb, -1, -1, false, { "unsaved part" })
+append(pd, "END\n")
+ok(vim.wait(3000, function() return has(pb, "END") end, 20), "partial: reloaded")
+local pl = buf_lines(pb)
+eq(vim.list_slice(pl, #pl - 4), { "", "saved part", "END", "", "unsaved part" }, "partial: only the unsaved text is re-applied")
+
+-- draft: an unsaved edit above the last END is kept in place when the file grows ------------------
+vim.cmd("silent edit!")
+local el
+for i, x in ipairs(buf_lines(pb)) do if x == "saved part" then el = i end end
+vim.api.nvim_buf_set_lines(pb, el - 1, el, false, { "saved part, edited" })
+append(pd, "\n## agent · t2\nreply\nEND\n")
+ok(vim.wait(3000, function() return has(pb, "reply") end, 20), "mid edit: reloaded")
+pl = buf_lines(pb)
+ok(pl[el] == "saved part, edited" and count(pl, "saved part") == 0 and count(pl, "reply") == 1, "mid edit kept in place: " .. vim.inspect(pl))
+ok(vim.bo[pb].modified, "mid edit: buffer still modified")
+vim.bo[pb].modified = false
+
+-- a stale 'working' (no status write for 10 min: the runner died) does not lock the buffer -------
+local St = require("agents.status")
+vim.cmd("edit " .. sd .. "/thread.md")
+write_status(sd, "working")
+ok(vim.wait(3000, function() return not vim.bo[sb].modifiable end, 20), "stale: locked while working")
+local long_ago = os.time() - 660
+vim.uv.fs_utime(sd .. "/status", long_ago, long_ago)
+ok(vim.wait(3000, function() return vim.bo[sb].modifiable and not vim.bo[sb].readonly end, 20), "stale: writable again")
+local frame0 = St.frame
+vim.wait(400, function() return false end)
+eq(St.frame, frame0, "stale: spinner stopped")
+ok(vim.bo[sb].modifiable and not vim.bo[sb].readonly, "stale: still writable after 400 ms")
+ok(agents.status(sb):find("? stale", 1, true), "stale: status line says stale: " .. agents.status(sb))
+local smark = vim.api.nvim_buf_get_extmarks(sb, D.ns_end, 0, -1, { details = true })[1]
+ok(smark and smark[4].virt_text[1][1]:find("? stale", 1, true), "stale: end mark says stale")
+write_status(sd, "done")
+
+-- window settings: local to the thread in its window, set once -----------------------------------
+local function wopts() return { vim.wo.foldmethod, vim.wo.conceallevel, vim.wo.linebreak } end
+local other = tmp .. "/other.md"
+vim.fn.writefile({ "# notes", "", "text" }, other)
+eq({ vim.go.foldmethod, vim.go.conceallevel, vim.go.linebreak }, { "manual", 0, false }, "window: no global value set")
+vim.cmd("edit " .. tmp .. "/threads/fixture/thread.md")
+eq(wopts(), { "expr", 2, true }, "window: thread settings in the thread's window")
+vim.cmd("redraw")
+vim.api.nvim_win_set_cursor(0, { tool, 0 })
+vim.cmd("normal! zo")
+ok(vim.fn.foldclosed(tool) == -1, "window: fold opened")
+vim.cmd("doautocmd FocusGained")
+vim.cmd("vnew " .. other)
+eq(wopts(), { "manual", 0, false }, "window: a new window on another file keeps its defaults")
+vim.cmd("wincmd p")
+vim.cmd("redraw")
+ok(vim.fn.foldclosed(tool) == -1, "window: an opened fold stays open after FocusGained and a window switch")
+vim.cmd("edit " .. other)
+eq(wopts(), { "manual", 0, false }, "window: another file in the thread's window keeps its defaults")
+vim.cmd("only")
+
+-- seen: viewing a finished thread writes seen once, with no watcher loop --------------------------
+local function mt(p) local st = vim.uv.fs_stat(p); return st and { st.mtime.sec, st.mtime.nsec } end
+local function newer_or_same(x, y) return x[1] > y[1] or (x[1] == y[1] and x[2] >= y[2]) end
+vim.cmd("edit " .. sd .. "/thread.md")
+write_status(sd, "done")
+ok(vim.wait(3000, function()
+  local s, t = mt(sd .. "/seen"), mt(sd .. "/status")
+  return s and t and newer_or_same(s, t)
+end, 20), "seen: touched after the turn finished")
+vim.wait(300, function() return false end)
+local seen0, applies, orig_apply = mt(sd .. "/seen"), 0, D.apply
+D.apply = function(...) applies = applies + 1; return orig_apply(...) end
+vim.wait(1500, function() return false end)
+D.apply = orig_apply
+eq(mt(sd .. "/seen"), seen0, "seen: not rewritten while nothing changes")
+ok(applies <= 1, "seen: no reload loop (" .. applies .. " redraws in 1.5 s)")
+
+-- a reply streaming a line every 20-50 ms reloads live, and the lock lands during it --------------
+vim.cmd("AgentsNew fast-stream")
+vim.cmd("stopinsert")
+local fsd = tmp .. "/threads/fast-stream"
+local fsb = vim.api.nvim_get_current_buf()
+vim.api.nvim_buf_set_lines(fsb, -1, -1, false, { "go" })
+vim.cmd("AgentsSend")
+write_status(fsd, "working")
+append(fsd, "\n## agent · t2\n")
+local written, total, writer = 0, 50, vim.uv.new_timer()
+local function write_line()
+  written = written + 1
+  append(fsd, "line " .. written .. "\n")
+  if written < total then writer:start(20 + (written % 4) * 10, 0, write_line) end
+end
+writer:start(20, 0, write_line)
+local sizes, nsizes, locked = {}, 0, false
+vim.wait(6000, function()
+  if written < total then
+    local n = #buf_lines(fsb)
+    if not sizes[n] then sizes[n], nsizes = true, nsizes + 1 end
+    if not vim.bo[fsb].modifiable then locked = true end
+  end
+  return written >= total
+end, 10)
+writer:close()
+ok(nsizes >= 4, "fast stream: the buffer reloads while the reply streams (" .. nsizes .. " sizes seen)")
+ok(locked, "fast stream: read-only during the stream")
+append(fsd, "\nEND\n\n## you · t3\n\n")
+write_status(fsd, "done")
+ok(vim.wait(3000, function() return has(fsb, "## you · t3") and vim.bo[fsb].modifiable end, 20), "fast stream: finished")
+eq(buf_lines(fsb), readf(fsd .. "/thread.md"), "fast stream: buffer matches the file")
+
 print(("%d checks, %d failed"):format(n, fails))
 vim.fn.delete(tmp, "rf")
 os.exit(fails == 0 and 0 or 1)

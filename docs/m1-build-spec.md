@@ -213,22 +213,22 @@ For a thread where `is_send` is true, with your turn `tK`:
 3. Write `working` to `status`.
 4. Assemble the request (§5.3); write `steps/tNNNN.request.json` where `NNNN` is the agent turn id `N = next_id()` (D3).
 5. Append `\n## agent · tN\n` to `thread.md`; write `last_turn`. Record the file's size and a hash of its contents: this is the **expected state**.
-6. Stream. Buffer output by line; for each complete line, escape and append; update the expected state after each write. Every 60 s, rewrite `status` (`working`) as a heartbeat so the plugin does not mark it stale.
+6. Stream. Buffer output by line (`\r\n` and a bare `\r` end a line, as `\n` does, so the file holds only `\n`); for each complete line, escape and append; update the expected state after each write. Every 60 s, rewrite `status` (`working`) as a heartbeat so the plugin does not mark it stale.
 7. Between writes (at least every 300 ms), check:
    - `STOP` exists → cancel the stream; close with `END (interrupted)`; status `interrupted`; delete `STOP`.
-   - `thread.md` no longer matches the expected state → **conflict**: cancel; write the remaining buffered text to `out/tNNNN-conflict.txt`; do *not* write to `thread.md` again for this turn except to append `END (conflict)` at the end; status `interrupted`.
+   - `thread.md` no longer matches the expected state → **conflict**: cancel; write the remaining buffered text to `out/tNNNN-conflict.txt`; do *not* write to `thread.md` again for this turn except to append, at the end, the fence line that closes a fence the turn left open (§4.4) and `END (conflict)`; status `interrupted`.
 8. On normal completion: flush the last partial line, balance fences, append `END`.
 9. **On failure** (API error, refusal, spend cap, unknown backend): append any partial output, then a `! error: <one-line reason>` diagnostic, then `END (failed)`; write `steps/tNNNN.error.json`; status `failed`. If the failure happened before step 5, write the header first, so every send gets an agent turn.
 10. Append the scaffold `\n## you · t(N+1)\n\n` and update `last_turn`.
-11. Write `steps/tNNNN.response.json` (if there was a response).
+11. Write `steps/tNNNN.response.json` if there was a response, or if the provider reported usage or cost before the turn was stopped, hit a conflict or failed. Such a record has `"partial": true` and no `stop_reason`, and its `cost_usd` counts toward the spend cap (§5.6).
 12. Status: `done` (or the abnormal status set above).
 13. **Reply commit.** `git add <thread dir>`; commit `reply <thread id> tN` with trailers.
 
 Git failures are logged and never fail the turn.
 
-**Start-up recovery** (`watch` and `once`, before anything else): for each direct thread with status `working` — if the last turn is an open agent turn, append `END (interrupted)` and the scaffold; set `interrupted`; commit `recover <thread id>`. Then process pending sends (D9).
+**Start-up recovery** (`watch` and `once`, before anything else): for each direct thread with status `working` — if the last turn is an open agent turn, append the fence line if it left a fence open (§4.4), `END (interrupted)` and the scaffold; set `interrupted`; commit `recover <thread id>`. Then process pending sends (D9).
 
-**Concurrency.** `watch` runs each active turn in its own thread; at most one turn per thread directory; no global limit in M1.
+**Concurrency.** `watch` runs each active turn in its own thread; at most one turn per thread directory; no global limit in M1. A process-wide lock serialises every `git add` + `git commit`, so concurrent turns do not collide on `.git/index.lock`.
 
 ### 5.3 Assembly (replay)
 
@@ -252,14 +252,14 @@ Chosen by the `model` string:
 | `claude-*` | Anthropic Messages API | §5.4.1 |
 | `<name>/<model>` where `<name>` is a key in `[backends.openai_compat]` | OpenAI-compatible chat completions, streaming | `system` sent as a `system` message; no caching; usage recorded if the server returns it |
 | `claude-cli` or `claude-cli/<model>` | `claude -p` subprocess | §5.4.2 |
-| `mock/echo`, `mock/slow`, `mock/fail`, `mock/markers` | built-in, no network | §5.4.3 — for tests and the smoke test |
+| `mock/echo`, `mock/slow`, `mock/fail`, `mock/markers`, `mock/crlf` | built-in, no network | §5.4.3 — for tests and the smoke test |
 | anything else | — | failed turn: `! error: unknown model <x>` |
 
 #### 5.4.1 Anthropic
 
-- Official `anthropic` Python SDK, `client.messages.stream(...)`, text deltas appended as they arrive, final message from `get_final_message()`.
+- Official `anthropic` Python SDK, `client.messages.stream(...)`, text deltas appended as they arrive, final message from `get_final_message()`. Usage is noted as it arrives (`message_start`: input and cache tokens; `message_delta`: output tokens), so a stopped or failed stream still records what was billed up to that point.
 - Request: `model`, `max_tokens` (config), `system`, `messages` (text content only — D5), `cache_control: {type: "ephemeral"}` at the top level (automatic caching of the longest stable prefix), `output_config: {effort: <config>}` for models that take it. No `temperature`/`top_p`/`top_k` (current models reject them). No `thinking` parameter: current Opus/Sonnet run adaptive thinking by default, and the runner ignores thinking blocks in the response.
-- Refusal fallback: when `fallbacks = true`, send the server-side fallback option with its beta flag, as documented for the model at build time. Record the model that actually served the turn in `response.json`; if it differs from `model:`, add a diagnostic `! served by <model>` so a fallback is never silent.
+- Refusal fallback: **deferred until after the trial** (operator decision, 2026-11-01). Today `fallbacks = true` only records a caveat in `response.json`, and a refusal ends as a failed turn (below). When it is built: send the server-side fallback option with its beta flag, as documented for the model at the time. Already in place: the runner records the model that served the turn in `response.json`, and if it differs from `model:` it adds `! served by <model>`, so a fallback is never silent.
 - `stop_reason`: `end_turn` → normal; `max_tokens` → normal close plus `! stopped: max_tokens`; `refusal` (with no fallback, or after fallback) → failed turn with `! error: refusal (<category>)`.
 - Errors: rate limit / overload / 5xx → the SDK's own retries, then a failed turn. 4xx → failed turn immediately, with the API's message in the diagnostic.
 
@@ -268,9 +268,9 @@ Chosen by the `model` string:
 Draws from the Pro/Max plan's limits (the separate Agent SDK credit announced 2026-05-13 was paused 2026-06-15). Claude Code adds its own system prompt and tools, so `steps/` records what we sent, not the exact model request.
 
 - Render the assembled messages as one transcript prompt (`[you]` / `[agent]` blocks) on stdin; the agent's system prompt via the flag that replaces the system prompt.
-- Run in an empty temporary directory, with all tools disabled, session persistence off, project/user settings not loaded, `--output-format stream-json`, and `AGENT_FILES_RUNNER=1` in the environment.
+- Run in an empty temporary directory, with all tools disabled, session persistence off, project/user settings not loaded, `--output-format stream-json`, and `AGENT_FILES_RUNNER=1` in the environment. `ANTHROPIC_API_KEY` and `ANTHROPIC_AUTH_TOKEN` are removed from the child's environment, so `claude -p` bills the plan, not the API.
 - **Verify every flag against `claude --help` at build time** (open question m1-plan §9.1). If a flag is missing, document the gap in `steps/` (`"backend_caveats": [...]`) rather than silently dropping it.
-- Cost: take `total_cost_usd` from the final result event if present.
+- Cost: take `total_cost_usd` and `usage` from the final result event if present, including an error result (`is_error`).
 
 #### 5.4.3 Mock
 
@@ -280,6 +280,7 @@ Draws from the Pro/Max plan's limits (the separate Agent SDK credit announced 20
 | `mock/slow` | Streams 200 numbered lines, one every 100 ms (for interrupt and conflict tests) |
 | `mock/fail` | Streams two lines, then raises an API-style error |
 | `mock/markers` | Streams lines that look like `END`, `## you · t99`, `! x`, `\END`, and an unclosed ```` ``` ```` fence (for escaping tests) |
+| `mock/crlf` | Streams text with CRLF and bare-`\r` line ends, some split across chunks, including `x\rEND\r## you · t9\rinjected` (for newline tests: the turn still ends with the runner's `END`) |
 
 Mock turns write `steps/` like real ones, with `"backend": "mock"`.
 
@@ -293,7 +294,7 @@ Mock turns write `steps/` like real ones, with `"backend": "mock"`.
  "request": { "...": "the exact body sent to the provider" }}
 ```
 
-`tNNNN.response.json`: `backend`, `served_model`, `stop_reason`, `usage` (as returned — for Anthropic including `cache_creation_input_tokens` and `cache_read_input_tokens`), `cost_usd` (computed from `[prices]`, or reported by `claude -p`), `duration_ms`, `chars_out`. The text is not duplicated; it is in `thread.md`.
+`tNNNN.response.json`: `backend`, `served_model`, `stop_reason`, `usage` (as returned — for Anthropic including `cache_creation_input_tokens` and `cache_read_input_tokens`), `cost_usd` (computed from `[prices]`, or reported by `claude -p`), `duration_ms`, `chars_out`, and `partial: true` when the turn was stopped or failed before the provider finished (§5.2 step 11). The text is not duplicated; it is in `thread.md`.
 
 `tNNNN.error.json`: `kind` (`api`, `refusal`, `spend_cap`, `config`, `backend`), `message`, `http_status` if any.
 
@@ -303,12 +304,12 @@ Before each send, sum `cost_usd` from every `steps/*.response.json` modified tod
 
 ## 6. `agent-files-hook`
 
-Configured once in `~/.claude/settings.json`. `install.sh` prints the block, one group per event, from the hook's own list (`agent-files-hook --events`), so the two cannot drift:
+Configured once in `~/.claude/settings.json`. `install.sh` prints the block, one group per event, from the hook's own list (`agent-files-hook --events`), so the two cannot drift. The command is the absolute path of the link `install.sh` made (shell-quoted if the path needs it), because Claude Code may run hooks with a `PATH` that lacks `~/.local/bin`:
 
 ```json
 { "hooks": {
-  "SessionStart": [{ "hooks": [{ "type": "command", "command": "agent-files-hook" }] }],
-  "PermissionRequest": [{ "hooks": [{ "type": "command", "command": "agent-files-hook" }] }],
+  "SessionStart": [{ "hooks": [{ "type": "command", "command": "/Users/mark/.local/bin/agent-files-hook" }] }],
+  "PermissionRequest": [{ "hooks": [{ "type": "command", "command": "/Users/mark/.local/bin/agent-files-hook" }] }],
   …one group each for every event in the table below…
 }}
 ```
@@ -364,7 +365,7 @@ Agent-Files-Model: claude-opus-5-5
 
 For each `send` commit, compare `thread.md` before (the thread's previous commit) and after:
 
-- **Context edit (H1):** the "before" body up to and including its last `END` line is not a byte-for-byte prefix of the "after" body. Frontmatter is excluded from both sides first. (Edits to `## carry` count.)
+- **Context edit (H1):** the "before" body up to and including its last `END` line is not a byte-for-byte prefix of the "after" body. Frontmatter is excluded from both sides first. (Edits to `## carry` count.) Deleting an agent turn that ended `END (failed)`, `END (interrupted)` or `END (conflict)` to retry it is not an edit: such a turn is left out of "before" when "after" no longer has an agent turn with its id. Any other change counts, including edits to your own turns, edits inside an abnormally ended turn, and deleting a normally closed agent turn.
 - **Model switch:** the frontmatter `model` value differs.
 - **Frontmatter edit:** any other frontmatter change.
 
@@ -382,7 +383,7 @@ Prints, from `git log` (trailers + the diffs in §7.2), `threads/`, `trial/searc
 threads                     23   (forks 7)
 turns per thread            median 6, max 31
 threads with 6+ turns       11
-  with a context edit        4   (36%)    H1 go ≥ 20%, kill < 5%
+  with a context edit        4   (36.3%)  H1 go ≥ 20%, kill < 5%
 forks                        7            H2 go ≥ 5,   kill < 2
   carry size                median 14 lines / 1.1k chars
 model switches               3
@@ -391,7 +392,9 @@ observed sessions           41   blocked events 19
 spend                       $3.12 (today $0.40)
 ```
 
-`--json` prints the same numbers as one object. Forks are threads with `kind: fork` present now, plus fork directories deleted later (found as `thread.md` paths in history). A fork is identified by what it started with — its `## carry`, `branched_at` and first turn — so renaming or moving a fork (or its parent) does not count it again; two deleted forks started with identical carry and question count once. `--since` filters sends (context edits, model switches); thread, fork, search and observed counts are all-time.
+`--json` prints the same numbers as one object; `context_edit_pct` is a number with one decimal, cut rather than rounded (1 of 21 is 4.7, not 5), so it never reads as reaching a threshold it has not. Forks are threads with `kind: fork` present now, plus fork directories deleted later (found as `thread.md` paths in history).
+
+Renamed or moved threads (a fork moves with its parent) keep their history. The runner commits only the current thread's paths, so git never records the rename; stats links an id that no longer exists to the id that took it over, by content. The new id first appears after the old id's last commit (or is not committed yet) and either holds a `steps/*.request.json` committed under the old id, or, failing that, keeps the old body up to its last `END` as in §7.2. Links are one-to-one and can chain. Context edits count under the thread's current name, the first send under a new name is classified against the old name's last commit, and a renamed fork is not counted again as deleted. A fork is also identified by what it started with — its `## carry`, `branched_at` and first turn — so two deleted forks started with identical carry and question count once. `--since` filters sends (context edits, model switches) from local midnight of that date; thread, fork, search and observed counts are all-time.
 
 ### 7.4 Journal template (`trial/journal.md`)
 
@@ -420,9 +423,9 @@ Neovim 0.10+. Configured with `require('agents').setup({ root = '~/agent-files' 
 ### 9.1 Buffers and watching
 
 - A buffer is a thread buffer if its path is `<root>/threads/**/thread.md` (observed threads included, read-only, no commands that write turns).
-- For each thread buffer: one `vim.uv.new_fs_event` on the thread directory. On any event, debounced 100 ms: re-read `status` and `seen`, `:checktime` the buffer, refresh marks.
-- While `status` is `working`: `modifiable = false`, `readonly = true`. Restored when it changes.
-- **Draft re-apply.** Before a reload (`FileChangedShell`, and set `v:fcs_choice = 'reload'` so there is never a prompt): if the buffer is modified, save the text after the last closed turn's `END` (the draft region). After reload, if the file's new last section is an empty `## you · tN` scaffold, put the draft there; otherwise append it at the end. Notify once: "draft re-applied".
+- For each thread buffer: one `vim.uv.new_fs_event` on the thread directory. On any event except a write to `seen` (the editor's own, §9.4), throttled to at most once per 100 ms with a trailing run after the last event (a debounce would never fire while a reply streams faster than that): re-read `status` and `seen`, `:checktime` the buffer, refresh marks.
+- While `status` is `working` and not stale (§9.2): `modifiable = false`, `readonly = true`. Restored when it changes or goes stale; a stale thread does not run the spinner.
+- **Draft re-apply.** Before a reload (`FileChangedShell`, and set `v:fcs_choice = 'reload'` so there is never a prompt): if the buffer is modified, save what the user typed: how the buffer differs from the file as the buffer last read or wrote it. Text that came from the file, such as a streaming reply, is never part of it. After reload, an edit inside the old file's lines goes back in place if the file did not change those lines. Everything else is the draft: text typed after the old end of the file, or an edit to lines the file also changed. If the file's new last section is an empty `## you · tN` scaffold, put the draft there; otherwise append it at the end. Notify once per draft: "draft re-applied".
 
 ### 9.2 Marks and status line
 
@@ -453,7 +456,7 @@ Plus `~Nk` tokens: `ceil(characters of thread.md / 4 / 1000)`.
 
 ### 9.4 Seen
 
-Touch `seen` when a thread buffer is entered (`BufEnter`) and on `FocusGained` while one is the current buffer, and after a reload while it is visible in the current window. Never for buffers that are only loaded.
+Touch `seen` when a thread buffer is entered (`BufEnter`) and on `FocusGained` while one is the current buffer, and after a reload while it is visible in the current window. Never for buffers that are only loaded. Only when `status` exists and `seen` is missing or older than it; otherwise each write would fire the watcher and touch `seen` again.
 
 ### 9.5 Display (view-layer step 1)
 
@@ -462,7 +465,7 @@ Thread-aware display on top of whatever generic markdown renderer step 0 install
 - **Highlight groups**, linked to sensible defaults so colorschemes can override: `AgentsYou` (`## you · tN`), `AgentsAgent` (`## agent · tN`), `AgentsNote`, `AgentsCarry`, `AgentsEnd` (`END` and `END (…)`, dimmed), `AgentsEndAbnormal` (`END (interrupted|failed|conflict)`), `AgentsDiag` (`! ` lines), `AgentsTool` (`▸` lines). Matching uses the Lua parser, so markers inside fences are not highlighted.
 - **Folds:** `foldmethod=expr` with an expression that opens a fold at each `▸` line and includes the indented lines below it, closed by default. M1's runner writes no `▸` lines (no tools), so this is exercised by the fixture and later milestones; it costs nothing now.
 - **End mark:** virtual text at the end of the last `END` line (or of the last header, during a turn) showing the thread's mark from §9.2 plus the status word, e.g. `  ⠋ working · ~12k`. Updated with the marks.
-- Settings for thread buffers: `conceallevel=2`, `wrap`, `linebreak` (step 0 recommends them globally for markdown; the plugin sets them locally so threads read well either way).
+- Settings for thread buffers: `conceallevel=2`, `wrap`, `linebreak` (step 0 recommends them globally for markdown; the plugin sets them locally so threads read well either way). These and the fold settings are window-local (`:setlocal`), so other buffers and new windows keep their own. They are set the first time a thread shows in a window, not on every enter, so folds the user opened stay open.
 
 ## 10. Acceptance
 
@@ -494,12 +497,12 @@ Thread-aware display on top of whatever generic markdown renderer step 0 install
 | S3 | Select two lines, `:AgentsFork smoke-fork`, send | Child exists with `## carry`, `kind: fork`, `branched_at`; the request starts with `<carry>` |
 | S4 | `model: mock/slow`, send, `:AgentsStop` | `END (interrupted)`, status `interrupted`, `STOP` gone, scaffold present |
 | S5 | `model: mock/slow`, send, kill the runner, restart it | Turn closed `END (interrupted)` on restart; no duplicate turn |
-| S6 | Switch to `model: claude-opus-5-5`, send twice within 5 minutes | Real reply; second `response.json` shows `cache_read_input_tokens > 0` |
+| S6 | Switch to `model: claude-opus-5-5`; make the first message long (2,000+ characters — the model caches no prefix under 512 tokens), send, then send a short second message within 5 minutes | Real reply; second `response.json` shows `cache_read_input_tokens > 0` |
 | S7 | Delete a whole earlier agent turn, rewrite your first turn, send | Reply arrives (no 400 from edited history — D5) |
 | S8 | Switch to a local model (`ollama/<name>`), send | Reply; `cost_usd: 0` |
-| S9 | Start `claude` by hand in a project, give it a task that needs a permission | `_observed/<project>-<sid>/` appears; `:AgentsNext` shows it `blocked`; then `working`, `done`; gone after exit |
+| S9 | Start `claude` by hand in a project, give it a task that needs a permission | `_observed/<project>-<sid>/` appears; `:AgentsNext` lists it as `blocked`; with its `thread.md` open, the end mark then shows `working`, then `done` (`:AgentsNext` never lists working threads); gone after exit |
 | S10 | `:AgentsGrep <word from S1>` | Quickfix hits; one line in `trial/searches.log` |
-| S11 | Open S1's thread and the view fixture | Turn headers and `END` are highlighted; the end mark shows the status and token estimate; the fixture's tool fold is closed |
+| S11 | Copy the view fixture under `threads/` (the plugin attaches only there), then open it and a real thread | Turn headers and `END` are highlighted; the end mark shows the token estimate, plus the status while a turn runs or its result is unseen; the fixture's tool fold is closed. Delete the copy afterwards |
 
 When S1–S11 pass, record the date at the top of `trial/journal.md`: day 1 of the trial.
 
@@ -539,5 +542,6 @@ Exactly as m1-plan §2: no tools in the runner (so no `▸` folds, `out/` only f
    - The exact request isn't observable: the stream shows the session config, not the request.
 
    Both are in `backend_caveats`. Every `response.json` from this backend says `"backend": "claude_cli"`, so its turns can be filtered out of any cache or request comparison; `agent-files-stats` makes none today.
+   **Re-checked 2026-11-02** (Claude Code 2.1.317, same method, `ANTHROPIC_API_KEY` and `ANTHROPIC_AUTH_TOKEN` removed as the backend now does). Results are unchanged: no tools, MCP servers, slash commands or skills; about 660 input tokens; `apiKeySource: none`, so the turn ran on the plan. With no `model:` suffix, `claude -p` uses Claude Code's own default model, which was `claude-fable-5-1` on this machine. Its `total_cost_usd` (an API-equivalent figure, 0.013 for a one-word reply) counts toward the daily cap (§5.6).
 2. **Effort per thread.** M1 uses one `effort` from config. If the trial wants a per-thread knob, add an optional `effort:` frontmatter field — a format addition, not a change.
 3. **Spinner cost.** A 120 ms timer redrawing the tabline is cheap, but if it flickers in Ghostty, fall back to a static `…`.

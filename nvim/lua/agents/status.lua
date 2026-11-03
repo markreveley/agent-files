@@ -22,21 +22,28 @@ function M.read(dir)
   return { status = status, status_mtime = mtime(dir .. "/status"), seen_mtime = mtime(dir .. "/seen") }
 end
 
+--- `working` with no status write for STALE_SECS: the runner died.
+function M.stale(info, now)
+  return info.status == "working" and info.status_mtime ~= nil
+    and (now or os.time()) - info.status_mtime >= M.STALE_SECS
+end
+
+--- `working` and not stale: lock the buffer, run the spinner.
+function M.working(info, now) return info.status == "working" and not M.stale(info, now) end
+
 --- Returns glyph, highlight group, word ("" = idle).
 function M.mark(info, now)
-  now = now or os.time()
   local st = info.status
   if not st then return "", nil, "" end
   if st == "working" then
-    if info.status_mtime and now - info.status_mtime >= M.STALE_SECS then return "?", "WarningMsg", "stale" end
+    if M.stale(info, now) then return "?", "WarningMsg", "stale" end
     return FRAMES[M.frame], "DiagnosticInfo", "working"
   elseif st == "blocked" then
     return "●", "ErrorMsg", "blocked"
   elseif st == "failed" then
     return "✗", "ErrorMsg", "failed"
   elseif st == "done" or st == "interrupted" then
-    local unseen = not info.seen_mtime or (info.status_mtime and info.status_mtime > info.seen_mtime)
-    if unseen then return st == "done" and "✓" or "⏸", "DiagnosticOk", st end
+    if M.unseen(info) then return st == "done" and "✓" or "⏸", "DiagnosticOk", st end
     return "", nil, ""
   end
   return "", nil, st
@@ -50,7 +57,15 @@ end
 
 function M.advance() M.frame = M.frame % #FRAMES + 1 end
 
+--- `seen` is missing or older than `status`.
+function M.unseen(info)
+  return not info.seen_mtime or (info.status_mtime ~= nil and info.status_mtime > info.seen_mtime)
+end
+
+--- Touch `seen`, only when the status is unseen: writing it fires the directory watcher.
 function M.touch_seen(dir)
+  local info = M.read(dir)
+  if not info.status or not M.unseen(info) then return end
   local f = io.open(dir .. "/seen", "w")
   if f then f:close() end
 end

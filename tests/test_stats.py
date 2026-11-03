@@ -1,4 +1,4 @@
-import json, os, subprocess, sys, unittest
+import json, os, re, subprocess, sys, unittest
 sys.path.insert(0, os.path.dirname(__file__))
 from helpers import Env, REPO
 
@@ -79,7 +79,7 @@ class Stats(unittest.TestCase):
         self.assertEqual(s["forks"], 2)                           # a/fork1 + deleted 'gone'
         self.assertEqual(s["threads_6plus"], 1)
         self.assertEqual(s["threads_6plus_with_context_edit"], 1)
-        self.assertEqual(s["context_edit_pct"], 100)
+        self.assertEqual(s["context_edit_pct"], 100.0)
         self.assertEqual(s["model_switches"], 1)
         self.assertEqual(s["searches"], 2)
         self.assertEqual(s["observed_sessions"], 2)
@@ -87,6 +87,7 @@ class Stats(unittest.TestCase):
         self.assertEqual(s["carry_median_lines"], 2)
         r = subprocess.run([sys.executable, STATS], env=self.e.env, capture_output=True, text=True)
         self.assertIn("H1 go", r.stdout)
+        self.assertIn("(100.0%)", r.stdout)
         self.assertIn("(forks 2)", r.stdout)
 
     def stats(self, *args):
@@ -135,6 +136,140 @@ class Stats(unittest.TestCase):
         self.assertEqual(s["model_switches"], 0)
         self.assertEqual(s["threads_6plus_with_context_edit"], 0)     # sends are filtered...
         self.assertEqual((s["threads"], s["forks"]), (2, 1))          # ...thread and fork counts are not (spec §7.3)
+
+    # ---- helpers for the tests below -------------------------------------------------------
+
+    def reply(self, tid, q, edit=None):
+        """Optionally edit the thread, fill its trailing empty `## you` turn with `q`, and send."""
+        txt = self.e.read(tid)
+        if edit:
+            self.assertIn(edit[0], txt)
+            txt = txt.replace(*edit)
+        txt, n = re.subn(r"(## you · t\d+)\n\n$", lambda m: f"{m.group(1)}\n{q}\nEND\n", txt)
+        self.assertEqual(n, 1, txt)
+        self.send(tid, txt)
+
+    def commit(self, tid, body, event="reply", date=None):
+        """Write threads/<tid>/thread.md and commit only it, with runner-style trailers."""
+        rel = f"threads/{tid}/thread.md"
+        self.e.write_thread(tid, body)
+        env = dict(self.e.env, GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@t", GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@t")
+        if date:
+            env.update(GIT_AUTHOR_DATE=date, GIT_COMMITTER_DATE=date)
+        msg = f"{event} {tid}\n\nAgent-Files-Event: {event}\nAgent-Files-Thread: {tid}\n"
+        for cmd in (["add", "--", rel], ["commit", "-q", "-m", msg, "--only", "--", rel]):
+            r = subprocess.run(["git", "-C", self.e.root, *cmd], env=env, capture_output=True, text=True)
+            self.assertEqual(r.returncode, 0, r.stderr)
+
+    # ---- fix: retrying an abnormally closed agent turn is not a context edit --------------
+
+    def test_retrying_a_failed_turn_is_not_a_context_edit(self):
+        self.e.write_thread("r", "## you · t1\nq1\nEND\n", model="mock/fail")
+        self.send("r")
+        txt = self.e.read("r")
+        self.assertIn("END (failed)", txt)
+        txt = txt[:txt.index("## agent · t2")].rstrip("\n") + "\n"     # delete the failed turn: t1 is sent again
+        self.send("r", txt.replace("model: mock/fail", "model: mock/echo"))
+        self.assertIn("echo: q1", self.e.read("r"))
+        s = self.stats()
+        self.assertEqual(s["threads_with_context_edit"], 0)
+        self.assertEqual(s["model_switches"], 1)
+
+    def test_only_removing_abnormal_agent_turns_is_exempt(self):
+        Q = "## you · t1\nq1\nEND\n\n"
+        FAILED = "## agent · t2\npartial\n! error: x\nEND (failed)\n\n"
+        cases = [   # (thread, before, after, is a context edit)
+            ("failed", Q + FAILED + "## you · t3\n\n", Q, False),
+            ("interrupted", Q + "## agent · t2\npartial\nEND (interrupted)\n\n## you · t3\n\n",
+             Q + "## you · t3\nagain\nEND\n", False),
+            ("conflict", Q + "## agent · t2\npartial\nEND (conflict)\n", Q, False),
+            ("kept", Q + FAILED + "## you · t3\n\n", Q + FAILED + "## you · t3\nmore\nEND\n", False),
+            ("normal-agent-deleted", Q + "## agent · t2\nanswer\nEND\n\n## you · t3\n\n", Q, True),
+            ("failed-and-premise", Q + FAILED + "## you · t3\n\n", Q.replace("q1", "q1 fixed"), True),
+            ("failed-turn-edited", Q + FAILED + "## you · t3\n\n",
+             Q + FAILED.replace("partial", "part") + "## you · t3\nmore\nEND\n", True),
+        ]
+        for tid, before, after, edit in cases:
+            with self.subTest(tid):
+                n = self.stats()["threads_with_context_edit"]
+                self.commit(tid, before)
+                self.commit(tid, after, event="send")
+                self.assertEqual(self.stats()["threads_with_context_edit"] - n, int(edit))
+
+    # ---- fix: the H1 percentage is not rounded across a threshold ---------------------------
+
+    def test_context_edit_pct_is_cut_to_one_decimal(self):
+        body = turns(3)                                               # 6 turns each
+        for n, k, pct in ((21, 1, 4.7), (41, 8, 19.5), (101, 5, 4.9)):
+            with self.subTest(f"{k}/{n}"):
+                self.e.cleanup()
+                self.e = Env().init()
+                for i in range(n):
+                    self.e.write_thread(f"s{i:03d}", body)
+                self.e.git("add", "-A", "threads")
+                self.e.git("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "seed")
+                for i in range(k):
+                    self.commit(f"s{i:03d}", body.replace("q1", "q1 edited"), event="send")
+                s = self.stats()
+                self.assertEqual((s["threads_6plus"], s["threads_6plus_with_context_edit"]), (n, k))
+                self.assertEqual(s["context_edit_pct"], pct)
+                self.assertLess(s["context_edit_pct"], 20 if pct > 5 else 5)    # below the threshold, as k/n is
+                r = subprocess.run([sys.executable, STATS], env=self.e.env, capture_output=True, text=True)
+                self.assertIn(f"({pct}%)", r.stdout)
+
+    # ---- fix: --since YYYY-MM-DD starts at local midnight ----------------------------------
+
+    def test_since_date_starts_at_local_midnight(self):
+        self.e.env["TZ"] = "EST5"                                     # git and stats both use local time
+        Q = "## you · t1\nq1\nEND\n"
+        for tid in ("early", "late"):
+            self.commit(tid, Q, date="2026-01-14T12:00:00-05:00")
+        self.commit("early", Q.replace("q1", "q1 edited"), event="send", date="2026-01-14T23:55:00-05:00")
+        self.commit("late", Q.replace("q1", "q1 edited"), event="send", date="2026-01-15T00:05:00-05:00")
+        self.assertEqual(self.stats()["threads_with_context_edit"], 2)
+        self.assertEqual(self.stats("--since", "2026-01-15")["threads_with_context_edit"], 1)   # 'late' only
+
+    # ---- fix: renamed threads keep their edits and are not counted twice -------------------
+
+    def test_rename_keeps_context_edits(self):
+        for tid in ("x", "p"):
+            self.e.write_thread(tid, "## you · t1\nq1\nEND\n")
+            self.send(tid)
+            self.reply(tid, "q3", edit=("q1", "q1 edited"))           # a context edit, sent as x / p
+            self.reply(tid, "q5")                                     # 6 turns
+        os.rename(self.e.tdir("x"), self.e.tdir("y"))
+        self.reply("y", "q7")                                         # renamed, then sent again
+        os.rename(self.e.tdir("p"), self.e.tdir("q"))                 # renamed, not sent since
+        s = self.stats()
+        self.assertEqual(s["threads"], 2)
+        self.assertEqual(s["threads_6plus"], 2)
+        self.assertEqual(s["threads_6plus_with_context_edit"], 2)
+        self.assertEqual(s["threads_with_context_edit"], 2)
+
+    def test_edit_made_while_renaming_counts(self):
+        self.e.write_thread("m", "## you · t1\nq1\nEND\n")
+        self.send("m")
+        self.reply("m", "q3")
+        self.reply("m", "q5")
+        os.rename(self.e.tdir("m"), self.e.tdir("n"))
+        self.reply("n", "q7", edit=("q1", "q1 fixed"))                # first send under the new name carries an edit
+        s = self.stats()
+        self.assertEqual(s["threads_6plus_with_context_edit"], 1)
+        self.assertEqual(s["threads_with_context_edit"], 1)
+
+    def test_renamed_fork_with_edited_carry_counts_once(self):
+        self.e.write_thread("x", "## you · t1\nq\nEND\n")
+        self.send("x")
+        self.fork("x/f1")
+        self.reply("x/f1", "more", edit=("carried line", "carried line, fixed"))   # carry edited and sent...
+        os.rename(self.e.tdir("x/f1"), self.e.tdir("x/f2"))                          # ...then renamed
+        self.reply("x/f2", "again")
+        self.fork("x/g1", carry="other line\n")
+        os.rename(self.e.tdir("x/g1"), self.e.tdir("x/g2"))                          # renamed with an unsent carry edit
+        self.reply("x/g2", "more", edit=("other line", "other line, fixed"))
+        s = self.stats()
+        self.assertEqual((s["threads"], s["forks"]), (3, 2))
+        self.assertEqual(s["threads_with_context_edit"], 2)
 
 
 if __name__ == "__main__":

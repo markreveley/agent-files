@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from .base import BackendError, Cancelled, Control, cost_usd  # noqa: F401
 
-MOCKS = ("mock/echo", "mock/slow", "mock/fail", "mock/markers")
+MOCKS = ("mock/echo", "mock/slow", "mock/fail", "mock/markers", "mock/crlf")
 
 
 def select(model: str, cfg: dict):

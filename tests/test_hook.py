@@ -78,14 +78,29 @@ class Hook(unittest.TestCase):
         self.fire("Notification", message="Claude needs your permission")
         self.assertEqual(self.status(), "working")
 
+    def install(self, dest, cwd=None):
+        env = dict(os.environ, HOME=self.tmp)
+        r = subprocess.run(["sh", os.path.join(REPO, "install.sh"), dest], capture_output=True, text=True, env=env, cwd=cwd)
+        self.assertEqual(r.returncode, 0, r.stderr)
+        return json.loads(r.stdout[r.stdout.index('{ "hooks"'):r.stdout.index("}}") + 2])
+
     def test_installer_registers_the_hook_events(self):
         dest = os.path.join(self.tmp, "bin")
-        out = subprocess.run(["sh", os.path.join(REPO, "install.sh"), dest], capture_output=True, text=True).stdout
-        block = json.loads(out[out.index('{ "hooks"'):out.index("}}") + 2])
+        block = self.install(dest)
         events = subprocess.run([sys.executable, HOOK, "--events"], capture_output=True, text=True).stdout.split()
         self.assertEqual(list(block["hooks"]), events)
-        for groups in block["hooks"].values():
-            self.assertEqual(groups, [{"hooks": [{"type": "command", "command": "agent-files-hook"}]}])
+        for groups in block["hooks"].values():   # the link's absolute path: hooks may run without ~/.local/bin on PATH
+            self.assertEqual(groups, [{"hooks": [{"type": "command", "command": os.path.join(dest, "agent-files-hook")}]}])
+
+    def test_installed_hook_command_runs_without_path(self):
+        block = self.install("my bin", cwd=self.tmp)               # relative, with a space
+        cmd = block["hooks"]["SessionStart"][0]["hooks"][0]["command"]
+        self.assertIn(os.path.join(self.tmp, "my bin", "agent-files-hook"), cmd)
+        env = dict(self.env, PATH=os.path.dirname(sys.executable) + ":/usr/bin:/bin")
+        r = subprocess.run(["sh", "-c", cmd], input=json.dumps({"session_id": SID, "cwd": "/x/api", "hook_event_name": "SessionStart"}),
+                           capture_output=True, text=True, env=env, cwd="/")
+        self.assertEqual((r.returncode, r.stdout, r.stderr), (0, "", ""))
+        self.assertEqual(self.status(), "done")
 
     def test_session_end_deletes(self):
         self.fire("SessionStart")

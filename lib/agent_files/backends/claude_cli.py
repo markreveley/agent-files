@@ -30,7 +30,7 @@ def build_body(req: dict, model: str | None) -> dict:
 
 
 def command(cmd: str, body: dict) -> list:
-    # Flags verified against `claude --help` and one real turn (Claude Code 2.1.316, 2026-11-01): no tools,
+    # Flags verified against `claude --help` and one real turn (Claude Code 2.1.316, 2026-11-01; re-checked 2.1.317, 2026-11-02): no tools,
     # MCP servers, slash commands, skills, user settings, hooks or CLAUDE.md. See docs/m1-build-spec.md §14.1.
     args = [cmd, "-p", "--output-format", "stream-json", "--verbose", "--include-partial-messages",
             "--no-session-persistence", "--tools", "", "--setting-sources", "",
@@ -44,7 +44,9 @@ def command(cmd: str, body: dict) -> list:
 
 def stream(body: dict, ctl, cfg: dict) -> dict:
     cmd = cfg["backends"].get("claude_cli", {}).get("command", "claude")
-    env = dict(os.environ, AGENT_FILES_RUNNER="1")
+    # Without the API credentials (exported for the anthropic backend), claude -p bills the plan, not the API.
+    env = {k: v for k, v in os.environ.items() if k not in ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN")}
+    env["AGENT_FILES_RUNNER"] = "1"
     info = {"stop_reason": "end_turn", "served_model": body.get("model") or "claude-cli", "usage": {},
             "backend": "claude_cli", "backend_caveats": CAVEATS}
     with tempfile.TemporaryDirectory() as cwd:
@@ -74,10 +76,10 @@ def stream(body: dict, ctl, cfg: dict) -> dict:
                     for blk in ev.get("message", {}).get("content", []):
                         if blk.get("type") == "text":
                             ctl.text(blk["text"])
-                elif ev.get("type") == "result":
-                    info["usage"] = ev.get("usage", {}) or {}
+                elif ev.get("type") == "result":   # carries usage and cost even when is_error is set
+                    info["usage"] = ctl.seen["usage"] = ev.get("usage", {}) or {}
                     if "total_cost_usd" in ev:
-                        info["cost_usd"] = ev["total_cost_usd"]
+                        info["cost_usd"] = ctl.seen["cost_usd"] = ev["total_cost_usd"]
                     if ev.get("is_error"):
                         raise BackendError("api", str(ev.get("result", "claude -p error")))
         finally:
