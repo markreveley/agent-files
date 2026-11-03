@@ -391,7 +391,7 @@ observed sessions           41   blocked events 19
 spend                       $3.12 (today $0.40)
 ```
 
-`--json` prints the same numbers as one object; `context_edit_pct` is a number with one decimal, cut rather than rounded (1 of 21 is 4.7, not 5), so it never reads as reaching a threshold it has not. Forks are threads with `kind: fork` present now, plus fork directories deleted later (found as `thread.md` paths in history). A fork is identified by what it started with — its `## carry`, `branched_at` and first turn — so renaming or moving a fork (or its parent) does not count it again; two deleted forks started with identical carry and question count once. `--since` filters sends (context edits, model switches); thread, fork, search and observed counts are all-time.
+`--json` prints the same numbers as one object; `context_edit_pct` is a number with one decimal, cut rather than rounded (1 of 21 is 4.7, not 5), so it never reads as reaching a threshold it has not. Forks are threads with `kind: fork` present now, plus fork directories deleted later (found as `thread.md` paths in history). A fork is identified by what it started with — its `## carry`, `branched_at` and first turn — so renaming or moving a fork (or its parent) does not count it again; two deleted forks started with identical carry and question count once. `--since` filters sends (context edits, model switches) from local midnight of that date; thread, fork, search and observed counts are all-time.
 
 ### 7.4 Journal template (`trial/journal.md`)
 

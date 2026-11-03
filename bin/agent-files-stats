@@ -2,8 +2,10 @@
 """agent-files-stats — trial measurement (docs/m1-build-spec.md §7.3). Standard library only."""
 import argparse
 import dataclasses
+import datetime
 import json
 import os
+import re
 import statistics
 import sys
 import time
@@ -83,6 +85,13 @@ def fork_identity(th):
     return ((th.carry or "").strip(), str(th.frontmatter.get("branched_at") or ""), first)
 
 
+def since_arg(since: str) -> str:
+    """git reads a bare YYYY-MM-DD as that date at the current time of day; make it local midnight."""
+    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", since):
+        return datetime.datetime.strptime(since, "%Y-%m-%d").astimezone().isoformat()
+    return since
+
+
 def compute(root, since=None):
     res = {}
     has_git = os.path.isdir(os.path.join(root, ".git"))
@@ -101,7 +110,7 @@ def compute(root, since=None):
         fmt = "%H%x1f%aI%x1f%s%x1f%b%x1e"
         args = ["log", "--reverse", "--first-parent", f"--format={fmt}"]
         if since:
-            args.append(f"--since={since}")
+            args.append(f"--since={since_arg(since)}")
         out = git.run(root, *args).stdout
         for rec in out.split("\x1e"):
             rec = rec.strip("\n")

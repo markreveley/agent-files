@@ -217,6 +217,18 @@ class Stats(unittest.TestCase):
                 r = subprocess.run([sys.executable, STATS], env=self.e.env, capture_output=True, text=True)
                 self.assertIn(f"({pct}%)", r.stdout)
 
+    # ---- fix: --since YYYY-MM-DD starts at local midnight ----------------------------------
+
+    def test_since_date_starts_at_local_midnight(self):
+        self.e.env["TZ"] = "EST5"                                     # git and stats both use local time
+        Q = "## you · t1\nq1\nEND\n"
+        for tid in ("early", "late"):
+            self.commit(tid, Q, date="2026-01-14T12:00:00-05:00")
+        self.commit("early", Q.replace("q1", "q1 edited"), event="send", date="2026-01-14T23:55:00-05:00")
+        self.commit("late", Q.replace("q1", "q1 edited"), event="send", date="2026-01-15T00:05:00-05:00")
+        self.assertEqual(self.stats()["threads_with_context_edit"], 2)
+        self.assertEqual(self.stats("--since", "2026-01-15")["threads_with_context_edit"], 1)   # 'late' only
+
 
 if __name__ == "__main__":
     unittest.main()
