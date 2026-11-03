@@ -11,7 +11,7 @@ Read with [operator-readme-next.md](operator-readme-next.md). Rewrite both at th
 You are continuing the M1 build of agent-files. For what agent-files is for and where it goes after M1, read [docs/direction-analysis.md](../docs/direction-analysis.md). For M1 itself, read [docs/m1-build-spec.md](../docs/m1-build-spec.md) first; where it is silent, [docs/m1-plan.md](../docs/m1-plan.md) and [ARCHITECTURE.md](../ARCHITECTURE.md) apply. Standing rules and the pre-push checks are in [AGENTS.md](../AGENTS.md).
 
 ## State
-- M1 is built. On 2026-11-02 an adversarial audit found real bugs, and they are fixed in branch `claude/audit-fixes-2026-11-02` (draft PR, see Next step 0). What is left is in [audit-2026-11-02.md](audit-2026-11-02.md).
+- M1 is built. On 2026-11-02 an adversarial audit found real bugs, and they are fixed in branch `claude/audit-fixes-2026-11-02` (draft PR #24). What is left is in [audit-2026-11-02.md](audit-2026-11-02.md).
 - Verified:
   - Mock-backend tests and smoke S1-S5.
   - Headless plugin tests on Neovim 0.12.5 (75 checks after the audit fixes; 93 unit tests).
@@ -44,7 +44,7 @@ You are continuing the M1 build of agent-files. For what agent-files is for and 
   3. The result's input tokens should be in the hundreds, not thousands.
 
 ## Next, in order
-0. **Merge the audit fixes** (branch `claude/audit-fixes-2026-11-02`) once the operator approves, then the operator pulls the install clone (operator step 2 says so). The remaining edge cases in [audit-2026-11-02.md](audit-2026-11-02.md) are not for now: fix one only if it causes friction in the trial, or after day 10.
+0. **Merge the audit fixes** (PR #24, branch `claude/audit-fixes-2026-11-02`) once the operator approves, then the operator pulls the install clone (operator step 2 says so). The remaining edge cases in [audit-2026-11-02.md](audit-2026-11-02.md) are not for now: fix one only if it causes friction in the trial, or after day 10.
 1. **(Blocked on operator)** Act on smoke results. When the operator reports S6-S11, fix each failure from the symptom and the thread's `steps/` files. S11 includes the interactive Neovim check: `FileChangedShell` reload into a briefly non-modifiable buffer, and the spinner timer (the plugin uses `vim.uv or vim.loop`).
 2. **After the trial starts, optional:** `agent-files-render` (view-layer step 2, spec §12). It must import `thread.py` and write only under `~/.cache/agent-files/view/`. It is the first piece of the record viewer (M8, principle 13), so keep its output a static HTML page.
 3. **After the trial:** Anthropic refusal fallback (`lib/agent_files/backends/anthropic.py`). The operator decided on 2026-11-01 to build this after the trial, not before S6. Reasons: refusals should be rare in the trial's threads, a refusal already shows as a failed turn, it doesn't affect H1-H3, and no new building is allowed before day 10. `fallbacks = true` only records a caveat in `steps/*.response.json` today.
@@ -62,7 +62,7 @@ You are continuing the M1 build of agent-files. For what agent-files is for and 
 Build nothing new before the day-10 decision ([m1-plan §5](../docs/m1-plan.md#5-decision-criteria)) beyond the fixes in item 1.
 
 ## Pending operator decisions
-- Merge the audit-fixes PR?
+- Merge PR #24 (audit fixes)?
 
 ## Do not do
 - No tools in the runner, no `inbox/`, notes writing, compaction, `resume` context or grounding (spec §13).
