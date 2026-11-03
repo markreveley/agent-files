@@ -44,7 +44,9 @@ def command(cmd: str, body: dict) -> list:
 
 def stream(body: dict, ctl, cfg: dict) -> dict:
     cmd = cfg["backends"].get("claude_cli", {}).get("command", "claude")
-    env = dict(os.environ, AGENT_FILES_RUNNER="1")
+    # Without the API credentials (exported for the anthropic backend), claude -p bills the plan, not the API.
+    env = {k: v for k, v in os.environ.items() if k not in ("ANTHROPIC_API_KEY", "ANTHROPIC_AUTH_TOKEN")}
+    env["AGENT_FILES_RUNNER"] = "1"
     info = {"stop_reason": "end_turn", "served_model": body.get("model") or "claude-cli", "usage": {},
             "backend": "claude_cli", "backend_caveats": CAVEATS}
     with tempfile.TemporaryDirectory() as cwd:

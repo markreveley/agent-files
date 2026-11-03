@@ -268,7 +268,7 @@ Chosen by the `model` string:
 Draws from the Pro/Max plan's limits (the separate Agent SDK credit announced 2026-05-13 was paused 2026-06-15). Claude Code adds its own system prompt and tools, so `steps/` records what we sent, not the exact model request.
 
 - Render the assembled messages as one transcript prompt (`[you]` / `[agent]` blocks) on stdin; the agent's system prompt via the flag that replaces the system prompt.
-- Run in an empty temporary directory, with all tools disabled, session persistence off, project/user settings not loaded, `--output-format stream-json`, and `AGENT_FILES_RUNNER=1` in the environment.
+- Run in an empty temporary directory, with all tools disabled, session persistence off, project/user settings not loaded, `--output-format stream-json`, and `AGENT_FILES_RUNNER=1` in the environment. `ANTHROPIC_API_KEY` and `ANTHROPIC_AUTH_TOKEN` are removed from the child's environment, so `claude -p` bills the plan, not the API.
 - **Verify every flag against `claude --help` at build time** (open question m1-plan §9.1). If a flag is missing, document the gap in `steps/` (`"backend_caveats": [...]`) rather than silently dropping it.
 - Cost: take `total_cost_usd` from the final result event if present.
 
