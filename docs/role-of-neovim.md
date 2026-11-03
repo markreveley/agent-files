@@ -157,20 +157,20 @@ So `$NVIM` is a shortcut for one case — an agent you launched inside the edito
 
 ## 7. The other direction: Neovim's only output is files
 
-Neovim never calls a runtime. Every command in `agents.nvim` is a file operation, which is why no runtime needs to know any editor exists.
+Neovim never calls a runtime. Every command in `agents.nvim` is a file operation, which is why no runtime needs to know any editor exists. Rows marked *(later)* are not built in M1 ([m1-build-spec §13](m1-build-spec.md#13-not-in-this-build)).
 
 | You do | In Neovim | On disk |
 |---|---|---|
 | Draft a turn | Write under the `## you · tN` header, `:w` as often as you like | `thread.md` grows; nothing is sent yet |
 | Send a turn | `:AgentsSend` | Your turn gets its closing `END`; the thread's runtime sees the send |
 | Interrupt | `:AgentsStop` | `touch <thread dir>/STOP` (the thread file is read-only to you mid-turn) |
-| Answer a permission question | Type `> y`, `> n` or `> always` on the line below it, `:w` | The answer directly under the `? PERMISSION` line — the one write allowed inside an open agent turn |
+| Answer a permission question *(later)* | Type `> y`, `> n` or `> always` on the line below it, `:w` | The answer directly under the `? PERMISSION` line — the one write allowed inside an open agent turn |
 | Acknowledge a thread | Open it | `touch <thread dir>/seen` |
 | Start a thread | `:AgentsNew <name>` | `threads/<name>/thread.md` with frontmatter and `## you · t1` |
 | Fork | `:AgentsFork` on a selection | `<thread>/<child>/thread.md` with `kind: fork`, `branched_at: tN` and a `## carry` section holding the selection |
-| Close a sub-thread | `:AgentsClose` | Asks its runtime to close it (from M3) |
-| Prune a branch | `:AgentsPrune` | `rm -r` of the child directory (git is the undo) |
-| Search threads | `:AgentsGrep <pattern>` | Nothing written — `rg` across `threads/` into quickfix |
+| Close a sub-thread *(later)* | `:AgentsClose` | Asks its runtime to close it (from M3) |
+| Prune a branch *(later)* | `:AgentsPrune` | `rm -r` of the child directory (git is the undo) |
+| Search threads | `:AgentsGrep <pattern>` | `rg` across `threads/` into quickfix; one line appended to `trial/searches.log` (for H3) |
 | See what needs you | `:AgentsNext` | Nothing written — reads `status` files across `threads/` |
 
 Every row can be done from a shell instead. That is the test that keeps Neovim a client.

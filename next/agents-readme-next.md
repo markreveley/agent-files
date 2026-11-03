@@ -18,7 +18,7 @@ You are continuing the M1 build of agent-files. For what agent-files is for and 
   - The hook, against the Claude Code hooks reference (PR #10).
   - The `claude -p` flags, with one real turn (PR #13; results in spec §14.1, remaining gaps in `claude_cli.CAVEATS`).
 - Not verified: anything through the runner against a real model (S6-S8), the hook in a live `claude` session (S9), and the interactive Neovim behaviour (S11). All three wait on the operator's configuration and smoke tests.
-- Harness sessions run in TUIOS, and H4 is not a trial hypothesis ([docs/host-analysis.md](../docs/host-analysis.md)). No M1 code changes because of that. ARCHITECTURE.md was checked against that decision and the code on 2026-11-01, and its stale lines were fixed (PR #18), so don't re-audit it.
+- Harness sessions run in TUIOS, and H4 is not a trial hypothesis ([docs/host-analysis.md](../docs/host-analysis.md)). No M1 code changes because of that. ARCHITECTURE.md was checked against that decision and the code on 2026-11-01 (PR #18); v0.6 (0046b91) changed it since, and the 2026-11-02 docs audit found nothing in it that contradicts the code.
 - **Direction, decided with the operator on 2026-11-02** ([docs/direction-analysis.md](../docs/direction-analysis.md), ARCHITECTURE v0.6):
   - agent-files is the logbook for human–agent work. It is not a host: building a Charm-based host like TUIOS was reconsidered and rejected. It is not a coding harness either. Don't reopen these without new evidence.
   - After M1 it builds a **planning harness** (M6, grown from `agent-files-run`). Coding is farmed out to Claude Code and Codex: briefs go out, records come back (ARCHITECTURE §8.1).
@@ -27,6 +27,8 @@ You are continuing the M1 build of agent-files. For what agent-files is for and 
   - Principle 13 keeps the format, the hook, the links and the HTML viewer extractable.
   - **M1 is unchanged** (spec, H1–H3, thresholds). The record trial (attribution and the DAG) is the next trial.
 - The install is finished (2026-11-02; the agent ran it at the operator's request): install clone pulled to `f627b15`, `agent-files-run init` run, ripgrep 15.2.0 installed, TUIOS pinned at 0.12.1. Operator steps 1-5 (configure, hook, TUIOS integration, editor, `watch`) and the smoke tests are not started: on 2026-11-02 there were no `agent-files-hook` entries in `~/.claude/settings.json` and `watch` wasn't running.
+- On 2026-11-02 the operator asked the agent to fill `[prices]` in `~/agent-files/config.toml`. Blocks for Opus 5.5, Fable 5.1, Sonnet 5.5 and Haiku 5.5 were appended (5-minute cache-write rates; Haiku at its ≤100K-prompt rate) and left uncommitted. That was a one-off request: the rule against editing `config.toml` still stands.
+- Known quirk, not a bug to fix before day 10: `claude-cli` turns store the CLI's `total_cost_usd` (API-equivalent even on a plan), and `spend_today` (`runner.py:103`) adds it to the daily cap. If the operator wants plan turns excluded, that is a post-trial change.
 
 ## Environment facts (operator's Mac)
 - The repo checkout is `/Users/mark/dev/repos/agent-files`, and parallel sessions share it. Make branches in a `git worktree` (AGENTS.md, Workflow).
@@ -34,7 +36,7 @@ You are continuing the M1 build of agent-files. For what agent-files is for and 
 - `threads/` at the repo root holds session logs, one per thread, such as `2026-11-02-01.md` (the thread behind direction-analysis). They are not data-root threads, and no program reads them. `/end` writes them with `node ~/.claude/skills/end/thread-from-export.mjs --session threads/<date>-<name>.md` (since 2026-11-02 it reads the session transcript, so the operator no longer has to `/export`). The repo is public: commit only that trimmed form (user prompts and prose replies), never a raw transcript. `threads/raw/` and `threads/redact.json` are git-ignored. Auto mode blocked a push of an untrimmed transcript once.
 - The operator's install clone is `~/code/agent-files`, a separate clone that the `~/.local/bin/agent-files-*` links point at. Pulled to `f627b15` on 2026-11-02; it falls behind `main` again whenever a PR merges.
 - The data root lives at `~/dev/repos/agent-files-data` (its own local git repo, no remote), and `~/agent-files` is a symlink to it (operator's choice, 2026-11-02). The Python programs use `abspath`, so they keep the link path; the plugin compares both forms (`nvim/lua/agents/init.lua:22-24`). It must stay outside this code checkout, which is public.
-- Tool versions: Claude Code 2.1.316 (logged in with claude.ai, so `claude -p` works without an API key), Neovim 0.12.5, TUIOS 0.12.1, Python 3.14.
+- Tool versions: Claude Code 2.1.317 (logged in with claude.ai, so `claude -p` works without an API key), Neovim 0.12.5, TUIOS 0.12.1, Python 3.14.
 - **ripgrep is at `/opt/homebrew/bin/rg`** (installed 2026-11-02), and `tests.test_stats` passes. Inside a Claude Code shell, `type rg` still shows a shell function; check the path, not `command -v`.
 - To re-check the `claude -p` flags after a Claude Code upgrade:
   1. Run the backend's exact `claude_cli.command()` argv once, from a shell with every `CLAUDE*` env var removed.
@@ -42,6 +44,7 @@ You are continuing the M1 build of agent-files. For what agent-files is for and 
   3. The result's input tokens should be in the hundreds, not thousands.
 
 ## Next, in order
+0. **Audit findings, before the operator runs the smoke tests.** A full adversarial audit ran on 2026-11-02; see [audit-2026-11-02.md](audit-2026-11-02.md). Its A list (wrong trial numbers, wedged threads, `claude-cli` billing the API) and B list (operator steps that fail verbatim) should be fixed before day 1. Whether to fix them now is the operator's call (see Pending operator decisions).
 1. **(Blocked on operator)** Act on smoke results. When the operator reports S6-S11, fix each failure from the symptom and the thread's `steps/` files. S11 includes the interactive Neovim check: `FileChangedShell` reload into a briefly non-modifiable buffer, and the spinner timer (the plugin uses `vim.uv or vim.loop`).
 2. **After the trial starts, optional:** `agent-files-render` (view-layer step 2, spec §12). It must import `thread.py` and write only under `~/.cache/agent-files/view/`. It is the first piece of the record viewer (M8, principle 13), so keep its output a static HTML page.
 3. **After the trial:** Anthropic refusal fallback (`lib/agent_files/backends/anthropic.py`). The operator decided on 2026-11-01 to build this after the trial, not before S6. Reasons: refusals should be rare in the trial's threads, a refusal already shows as a failed turn, it doesn't affect H1-H3, and no new building is allowed before day 10. `fallbacks = true` only records a caveat in `steps/*.response.json` today.
@@ -59,7 +62,8 @@ You are continuing the M1 build of agent-files. For what agent-files is for and 
 Build nothing new before the day-10 decision ([m1-plan §5](../docs/m1-plan.md#5-decision-criteria)) beyond the fixes in item 1.
 
 ## Pending operator decisions
-- None.
+- Fix the audit's A and B lists before the trial (recommended), or start the trial as is?
+- An audit probe ran the hook without `AGENT_FILES_ROOT` and wrote `~/agent-files/threads/_observed/api-abcdef12/` and `~/agent-files/trial/observed.log` (one fake `working` line, untracked). Delete both once the operator confirms the `rm`.
 
 ## Do not do
 - No tools in the runner, no `inbox/`, notes writing, compaction, `resume` context or grounding (spec §13).

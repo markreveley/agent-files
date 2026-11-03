@@ -36,9 +36,9 @@ If H1–H3 fail, the thesis fails.
 - Tools in the runner — M1 threads are conversation only, so there are no tool folds and no permission questions.
 - Grounding, the knowledge base, council, compaction.
 - Multi-machine use of agent-files' own runtimes.
+- The HTML view (`agent-files-render`, [view-layer.md](view-layer.md) step 2): optional, may be prototyped alongside the trial, outside the go/no-go.
 
 **Dropped (2026-11-01), not deferred** — TUIOS does these ([host-analysis](host-analysis.md)): the tier-1 interactive bridge (M2); the doorbell (`agent-files-ring`, editor registry, `agent-files-notify`); the Elixir supervisor.
-- The HTML view (`agent-files-render`, [view-layer.md](view-layer.md) step 2): optional, may be prototyped alongside the trial, outside the go/no-go.
 
 ## 3. Deliverables
 
@@ -46,7 +46,7 @@ If H1–H3 fail, the thesis fails.
 
 A single executable script (Python, a few hundred lines). Per principle 3 it is just a program on `PATH`; the later supervisor can replace it without changing any file. It is the **single writer** of every thread whose `runtime:` is `direct` (ARCHITECTURE §4.4).
 
-- **Modes:** `agent-files-run watch` (long-running, watches `~/agent-files/threads/`) and `agent-files-run once <thread dir>`.
+- **Modes:** `agent-files-run watch` (long-running, watches `~/agent-files/threads/`) and `agent-files-run once <thread id>`.
 - **Send detection:** after a save, the last turn is yours, ends with `END`, and `status` is not `working` (ARCHITECTURE §4.3). A draft without `END` sends nothing.
 - **Assembly (replay):** the agent's system prompt (`agents/<agent>.md`, or a default) → the `## carry` section, if any → every turn in order. The file *is* the context, so whatever you edited above `END` is what the model sees.
 - **On a send:** write `working` to `status`; append `## agent · tN`; stream the reply, escaping any line that would parse as a marker; append `END`; append the scaffold `## you · tN+1`; write `done` to `status`; write `steps/tN.request.json` and `.response.json`; `git commit` in the root repo.

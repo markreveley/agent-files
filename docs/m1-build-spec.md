@@ -494,12 +494,12 @@ Thread-aware display on top of whatever generic markdown renderer step 0 install
 | S3 | Select two lines, `:AgentsFork smoke-fork`, send | Child exists with `## carry`, `kind: fork`, `branched_at`; the request starts with `<carry>` |
 | S4 | `model: mock/slow`, send, `:AgentsStop` | `END (interrupted)`, status `interrupted`, `STOP` gone, scaffold present |
 | S5 | `model: mock/slow`, send, kill the runner, restart it | Turn closed `END (interrupted)` on restart; no duplicate turn |
-| S6 | Switch to `model: claude-opus-5-5`, send twice within 5 minutes | Real reply; second `response.json` shows `cache_read_input_tokens > 0` |
+| S6 | Switch to `model: claude-opus-5-5`; make the first message long (2,000+ characters — the model caches no prefix under 512 tokens), send, then send a short second message within 5 minutes | Real reply; second `response.json` shows `cache_read_input_tokens > 0` |
 | S7 | Delete a whole earlier agent turn, rewrite your first turn, send | Reply arrives (no 400 from edited history — D5) |
 | S8 | Switch to a local model (`ollama/<name>`), send | Reply; `cost_usd: 0` |
-| S9 | Start `claude` by hand in a project, give it a task that needs a permission | `_observed/<project>-<sid>/` appears; `:AgentsNext` shows it `blocked`; then `working`, `done`; gone after exit |
+| S9 | Start `claude` by hand in a project, give it a task that needs a permission | `_observed/<project>-<sid>/` appears; `:AgentsNext` lists it as `blocked`; with its `thread.md` open, the end mark then shows `working`, then `done` (`:AgentsNext` never lists working threads); gone after exit |
 | S10 | `:AgentsGrep <word from S1>` | Quickfix hits; one line in `trial/searches.log` |
-| S11 | Open S1's thread and the view fixture | Turn headers and `END` are highlighted; the end mark shows the status and token estimate; the fixture's tool fold is closed |
+| S11 | Copy the view fixture under `threads/` (the plugin attaches only there), then open it and a real thread | Turn headers and `END` are highlighted; the end mark shows the token estimate, plus the status while a turn runs or its result is unseen; the fixture's tool fold is closed. Delete the copy afterwards |
 
 When S1–S11 pass, record the date at the top of `trial/journal.md`: day 1 of the trial.
 
