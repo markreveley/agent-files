@@ -303,12 +303,12 @@ Before each send, sum `cost_usd` from every `steps/*.response.json` modified tod
 
 ## 6. `agent-files-hook`
 
-Configured once in `~/.claude/settings.json`. `install.sh` prints the block, one group per event, from the hook's own list (`agent-files-hook --events`), so the two cannot drift:
+Configured once in `~/.claude/settings.json`. `install.sh` prints the block, one group per event, from the hook's own list (`agent-files-hook --events`), so the two cannot drift. The command is the absolute path of the link `install.sh` made (shell-quoted if the path needs it), because Claude Code may run hooks with a `PATH` that lacks `~/.local/bin`:
 
 ```json
 { "hooks": {
-  "SessionStart": [{ "hooks": [{ "type": "command", "command": "agent-files-hook" }] }],
-  "PermissionRequest": [{ "hooks": [{ "type": "command", "command": "agent-files-hook" }] }],
+  "SessionStart": [{ "hooks": [{ "type": "command", "command": "/Users/mark/.local/bin/agent-files-hook" }] }],
+  "PermissionRequest": [{ "hooks": [{ "type": "command", "command": "/Users/mark/.local/bin/agent-files-hook" }] }],
   …one group each for every event in the table below…
 }}
 ```
