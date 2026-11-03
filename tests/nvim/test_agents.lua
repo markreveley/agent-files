@@ -283,6 +283,23 @@ vim.cmd("edit " .. other)
 eq(wopts(), { "manual", 0, false }, "window: another file in the thread's window keeps its defaults")
 vim.cmd("only")
 
+-- seen: viewing a finished thread writes seen once, with no watcher loop --------------------------
+local function mt(p) local st = vim.uv.fs_stat(p); return st and { st.mtime.sec, st.mtime.nsec } end
+local function newer_or_same(x, y) return x[1] > y[1] or (x[1] == y[1] and x[2] >= y[2]) end
+vim.cmd("edit " .. sd .. "/thread.md")
+write_status(sd, "done")
+ok(vim.wait(3000, function()
+  local s, t = mt(sd .. "/seen"), mt(sd .. "/status")
+  return s and t and newer_or_same(s, t)
+end, 20), "seen: touched after the turn finished")
+vim.wait(300, function() return false end)
+local seen0, applies, orig_apply = mt(sd .. "/seen"), 0, D.apply
+D.apply = function(...) applies = applies + 1; return orig_apply(...) end
+vim.wait(1500, function() return false end)
+D.apply = orig_apply
+eq(mt(sd .. "/seen"), seen0, "seen: not rewritten while nothing changes")
+ok(applies <= 1, "seen: no reload loop (" .. applies .. " redraws in 1.5 s)")
+
 print(("%d checks, %d failed"):format(n, fails))
 vim.fn.delete(tmp, "rf")
 os.exit(fails == 0 and 0 or 1)

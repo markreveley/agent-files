@@ -176,7 +176,9 @@ function M.attach(buf)
   local w = uv.new_fs_event()
   local timer = uv.new_timer()
   a.watcher, a.timer = w, timer
-  w:start(dir, {}, function()
+  w:start(dir, {}, function(_, fname)
+    -- `seen` is the editor's own write (touch_seen refreshes the mark); reacting to it would loop
+    if fname and fname:match("[^/]*$") == "seen" then return end
     timer:stop()
     timer:start(100, 0, vim.schedule_wrap(function() on_fs_event(buf) end))
   end)
