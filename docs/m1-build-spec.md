@@ -216,7 +216,7 @@ For a thread where `is_send` is true, with your turn `tK`:
 6. Stream. Buffer output by line; for each complete line, escape and append; update the expected state after each write. Every 60 s, rewrite `status` (`working`) as a heartbeat so the plugin does not mark it stale.
 7. Between writes (at least every 300 ms), check:
    - `STOP` exists → cancel the stream; close with `END (interrupted)`; status `interrupted`; delete `STOP`.
-   - `thread.md` no longer matches the expected state → **conflict**: cancel; write the remaining buffered text to `out/tNNNN-conflict.txt`; do *not* write to `thread.md` again for this turn except to append `END (conflict)` at the end; status `interrupted`.
+   - `thread.md` no longer matches the expected state → **conflict**: cancel; write the remaining buffered text to `out/tNNNN-conflict.txt`; do *not* write to `thread.md` again for this turn except to append, at the end, the fence line that closes a fence the turn left open (§4.4) and `END (conflict)`; status `interrupted`.
 8. On normal completion: flush the last partial line, balance fences, append `END`.
 9. **On failure** (API error, refusal, spend cap, unknown backend): append any partial output, then a `! error: <one-line reason>` diagnostic, then `END (failed)`; write `steps/tNNNN.error.json`; status `failed`. If the failure happened before step 5, write the header first, so every send gets an agent turn.
 10. Append the scaffold `\n## you · t(N+1)\n\n` and update `last_turn`.
@@ -226,7 +226,7 @@ For a thread where `is_send` is true, with your turn `tK`:
 
 Git failures are logged and never fail the turn.
 
-**Start-up recovery** (`watch` and `once`, before anything else): for each direct thread with status `working` — if the last turn is an open agent turn, append `END (interrupted)` and the scaffold; set `interrupted`; commit `recover <thread id>`. Then process pending sends (D9).
+**Start-up recovery** (`watch` and `once`, before anything else): for each direct thread with status `working` — if the last turn is an open agent turn, append the fence line if it left a fence open (§4.4), `END (interrupted)` and the scaffold; set `interrupted`; commit `recover <thread id>`. Then process pending sends (D9).
 
 **Concurrency.** `watch` runs each active turn in its own thread; at most one turn per thread directory; no global limit in M1. A process-wide lock serialises every `git add` + `git commit`, so concurrent turns do not collide on `.git/index.lock`.
 

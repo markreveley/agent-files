@@ -129,6 +129,19 @@ def read_thread(root: str, tid: str) -> T.Thread:
     return T.parse_file(os.path.join(thread_dir(root, tid), "thread.md"))
 
 
+def closing_fence(text: str, n: int) -> str:
+    """What to write before agent turn tN's END so it lands outside any fence the turn left open (§4.4):
+    the matching fence line plus a newline, or "". The header is matched as a whole line, so model text
+    quoting it (written escaped, `\\## agent · tN`) cannot be taken for it."""
+    lines = text.split("\n")
+    for i in range(len(lines) - 1, -1, -1):
+        m = T.RE_AGENT.match(lines[i].rstrip())
+        if m and int(m.group(1)) == n:
+            fence = T.open_fence_line(lines[i + 1:])
+            return fence + "\n" if fence else ""
+    return ""
+
+
 def is_direct(th: T.Thread) -> bool:
     return th.frontmatter.get("runtime") == "direct"
 
@@ -324,8 +337,9 @@ class Turn:
             fsutil.atomic_write(os.path.join(d, "out", f"t{N:04d}-conflict.txt"),
                                 "".join(self.out_text) + unsent)
             status, closing = "interrupted", "END (conflict)"
+            fence = closing_fence(self.read(), N)
             with open(self.path, "a", encoding="utf-8") as f:
-                f.write("\nEND (conflict)\n")
+                f.write("\n" + fence + "END (conflict)\n")
             log(tid, "conflict", f"t{N} thread.md changed during the turn; output in out/")
         else:
             # flush the last partial line
@@ -348,10 +362,7 @@ class Turn:
                 diag.append(f"! served by {info['served_model']}")
             # step 8/9: balance fences, diagnostics, END
             text = self.read()
-            agent_start = text.rfind(f"## agent · t{N}\n")
-            agent_lines = text[agent_start:].split("\n")[1:]
-            fence = T.open_fence_line(agent_lines)
-            tail = (fence + "\n") if fence else ""
+            tail = closing_fence(text, N)
             if (text + tail) and not (text + tail).endswith("\n\n") and (self.written_any or diag):
                 tail += "\n"
             tail += "".join(x + "\n" for x in diag) + closing + "\n"
@@ -418,9 +429,12 @@ def recover(root: str) -> None:
         last = th.last_turn()
         if last and last.role == "agent" and last.closed == "none" and not th.malformed:
             nid = T.next_id(th, d)
-            with open(os.path.join(d, "thread.md"), "a", encoding="utf-8") as f:
-                text = open(os.path.join(d, "thread.md"), encoding="utf-8").read()
-                f.write(("" if text.endswith("\n") else "\n") + f"END (interrupted)\n\n## you · t{nid}\n\n")
+            path = os.path.join(d, "thread.md")
+            with open(path, encoding="utf-8") as f:
+                text = f.read()
+            with open(path, "a", encoding="utf-8") as f:
+                f.write(("" if text.endswith("\n") else "\n") + closing_fence(text, last.id)
+                        + f"END (interrupted)\n\n## you · t{nid}\n\n")
             fsutil.atomic_write(os.path.join(d, "last_turn"), f"t{nid}\n")
         fsutil.write_status(d, "interrupted")
         rel = os.path.relpath(d, root)

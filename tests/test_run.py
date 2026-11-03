@@ -4,6 +4,9 @@ from helpers import Env, wait_for, RUN
 from agent_files import thread as T
 
 Q = "## you · t1\nhello there\nEND\n"
+# The user quotes an agent header inside a fence; mock/echo streams it back as
+# "echo: quote", "```", "\## agent · t2", "more", "```".
+FENCED = "## you · t1\nquote\n```\n## agent · t2\nmore\n```\nEND\n"
 
 
 class RunnerBase(unittest.TestCase):
@@ -17,6 +20,18 @@ class RunnerBase(unittest.TestCase):
                 p.kill()
                 p.wait()
         self.e.cleanup()
+
+    def turns(self, tid="t"):
+        return [(t.role, t.id, t.closed) for t in T.parse(self.e.read(tid)).turns]
+
+    def answer(self, k, tid="t"):
+        """Write a `## you · tk` turn ending in END: fill the scaffold, or append the turn if there is none."""
+        p = os.path.join(self.e.tdir(tid), "thread.md")
+        text = self.e.read(tid)
+        scaffold = f"## you · t{k}\n\n"
+        text = text[:-1] if text.endswith(scaffold) else text + "\n" + scaffold[:-1]
+        with open(p, "w") as f:
+            f.write(text + "next\nEND\n")
 
 
 class Once(RunnerBase):
@@ -77,6 +92,30 @@ class Once(RunnerBase):
             self.assertIn(frag, body.split("\n"))
         self.assertEqual(th.turns[1].closed, "ok")   # open fence was balanced
         self.assertFalse(th.turns[1].fence_open)
+
+    def test_quoted_agent_header_in_fence(self):
+        # Fence balancing must start at the real header, not at the model's escaped `\## agent · t2`
+        # (which would see one fence, add a stray one and put END inside it).
+        self.e.write_thread("t", FENCED)
+        self.e.run("once", "t")
+        self.assertEqual(self.turns(), [("you", 1, "ok"), ("agent", 2, "ok"), ("you", 3, "none")])
+        self.assertEqual(T.parse(self.e.read("t")).turns[1].body, "echo: quote\n```\n## agent · t2\nmore\n```")
+        self.answer(3)
+        self.assertEqual(self.e.run("once", "t").returncode, 0)
+        self.assertEqual(self.turns()[3:], [("agent", 4, "ok"), ("you", 5, "none")])
+
+    def test_recover_inside_fence(self):
+        self.e.write_thread("t", "## you · t1\nhi\nEND\n\n## agent · t2\npartial\n```python\nx = 1\n")   # crashed mid-fence
+        d = self.e.tdir("t")
+        for name, text in (("status", "working\n"), ("last_turn", "t2\n")):
+            with open(os.path.join(d, name), "w") as f:
+                f.write(text)
+        self.assertEqual(self.e.run("once", "t").returncode, 3)    # recovered; nothing to send yet
+        self.assertEqual(self.turns(), [("you", 1, "ok"), ("agent", 2, "interrupted"), ("you", 3, "none")])
+        self.assertEqual(self.e.status("t"), "interrupted")
+        self.answer(3)
+        self.assertEqual(self.e.run("once", "t").returncode, 0)
+        self.assertEqual(self.turns()[3:], [("agent", 4, "ok"), ("you", 5, "none")])
 
     def test_fail(self):
         self.e.write_thread("t", Q, model="mock/fail")
@@ -216,6 +255,35 @@ class Watch(RunnerBase):
         out = os.path.join(self.e.tdir("t"), "out", "t0002-conflict.txt")
         self.assertTrue(os.path.exists(out))
         self.assertIn("line 1", open(out).read())
+
+    def stream_into_fence(self):
+        """Start a turn that streams FENCED back one line a second; return once the model is inside its fence,
+        just past the quoted header."""
+        self.e.env["AGENT_FILES_MOCK_SPEED"] = "50"
+        self.e.write_thread("t", FENCED)
+        self.start()
+        self.assertTrue(wait_for(lambda: "\\## agent · t2\n" in self.e.read("t")))
+        return os.path.join(self.e.tdir("t"), "thread.md")
+
+    def test_conflict_inside_fence(self):
+        path = self.stream_into_fence()
+        with open(path, "a") as f:
+            f.write("foreign write\n")
+        self.assertTrue(wait_for(lambda: self.e.status("t") == "interrupted"))
+        self.assertTrue(self.e.read("t").endswith("foreign write\n\n```\nEND (conflict)\n"))
+        self.assertEqual(self.turns(), [("you", 1, "ok"), ("agent", 2, "conflict")])
+        self.answer(3)
+        self.assertTrue(wait_for(lambda: self.e.status("t") == "done"))
+        self.assertEqual(self.turns()[2:], [("you", 3, "ok"), ("agent", 4, "ok"), ("you", 5, "none")])
+
+    def test_stop_inside_fence(self):
+        self.stream_into_fence()
+        open(os.path.join(self.e.tdir("t"), "STOP"), "w").close()
+        self.assertTrue(wait_for(lambda: self.e.status("t") == "interrupted"))
+        self.assertEqual(self.turns(), [("you", 1, "ok"), ("agent", 2, "interrupted"), ("you", 3, "none")])
+        self.answer(3)
+        self.assertTrue(wait_for(lambda: self.e.status("t") == "done"))
+        self.assertEqual(self.turns()[3:], [("agent", 4, "ok"), ("you", 5, "none")])
 
     def test_crash_then_recover(self):
         self.e.write_thread("t", Q, model="mock/slow")
