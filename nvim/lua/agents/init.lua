@@ -42,8 +42,7 @@ local function lines_of(buf) return vim.api.nvim_buf_get_lines(buf, 0, -1, false
 local function any_working()
   for b, a in pairs(M.attached) do
     if vim.api.nvim_buf_is_valid(b) then
-      local info = S.read(a.dir)
-      if info.status == "working" then return true end
+      if S.working(S.read(a.dir)) then return true end
     end
   end
   return false
@@ -56,7 +55,7 @@ local function refresh_buf(buf)
   if not a or not vim.api.nvim_buf_is_valid(buf) then return end
   local info = S.read(a.dir)
   a.info = info
-  local working = info.status == "working"
+  local working = S.working(info) -- a stale 'working' (runner died) does not lock the buffer
   if not a.observed then
     local want = not working
     if vim.bo[buf].modifiable ~= want then vim.bo[buf].modifiable = want end

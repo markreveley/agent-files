@@ -245,6 +245,23 @@ ok(pl[el] == "saved part, edited" and count(pl, "saved part") == 0 and count(pl,
 ok(vim.bo[pb].modified, "mid edit: buffer still modified")
 vim.bo[pb].modified = false
 
+-- a stale 'working' (no status write for 10 min: the runner died) does not lock the buffer -------
+local St = require("agents.status")
+vim.cmd("edit " .. sd .. "/thread.md")
+write_status(sd, "working")
+ok(vim.wait(3000, function() return not vim.bo[sb].modifiable end, 20), "stale: locked while working")
+local long_ago = os.time() - 660
+vim.uv.fs_utime(sd .. "/status", long_ago, long_ago)
+ok(vim.wait(3000, function() return vim.bo[sb].modifiable and not vim.bo[sb].readonly end, 20), "stale: writable again")
+local frame0 = St.frame
+vim.wait(400, function() return false end)
+eq(St.frame, frame0, "stale: spinner stopped")
+ok(vim.bo[sb].modifiable and not vim.bo[sb].readonly, "stale: still writable after 400 ms")
+ok(agents.status(sb):find("? stale", 1, true), "stale: status line says stale: " .. agents.status(sb))
+local smark = vim.api.nvim_buf_get_extmarks(sb, D.ns_end, 0, -1, { details = true })[1]
+ok(smark and smark[4].virt_text[1][1]:find("? stale", 1, true), "stale: end mark says stale")
+write_status(sd, "done")
+
 print(("%d checks, %d failed"):format(n, fails))
 vim.fn.delete(tmp, "rf")
 os.exit(fails == 0 and 0 or 1)

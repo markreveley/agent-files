@@ -22,13 +22,21 @@ function M.read(dir)
   return { status = status, status_mtime = mtime(dir .. "/status"), seen_mtime = mtime(dir .. "/seen") }
 end
 
+--- `working` with no status write for STALE_SECS: the runner died.
+function M.stale(info, now)
+  return info.status == "working" and info.status_mtime ~= nil
+    and (now or os.time()) - info.status_mtime >= M.STALE_SECS
+end
+
+--- `working` and not stale: lock the buffer, run the spinner.
+function M.working(info, now) return info.status == "working" and not M.stale(info, now) end
+
 --- Returns glyph, highlight group, word ("" = idle).
 function M.mark(info, now)
-  now = now or os.time()
   local st = info.status
   if not st then return "", nil, "" end
   if st == "working" then
-    if info.status_mtime and now - info.status_mtime >= M.STALE_SECS then return "?", "WarningMsg", "stale" end
+    if M.stale(info, now) then return "?", "WarningMsg", "stale" end
     return FRAMES[M.frame], "DiagnosticInfo", "working"
   elseif st == "blocked" then
     return "●", "ErrorMsg", "blocked"
