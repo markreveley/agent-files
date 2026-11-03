@@ -229,6 +229,48 @@ class Stats(unittest.TestCase):
         self.assertEqual(self.stats()["threads_with_context_edit"], 2)
         self.assertEqual(self.stats("--since", "2026-01-15")["threads_with_context_edit"], 1)   # 'late' only
 
+    # ---- fix: renamed threads keep their edits and are not counted twice -------------------
+
+    def test_rename_keeps_context_edits(self):
+        for tid in ("x", "p"):
+            self.e.write_thread(tid, "## you · t1\nq1\nEND\n")
+            self.send(tid)
+            self.reply(tid, "q3", edit=("q1", "q1 edited"))           # a context edit, sent as x / p
+            self.reply(tid, "q5")                                     # 6 turns
+        os.rename(self.e.tdir("x"), self.e.tdir("y"))
+        self.reply("y", "q7")                                         # renamed, then sent again
+        os.rename(self.e.tdir("p"), self.e.tdir("q"))                 # renamed, not sent since
+        s = self.stats()
+        self.assertEqual(s["threads"], 2)
+        self.assertEqual(s["threads_6plus"], 2)
+        self.assertEqual(s["threads_6plus_with_context_edit"], 2)
+        self.assertEqual(s["threads_with_context_edit"], 2)
+
+    def test_edit_made_while_renaming_counts(self):
+        self.e.write_thread("m", "## you · t1\nq1\nEND\n")
+        self.send("m")
+        self.reply("m", "q3")
+        self.reply("m", "q5")
+        os.rename(self.e.tdir("m"), self.e.tdir("n"))
+        self.reply("n", "q7", edit=("q1", "q1 fixed"))                # first send under the new name carries an edit
+        s = self.stats()
+        self.assertEqual(s["threads_6plus_with_context_edit"], 1)
+        self.assertEqual(s["threads_with_context_edit"], 1)
+
+    def test_renamed_fork_with_edited_carry_counts_once(self):
+        self.e.write_thread("x", "## you · t1\nq\nEND\n")
+        self.send("x")
+        self.fork("x/f1")
+        self.reply("x/f1", "more", edit=("carried line", "carried line, fixed"))   # carry edited and sent...
+        os.rename(self.e.tdir("x/f1"), self.e.tdir("x/f2"))                          # ...then renamed
+        self.reply("x/f2", "again")
+        self.fork("x/g1", carry="other line\n")
+        os.rename(self.e.tdir("x/g1"), self.e.tdir("x/g2"))                          # renamed with an unsent carry edit
+        self.reply("x/g2", "more", edit=("other line", "other line, fixed"))
+        s = self.stats()
+        self.assertEqual((s["threads"], s["forks"]), (3, 2))
+        self.assertEqual(s["threads_with_context_edit"], 2)
+
 
 if __name__ == "__main__":
     unittest.main()

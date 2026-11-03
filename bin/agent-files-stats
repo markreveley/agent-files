@@ -3,6 +3,7 @@
 import argparse
 import dataclasses
 import datetime
+import hashlib
 import json
 import os
 import re
@@ -23,6 +24,10 @@ def trailers(body: str) -> dict:
             k, v = ln.split(": ", 1)
             out[k] = v.strip()
     return out
+
+
+def thread_path(tid: str) -> str:
+    return f"threads/{tid}/thread.md"
 
 
 def show(root, rev, path):
@@ -56,16 +61,26 @@ def settled(before: str, after: str) -> str:
     return body_up_to_last_end(before)
 
 
-def context_edited(before: str, after: str) -> bool:
+def keeps(before: str, after: str):
+    """Whether `after` starts with the settled part of `before`; None if nothing is settled yet."""
     pre = settled(before, after)
+    if not pre:
+        return None
     a_body = "\n".join(after.split("\n")[len(T.parse(after).fm_raw):])
-    return bool(pre) and not (a_body + "\n").startswith(pre) and not a_body.startswith(pre)
+    return (a_body + "\n").startswith(pre) or a_body.startswith(pre)
 
 
-def classify(root, commit, tid):
-    path = f"threads/{tid}/thread.md"
+def context_edited(before: str, after: str) -> bool:
+    return keeps(before, after) is False
+
+
+def classify(root, commit, tid, prev=None):
+    """`prev` is (commit, path) of the thread's last version under an earlier name, if it was renamed."""
+    path = thread_path(tid)
     after = show(root, commit, path)
     before = show(root, commit + "^", path)
+    if before is None and prev:              # first send under a new name: compare with the old one
+        before = show(root, *prev)
     if after is None or before is None:
         return None
     b, a = T.parse(before), T.parse(after)
@@ -85,6 +100,87 @@ def fork_identity(th):
     return ((th.carry or "").strip(), str(th.frontmatter.get("branched_at") or ""), first)
 
 
+def blob_id(path: str) -> str:
+    with open(path, "rb") as f:
+        data = f.read()
+    return hashlib.sha1(b"blob %d\0" % len(data) + data).hexdigest()
+
+
+def history(root):
+    """One pass over first-parent history of threads/. Per thread id: (index, commit) of the first
+    commit adding its thread.md and of the last one where it had content, and the blob ids of the
+    steps/*.request.json files ever committed under it."""
+    out = git.run(root, "-c", "core.quotePath=false", "log", "--reverse", "--first-parent", "--no-renames",
+                  "--raw", "--no-abbrev", "--format=%x1e%H", "--", "threads").stdout
+    first, last, reqs = {}, {}, {}
+    for i, rec in enumerate(out.split("\x1e")[1:]):
+        lines = rec.split("\n")
+        for ln in lines[1:]:
+            if not ln.startswith(":") or "\t" not in ln:
+                continue
+            meta, path = ln.split("\t", 1)
+            meta = meta.split()
+            if meta[4].startswith("D") or not path.startswith("threads/") or path.startswith("threads/_observed"):
+                continue
+            rel = path[len("threads/"):]
+            if rel.endswith("/thread.md"):
+                tid = rel[:-len("/thread.md")]
+                first.setdefault(tid, (i, lines[0]))
+                last[tid] = (i, lines[0])
+            elif "/steps/" in rel and rel.endswith(".request.json"):
+                reqs.setdefault(rel.rsplit("/steps/", 1)[0], set()).add(meta[3])
+    return first, last, reqs
+
+
+def renames(root, dirs, first, last, reqs):
+    """Map each thread id that no longer exists to the id it was renamed or moved to. The runner
+    commits only the current thread's paths, so git never records the rename; the link is by
+    content instead. The new id first appears after the old id's last commit and either holds a
+    request.json committed under the old id (renaming a directory moves its steps/ along), or,
+    failing that, keeps the old body up to its last END (as in §7.2). Links are one-to-one. A
+    thread never committed under its new name is read from disk."""
+    start = {t: first[t][0] if t in first else float("inf") for t in set(first) | set(dirs)}
+    order = sorted(start, key=lambda t: (start[t], t))
+    texts = {}
+
+    def first_text(t):
+        if t not in texts:
+            if t in first:
+                texts[t] = show(root, first[t][1], thread_path(t))
+            else:
+                try:
+                    with open(os.path.join(dirs[t], "thread.md"), encoding="utf-8") as f:
+                        texts[t] = f.read()
+                except OSError:
+                    texts[t] = None
+        return texts[t]
+
+    for t in dirs:
+        if t not in first:
+            steps = os.path.join(dirs[t], "steps")
+            names = os.listdir(steps) if os.path.isdir(steps) else []
+            reqs[t] = {blob_id(os.path.join(steps, n)) for n in names if n.endswith(".request.json")}
+    absent = [a for a in order if a not in dirs and a in last]
+    olds = {a: show(root, last[a][1], thread_path(a)) for a in absent}
+    nxt, taken = {}, set()
+    for by_steps in (True, False):           # a shared request.json is the stronger link: try it first
+        for a in absent:
+            if a in nxt:
+                continue
+            for b in order:
+                if start[b] <= last[a][0] or b in taken:
+                    continue
+                if by_steps:
+                    linked = bool(reqs.get(a, set()) & reqs.get(b, set()))
+                else:
+                    linked = bool(olds[a] and first_text(b) and keeps(olds[a], first_text(b)))
+                if linked:
+                    nxt[a] = b
+                    taken.add(b)
+                    break
+    return nxt
+
+
 def since_arg(since: str) -> str:
     """git reads a bare YYYY-MM-DD as that date at the current time of day; make it local midnight."""
     if re.fullmatch(r"\d{4}-\d{2}-\d{2}", since):
@@ -92,13 +188,20 @@ def since_arg(since: str) -> str:
     return since
 
 
+def final(nxt, tid):
+    while tid in nxt:
+        tid = nxt[tid]
+    return tid
+
+
 def compute(root, since=None):
     res = {}
     has_git = os.path.isdir(os.path.join(root, ".git"))
-    threads = []
+    threads, dirs = [], {}
     for tid, d, bad in fsutil.list_threads(root):
         try:
             threads.append((tid, T.parse_file(os.path.join(d, "thread.md"))))
+            dirs[tid] = d
         except OSError:
             pass
     nturns = {tid: len([t for t in th.turns if t.role in ("you", "agent") and t.body.strip()]) for tid, th in threads}
@@ -106,6 +209,7 @@ def compute(root, since=None):
     # deleted forks, from history
     deleted_forks = 0
     sends = []
+    nxt, prev, last = {}, {}, {}
     if has_git:
         fmt = "%H%x1f%aI%x1f%s%x1f%b%x1e"
         args = ["log", "--reverse", "--first-parent", f"--format={fmt}"]
@@ -120,33 +224,31 @@ def compute(root, since=None):
             tr = trailers(body)
             if tr.get("Agent-Files-Event") == "send":
                 sends.append((h, tr["Agent-Files-Thread"]))
-        present = {tid for tid, _ in threads}
+        first, last, reqs = history(root)
+        nxt = renames(root, dirs, first, last, reqs)
+        prev = {b: a for a, b in nxt.items()}
         known = {fork_identity(th) for tid, th in threads if tid in forks_now}   # renamed forks are not deleted
-        added = git.run(root, "log", "--diff-filter=A", "--name-only", "--format=%H", "--", "threads/*/thread.md", "threads/**/thread.md").stdout.split("\n")
-        cur = None
-        seen = set()
-        for ln in added:
-            if len(ln) == 40 and " " not in ln and "/" not in ln:
-                cur = ln
-            elif ln.endswith("/thread.md") and ln.startswith("threads/"):
-                tid = ln[len("threads/"):-len("/thread.md")]
-                if tid in present or tid in seen or tid.startswith("_observed"):
-                    continue
-                seen.add(tid)
-                txt = show(root, cur, ln)
-                if not txt:
-                    continue
-                old = T.parse(txt)
-                if old.frontmatter.get("kind") == "fork" and fork_identity(old) not in known:
-                    known.add(fork_identity(old))
-                    deleted_forks += 1
+        gone = set()
+        for tid in sorted(first, key=lambda t: first[t]):
+            end = final(nxt, tid)
+            if end in dirs or end in gone:   # renamed to a thread that exists, or already counted
+                continue
+            gone.add(end)
+            txt = show(root, first[tid][1], thread_path(tid))
+            if not txt:
+                continue
+            old = T.parse(txt)
+            if old.frontmatter.get("kind") == "fork" and fork_identity(old) not in known:
+                known.add(fork_identity(old))
+                deleted_forks += 1
     edit_threads, switch_count = set(), 0
     for h, tid in sends:
-        kinds = classify(root, h, tid)
+        p = prev.get(tid)
+        kinds = classify(root, h, tid, (last[p][1], thread_path(p)) if p else None)
         if not kinds:
             continue
         if "context_edit" in kinds:
-            edit_threads.add(tid)
+            edit_threads.add(final(nxt, tid))    # under the thread's current name
         if "model_switch" in kinds:
             switch_count += 1
     counts = sorted(nturns.values())
