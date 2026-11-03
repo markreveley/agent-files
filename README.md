@@ -2,7 +2,7 @@
 
 The logbook for human–agent work: every exchange a file you can edit as context, every settled conclusion a node that records who or what accepted it, every change linked to the turns and decisions behind it — beside any harness, under any host.
 
-Direction: [docs/direction-analysis.md](docs/direction-analysis.md). Design: [ARCHITECTURE.md](ARCHITECTURE.md). This build (M1, threads as plain-text files): [docs/m1-build-spec.md](docs/m1-build-spec.md).
+Direction: [md/docs/direction-analysis.md](md/docs/direction-analysis.md). Design: [ARCHITECTURE.md](ARCHITECTURE.md). This build (M1, threads as plain-text files): [md/docs/m1-build-spec.md](md/docs/m1-build-spec.md).
 
 | Piece | What |
 |---|---|
@@ -14,7 +14,7 @@ Direction: [docs/direction-analysis.md](docs/direction-analysis.md). Design: [AR
 
 **The data root is `~/agent-files/` (or `$AGENT_FILES_ROOT`) — do not clone this repo there.**
 
-Claude Code and Codex sessions run in [TUIOS](https://tuios.dev/), which hosts them and owns attention for them; agent-files observes them through hooks ([docs/host-analysis.md](docs/host-analysis.md)).
+Claude Code and Codex sessions run in [TUIOS](https://tuios.dev/), which hosts them and owns attention for them; agent-files observes them through hooks ([md/docs/host-analysis.md](md/docs/host-analysis.md)).
 
 ```sh
 ./install.sh                 # symlinks bin/*, prints the hook block for ~/.claude/settings.json

@@ -1,6 +1,6 @@
 # DAG-grounded orchestration: analysis
 
-> Status: draft · 2026-11-03 · companion to [ARCHITECTURE.md](../ARCHITECTURE.md) §6, §7, §8.1 and [direction-analysis](../docs/direction-analysis.md) §3, §5
+> Status: draft · 2026-11-03 · companion to [ARCHITECTURE.md](../../ARCHITECTURE.md) §6, §7, §8.1 and [direction-analysis](../docs/direction-analysis.md) §3, §5 · plan: [dag-orchestration](../plans/dag-orchestration.md)
 > Method: the operator's proposal and answers (thread of 2026-11-03), the repo's design docs, the operator's two project DAGs (counted 2026-11-03), `claude --help` on Claude Code 2.1.317, and a web survey (2026-11-03). Claims that rest only on a secondary page are marked *(unverified)*.
 
 **Summary.** The proposal works like this:
@@ -8,7 +8,7 @@
 - The agent explores by walking DAGs first. It has an index of other DAGs it can walk too.
 - Answers may claim nothing that the DAG or a cited source doesn't support.
 
-Most of this is already designed: the orchestrator is the planning harness (M6), and the subgraph it hands over is the brief (§8.1). Four parts are new: choosing nodes from the question, a walk tool, a registry of DAGs, and labelling every claim in an answer. The evidence says a graph is cheaper than grep, not more accurate. For a knowledge DAG the gain is knowing what was accepted, not speed. All of it is M6 work; nothing is built before the day-10 decision.
+Most of this is already designed: the orchestrator is the planning harness (M6), and the subgraph it hands over is the brief (§8.1). Four parts are new: choosing nodes from the question, a walk tool, a registry of DAGs, and labelling every claim in an answer. The evidence says a graph is cheaper than grep, not more accurate. For a knowledge DAG the gain is knowing what was accepted, not speed. All of it is M6 work; nothing is built before the day-10 decision. The order of work and its open questions are in the [plan](../plans/dag-orchestration.md).
 
 ## 1. The proposal, mapped
 
@@ -130,7 +130,7 @@ The published evidence is about code graphs. It says cheaper, not better.
 - Grade answers against accepted nodes.
 - Write the hypotheses and thresholds first, as m1-plan §5 did.
 
-It fits in the record trial or in the adopt-first check before M6 (§9).
+When to run it is a question in the [plan](../plans/dag-orchestration.md#questions).
 
 ## 6. Resource DAGs
 
@@ -142,7 +142,7 @@ It fits in the record trial or in the adopt-first check before M6 (§9).
   - artifact-dag's "claims from a document" procedure (its `dag` skill) already breaks a document into ordered claims with `document:`, `section:` and `order:`.
   - `resource` nodes file outside pages under the definitions they are about.
   - A paper becomes a collection of claims, each citing the paper. Adopt the procedure as it is.
-- **No node in either project DAG has `status` or `accepted_by` today** (0 of 842 files, 2026-11-03). Until they do, nothing is "accepted" in the §7 sense. One bridge: count a node on the collection's main branch as accepted by whoever merged its PR, since the `dag` skill sends changes through PRs and git records who merged. This is an operator decision (§9).
+- **No node in either project DAG has `status` or `accepted_by` today** (0 of 842 files, 2026-11-03). Until they do, nothing is "accepted" in the §7 sense. One bridge: count a node on the collection's main branch as accepted by whoever merged its PR, since the `dag` skill sends changes through PRs and git records who merged. Whether to adopt it is a question in the [plan](../plans/dag-orchestration.md#questions).
 
 ## 7. Defining "unsupported"
 
@@ -202,17 +202,9 @@ Hedging words alone ("probably X") don't make a statement exempt.
 | Claim labelling and checking | Methods (FActScore), no tool that fits | None | Build: the script checks plus one verifier call |
 | Choosing nodes from a question | — | None | Build. At today's scale, read the title index |
 
-## 9. Open questions
-
-1. **`unsupported` policy:** `label` for answers and `forbid` for briefs (recommended), or one policy everywhere?
-2. **Acceptance for existing DAGs:** does a node merged to a collection's main branch count as accepted by whoever merged it (§6)?
-3. **When to measure graph against grep (§5):** in the record trial, or in the adopt-first check before M6?
-4. **Can a node accepted in another project ground an answer here,** or only with a flag?
-5. **Which code graph to grade first:** Serena (precise, needs language servers) or Codebase-Memory (syntactic, every language)?
-
 ## Sources
 
-- Repo: [ARCHITECTURE.md](../ARCHITECTURE.md) §6, §7, §8.1; [direction-analysis](../docs/direction-analysis.md); [juggler-analysis](../docs/juggler-analysis.md); [m1-build-spec](../docs/m1-build-spec.md) §5.4.2, §14.1; artifact-dag `SCHEMA.md`, `README.md`, `.claude/skills/dag/SKILL.md`; node counts from the operator's identikey-dev and lightning-mesh-dev `dag/` folders (2026-11-03)
+- Repo: [ARCHITECTURE.md](../../ARCHITECTURE.md) §6, §7, §8.1; [direction-analysis](../docs/direction-analysis.md); [juggler-analysis](../docs/juggler-analysis.md); [m1-build-spec](../docs/m1-build-spec.md) §5.4.2, §14.1; artifact-dag `SCHEMA.md`, `README.md`, `.claude/skills/dag/SKILL.md`; node counts from the operator's identikey-dev and lightning-mesh-dev `dag/` folders (2026-11-03)
 - Claude Code Projects: [VentureBeat, 2026-09](https://venturebeat.com/orchestration/anthropic-launches-claude-code-projects-an-always-on-conversation-that-remembers-and-delegates-your-long-running-dev-work)
 - Juggler: [juggler.studio/features.html](https://juggler.studio/features.html) (read 2026-11-03)
 - Anthropic: [multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system), [effective context engineering](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)

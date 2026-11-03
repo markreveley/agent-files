@@ -1,4 +1,4 @@
--- Draft re-apply (docs/m1-build-spec.md §9.1): keep what the user typed when thread.md changes
+-- Draft re-apply (md/docs/m1-build-spec.md §9.1): keep what the user typed when thread.md changes
 -- under a modified buffer. `old` is the file as the buffer last read or wrote it, `mine` the
 -- buffer before the reload, `new` the file now. What the user typed is diff(old, mine), so text
 -- that came from the file (a streamed reply) is never part of it.

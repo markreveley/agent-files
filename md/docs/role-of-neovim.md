@@ -1,6 +1,6 @@
 # The role of Neovim
 
-> Status: draft · 2026-11-01 · companion to [ARCHITECTURE.md](../ARCHITECTURE.md) §11
+> Status: draft · 2026-11-01 · companion to [ARCHITECTURE.md](../../ARCHITECTURE.md) §11
 > Built: the file watcher and the file-writing commands. **The doorbell (§3–§6, §9–§10 and the ring rows of §8: ring, registry, notify) is dropped (2026-11-01) and kept here as a record.** Attention for Claude Code and Codex sessions is the TUIOS Inbox ([host-analysis](host-analysis.md)); for agent-files' own threads the local file watcher is enough.
 
 Neovim is a client, not a host: it is where you read threads, write turns, and notice what needs you — for agent-files' own threads. Its RPC server was to be a **doorbell** — a best-effort signal that tells one Neovim instance to look at one file now, so that the person at that editor notices. Nothing in agent-files depends on it; the files are the mailbox.

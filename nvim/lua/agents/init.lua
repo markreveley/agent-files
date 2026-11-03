@@ -1,4 +1,4 @@
--- agents.nvim — thread buffers, watching, marks, commands (docs/m1-build-spec.md §9).
+-- agents.nvim — thread buffers, watching, marks, commands (md/docs/m1-build-spec.md §9).
 local T = require("agents.thread")
 local S = require("agents.status")
 local D = require("agents.display")

@@ -1,14 +1,15 @@
 # AGENTS.md — standing instructions for AI sessions in this repo
 
-Durable rules only. What to do next lives in [next/agents-readme-next.md](next/agents-readme-next.md) and [next/operator-readme-next.md](next/operator-readme-next.md) and gets deleted or rewritten as it is done.
+Durable rules only. What to do next lives in [next-agents.md](next-agents.md) and [next-operator.md](next-operator.md) and gets deleted or rewritten as it is done.
 
 ## Where to read first
-- Direction: [docs/direction-analysis.md](docs/direction-analysis.md) (what agent-files is for, the planning harness, what to adopt). Design: [ARCHITECTURE.md](ARCHITECTURE.md). Current build: [docs/m1-build-spec.md](docs/m1-build-spec.md) (wins over the plan for M1), then [docs/m1-plan.md](docs/m1-plan.md), [docs/view-layer.md](docs/view-layer.md), [docs/role-of-neovim.md](docs/role-of-neovim.md).
+- Direction: [md/docs/direction-analysis.md](md/docs/direction-analysis.md) (what agent-files is for, the planning harness, what to adopt). Design: [ARCHITECTURE.md](ARCHITECTURE.md). Current build: [md/docs/m1-build-spec.md](md/docs/m1-build-spec.md) (wins over the plan for M1), then [md/docs/m1-plan.md](md/docs/m1-plan.md), [md/docs/view-layer.md](md/docs/view-layer.md), [md/docs/role-of-neovim.md](md/docs/role-of-neovim.md).
 - Do not build anything the spec lists under "Not in this build" (§13).
-- **Adopt before building.** Before building any milestone, grade existing tools against it the way [docs/host-analysis.md](docs/host-analysis.md) graded M2, and drop what they already do. Never build what is marked dropped: the tier-1 bridge, the doorbell (`agent-files-ring`, registry, `agent-files-notify`), the Elixir supervisor. Harness sessions are hosted by TUIOS (ARCHITECTURE §5.1).
+- **Adopt before building.** Before building any milestone, grade existing tools against it the way [md/docs/host-analysis.md](md/docs/host-analysis.md) graded M2, and drop what they already do. Never build what is marked dropped: the tier-1 bridge, the doorbell (`agent-files-ring`, registry, `agent-files-notify`), the Elixir supervisor. Harness sessions are hosted by TUIOS (ARCHITECTURE §5.1).
 
 ## Layout
-- `bin/` entry points; `lib/agent_files/` shared Python; `nvim/` the `agents.nvim` plugin; `tests/`; `docs/examples/view-fixture/` shared parser/plugin fixture.
+- `bin/` entry points; `lib/agent_files/` shared Python; `nvim/` the `agents.nvim` plugin; `tests/`; `md/docs/examples/view-fixture/` shared parser/plugin fixture.
+- `md/` holds the prose: `docs/` (design, specs, decision records), `analysis/`, `plans/`, `audits/`, `threads/` (session logs). The handoff files `next-agents.md` and `next-operator.md` stay at the root.
 - **The data root is `$AGENT_FILES_ROOT` (default `~/agent-files/`), never this checkout.** Programs refuse to run if the root contains `bin/agent-files-run`. Tests use temp roots; never write into a real root from a session.
 
 ## Rules for code
@@ -32,4 +33,5 @@ Smoke S6-S11 need a real model, editor or `claude` session and are the operator'
 - Work on a feature branch, push, open a draft PR against `main`.
 - Parallel sessions share the main checkout. Create your branch in a `git worktree`, never by switching branches in the main checkout, which moves every session's `HEAD`. Don't `git stash` there either: it stashes other sessions' edits too.
 - Say plainly what was not verified (live API, real `claude`, Neovim version) in the PR body.
+- Open questions for the operator: one that blocks the next step goes in `next-operator.md`. One to answer eventually goes in a plan under `md/plans/`, linked from `next-operator.md`, and moves there when its step comes up. Analysis docs hold findings and recommendations, not open questions.
 - Do not put model identifiers in commits, PR text or code comments.

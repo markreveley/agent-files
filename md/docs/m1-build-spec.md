@@ -1,6 +1,6 @@
 # M1 build spec — the first build
 
-> Status: draft · 2026-10-31 · implements [m1-plan.md](m1-plan.md) §3 against [ARCHITECTURE.md](../ARCHITECTURE.md) §4, with steps 0–1 of [view-layer.md](view-layer.md)
+> Status: draft · 2026-10-31 · implements [m1-plan.md](m1-plan.md) §3 against [ARCHITECTURE.md](../../ARCHITECTURE.md) §4, with steps 0–1 of [view-layer.md](view-layer.md)
 > Audience: whoever writes the code. Where this spec and the plan disagree, this spec wins for M1; where it is silent, the plan and the architecture apply.
 
 **Summary.** The first M1 build is four small programs and one Neovim plugin, all reading and writing the same plain-text files: `agent-files-run` (the replay runtime), `agent-files-hook` (observed status for hand-started `claude` sessions), `agent-files-stats` (trial measurement), `agent-files-grep` (logged cross-thread search), and `agents.nvim`, which also makes threads readable in Neovim (view-layer steps 0–1). The optional HTML view (`agent-files-render`, view-layer step 2) is specified there, not here; this spec only fixes how it plugs in (§12). The build is done when the automated tests pass and the smoke test in §10 passes by hand; then the ten-day trial starts. This document pins down everything the plan left open: the exact grammar and parser, turn numbering, escaping, request assembly, backends, git commits, configuration, and the acceptance tests.
@@ -49,7 +49,7 @@ nvim/
 tests/
   test_thread.py  test_assemble.py  test_run.py  test_hook.py  test_stats.py
   fixtures/                # sample thread.md files, hook input JSON
-                           # also parses docs/examples/view-fixture/ (view-layer §5.5) — one fixture for parser, plugin and renderer
+                           # also parses md/docs/examples/view-fixture/ (view-layer §5.5) — one fixture for parser, plugin and renderer
   nvim/test_agents.lua     # run with `nvim --headless -l`
   smoke.sh                 # end-to-end with the mock backend (§10)
 install.sh                 # symlinks bin/* into ~/.local/bin, prints the hook config
@@ -487,7 +487,7 @@ Thread-aware display on top of whatever generic markdown renderer step 0 install
 
 ### 10.2 Smoke test (by hand, real editor; `tests/smoke.sh` automates S1–S5 with the mock backend)
 
-**Prerequisite:** view-layer step 0 is done and its exit check passes — you can read `docs/examples/view-fixture/thread.md` (table, long tool output) in Neovim without another viewer. A trial that fails because threads are unpleasant to read tests the editor setup, not the thesis (m1-plan §7).
+**Prerequisite:** view-layer step 0 is done and its exit check passes — you can read `md/docs/examples/view-fixture/thread.md` (table, long tool output) in Neovim without another viewer. A trial that fails because threads are unpleasant to read tests the editor setup, not the thesis (m1-plan §7).
 
 
 | # | Do | Pass when |
@@ -514,7 +514,7 @@ Each step ends with its tests passing; together under a week, matching m1-plan �
 2. `assemble.py` + the mock backend + `agent-files-run once`/`check` + runner tests.
 3. `watch`, the lock, `STOP`, conflicts, recovery; git commits with trailers.
 4. Anthropic backend, spend cap, `steps/`; S6, S7 by hand.
-5. View-layer step 0 (editor setup, about an hour) and the view fixture (`docs/examples/view-fixture/`). Then `agents.nvim`: buffers, watcher, read-only, `:AgentsNew`/`:AgentsSend`/`:AgentsStop`; then marks, `:AgentsFork`, `:AgentsNext`, draft re-apply; then display (§9.5).
+5. View-layer step 0 (editor setup, about an hour) and the view fixture (`md/docs/examples/view-fixture/`). Then `agents.nvim`: buffers, watcher, read-only, `:AgentsNew`/`:AgentsSend`/`:AgentsStop`; then marks, `:AgentsFork`, `:AgentsNext`, draft re-apply; then display (§9.5).
 6. `agent-files-hook` + `install.sh`; S9.
 7. `agent-files-grep`, `agent-files-stats`, journal template; OpenAI-compatible and `claude -p` backends.
 8. Full smoke test; start the trial.

@@ -1,6 +1,6 @@
 # Related repos — what agent-files takes from them
 
-> Status: decision record · 2026-11-01 · companion to [ARCHITECTURE.md](../ARCHITECTURE.md) §6, §7, §9, §14
+> Status: decision record · 2026-11-01 · companion to [ARCHITECTURE.md](../../ARCHITECTURE.md) §6, §7, §9, §14
 > Five of the operator's own repos were read (2026-11-01). Four arrived independently at the same core as agent-files — markdown with frontmatter, "agents propose, the human ratifies", views derived from source files. What is worth taking is the mechanisms each built around it.
 
 ## Adopted

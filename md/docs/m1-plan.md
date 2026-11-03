@@ -1,6 +1,6 @@
 # M1 plan — a cheap test of the thesis
 
-> Status: draft · 2026-11-01 · companion to [ARCHITECTURE.md](../ARCHITECTURE.md) §14
+> Status: draft · 2026-11-01 · companion to [ARCHITECTURE.md](../../ARCHITECTURE.md) §14
 > Build spec: [m1-build-spec.md](m1-build-spec.md)
 > Goal: build the smallest agent-files that can prove or disprove the core thesis in two weeks of real use, and decide with evidence whether anything bigger gets built.
 
@@ -15,7 +15,7 @@ The thesis is that context you can edit as a file beats an append-only chat. M1 
 | H1 | **Context editing** — you will edit context above `END` when it helps: delete a tangent, fix a premise, compress an output | Core |
 | H2 | **Clean forks** — you will start forks with a small `## carry` section instead of continuing long threads, and those forks will be at least as good | Core |
 | H3 | **Cross-thread search** — plain-text threads will be searched and reused (`rg` / `grep` across `threads/`) | Core |
-| ~~H4~~ | *Dropped (2026-11-01).* "Attention from files" for juggling Claude Code sessions is adopted from TUIOS instead ([ARCHITECTURE §12](../ARCHITECTURE.md#12-relation-to-tuios-and-herdr)). The `observed` status files stay, for the record and the fallback measure; `agent-files-stats` still prints observed-session counts as information | — |
+| ~~H4~~ | *Dropped (2026-11-01).* "Attention from files" for juggling Claude Code sessions is adopted from TUIOS instead ([ARCHITECTURE §12](../../ARCHITECTURE.md#12-relation-to-tuios-and-herdr)). The `observed` status files stay, for the record and the fallback measure; `agent-files-stats` still prints observed-session counts as information | — |
 
 If H1–H3 fail, the thesis fails.
 
@@ -115,7 +115,7 @@ Set before the trial starts; revise them now if they look wrong, never after.
 
 **Outcomes**
 
-- **H1–H3 mostly go** → the thesis holds. Next, the proposed order in [ARCHITECTURE §14](../ARCHITECTURE.md#14-milestones): the record trial (capture of coding sessions, commit links, the KB on artifact-dag — M5a), then the planning harness (M6), then the record viewer (M8); M3 and M4 as needed. Before each, apply the adopt-first rule: grade existing tools against the milestone, as [host-analysis](host-analysis.md) did for M2, and drop what they already do (Entire for capture, Pi for M6).
+- **H1–H3 mostly go** → the thesis holds. Next, the proposed order in [ARCHITECTURE §14](../../ARCHITECTURE.md#14-milestones): the record trial (capture of coding sessions, commit links, the KB on artifact-dag — M5a), then the planning harness (M6), then the record viewer (M8); M3 and M4 as needed. Before each, apply the adopt-first rule: grade existing tools against the milestone, as [host-analysis](host-analysis.md) did for M2, and drop what they already do (Entire for capture, Pi for M6).
 - **Nothing holds** → stop building replay features, and write down why in this doc. Keep TUIOS for attention and plain Claude Code for the rest. Editable context has failed, not the record: whether the record trial still runs is decided at day 10 ([direction-analysis §8](direction-analysis.md#8-the-trials)).
 
 ## 6. Triggers for a long-lived supervisor

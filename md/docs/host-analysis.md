@@ -1,6 +1,6 @@
 # Host analysis — existing tools graded against the plan
 
-> Status: decision record · 2026-11-01 · companion to [ARCHITECTURE.md](../ARCHITECTURE.md) §5.1, §12
+> Status: decision record · 2026-11-01 · companion to [ARCHITECTURE.md](../../ARCHITECTURE.md) §5.1, §12
 > Rule applied: planned work that an existing tool already does is dropped and the tool used instead; the tool that covers the most planned work goes first.
 > Method: TUIOS, herdr and parrot.nvim were shallow-cloned and read (source and docs; nothing built or run). Other tools from their docs and READMEs. Where only a README or a secondary page says so, it is marked *(docs)* or *(unverified)*.
 

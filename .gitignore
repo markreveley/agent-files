@@ -1,4 +1,4 @@
 __pycache__/
 *.pyc
-threads/raw/
-threads/redact.json
+md/threads/raw/
+md/threads/redact.json

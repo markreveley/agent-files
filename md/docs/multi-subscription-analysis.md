@@ -1,6 +1,6 @@
 # Multi-subscription tools: CLIProxyAPI and T3 Code
 
-> Status: research spike · 2026-11-01 · companion to [host-analysis.md](host-analysis.md) and [ARCHITECTURE.md](../ARCHITECTURE.md) §5.1, §13 Q6, Q15
+> Status: research spike · 2026-11-01 · companion to [host-analysis.md](host-analysis.md) and [ARCHITECTURE.md](../../ARCHITECTURE.md) §5.1, §13 Q6, Q15
 > Method: READMEs, project sites, T3 Code's `docs/internals/overview.md` and `providers.md`, and Anthropic's Claude Code legal and compliance page. Nothing was cloned, built or run. The video "T3 Code broke me" (youtube.com/watch?v=uLGxb4F3SyI) could not be read; only its title was available.
 
 **Decision.** CLIProxyAPI is not used for Claude. T3 Code doesn't change M1 or the trial. After the trial, T3 Code may be graded as a harness host next to TUIOS, but only if a session it starts fires `agent-files-hook` (§3).

@@ -1,5 +1,5 @@
 #!/bin/sh
-# Automates smoke tests S1-S5 (docs/m1-build-spec.md §10.2) with the mock backend.
+# Automates smoke tests S1-S5 (md/docs/m1-build-spec.md §10.2) with the mock backend.
 # S6-S11 need a real model / editor / claude session and are done by hand.
 set -eu
 HERE="$(cd "$(dirname "$0")/.." && pwd)"

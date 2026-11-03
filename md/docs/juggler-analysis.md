@@ -1,6 +1,6 @@
 # Juggler as a reference — supplemental analysis
 
-> Status: draft · 2026-10-31 · companion to [ARCHITECTURE.md](../ARCHITECTURE.md)
+> Status: draft · 2026-10-31 · companion to [ARCHITECTURE.md](../../ARCHITECTURE.md)
 > Sources: [juggler.studio](https://juggler.studio) and [its features page](https://juggler.studio/features.html), read 2026-10-31. Source code (not yet read): [github.com/juggler-ai/juggler](https://github.com/juggler-ai/juggler).
 
 **Summary.** Juggler is the closest reference so far. It already ships most of our context ideas — editable history, branching, sub-threads that return only results, approvals as persistent state, model switching mid-conversation. The difference is where those ideas live: Juggler builds its own agent loop and stores conversations as live-synced CRDT documents behind a native app. agent-files keeps them in plain files and borrows existing harnesses. That difference is our angle:

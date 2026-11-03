@@ -6,9 +6,9 @@ updated: 2026-11-03
 
 # Next steps for the operator
 
-Read with [agents-readme-next.md](agents-readme-next.md). M1 is built and tested against the mock backend, and the bugs an audit found on 2026-11-02 are fixed (PR #24). Nothing has yet run through the runner against a real model, in your editor, or with a live `claude` session. These steps finish the build and start the ten-day trial.
+Read with [next-agents.md](next-agents.md). M1 is built and tested against the mock backend, and the bugs an audit found on 2026-11-02 are fixed (PR #24). Nothing has yet run through the runner against a real model, in your editor, or with a live `claude` session. These steps finish the build and start the ten-day trial.
 
-Where this goes after the trial: [docs/direction-analysis.md](../docs/direction-analysis.md) (decided 2026-11-02). It changes nothing below.
+Where this goes after the trial: [md/docs/direction-analysis.md](md/docs/direction-analysis.md) (decided 2026-11-02). It changes nothing below.
 
 Already done on this Mac: the clone at `~/code/agent-files` (at `f627b15`; step 2 pulls the audit fixes), `./install.sh` (links in `~/.local/bin`, on `PATH`), `uv`, `git`, Python 3.14, Neovim 0.12.5, TUIOS 0.12.1 (pinned with `brew pin tuios`), ripgrep 15.2.0, and `agent-files-run init`. The data root is at `~/dev/repos/agent-files-data`, with `~/agent-files` linking to it. It has no remote; add a private one if you want an offsite backup, and push it yourself.
 
@@ -26,7 +26,7 @@ Merge it; don't paste it in whole. Your `settings.json` already has a `"hooks"` 
 Do this before 2a. S9 below is the end-to-end check.
 
 ## 2a. Host Claude Code and Codex in TUIOS
-Since 2026-11-01 TUIOS hosts harness sessions and owns attention for them ([docs/host-analysis.md](../docs/host-analysis.md), ARCHITECTURE §5.1).
+Since 2026-11-01 TUIOS hosts harness sessions and owns attention for them ([md/docs/host-analysis.md](md/docs/host-analysis.md), ARCHITECTURE §5.1).
 - TUIOS is installed and pinned at 0.12.1; do not upgrade it mid-trial.
 - After step 2, run `tuios integration install claude-code`, and also `tuios integration install codex` if you use Codex. Your Inbox then gets hook-reported state. `tuios integration status` shows whether it took.
   - It adds its own entries to `~/.claude/settings.json` and leaves the `agent-files-hook` entries alone. Check that both sets are there afterwards.
@@ -43,7 +43,7 @@ Add `~/code/agent-files/nvim` to Neovim's `runtimepath` and call:
 ```lua
 require('agents').setup({ root = '~/agent-files', tabline = true })
 ```
-Do view-layer step 0 (a generic markdown renderer, about an hour) and confirm you can read `docs/examples/view-fixture/thread.md` comfortably. A trial that fails on unpleasant reading tests your editor setup, not the idea.
+Do view-layer step 0 (a generic markdown renderer, about an hour) and confirm you can read `md/docs/examples/view-fixture/thread.md` comfortably. A trial that fails on unpleasant reading tests your editor setup, not the idea.
 
 ## 4. Start the runner
 ```sh
@@ -61,7 +61,7 @@ Tell the agent when `watch` is running, or which of steps 1-4 failed and how.
 | S8 | `model: ollama/<name>`, send | reply, `cost_usd: 0` |
 | S9 | start `claude` in a project **inside TUIOS**, trigger a permission prompt | a directory `~/agent-files/threads/_observed/<project>-…/` appears. `:AgentsNext` lists it as blocked as soon as the permission dialog opens (not ~6 s later). Open its `thread.md`: after you answer, the end mark shows the spinner (working), then ✓ (done) when Claude finishes. The directory is gone after you exit `claude`. The TUIOS Inbox shows the same prompt. (`:AgentsNext` lists only threads that need you, never working ones.) |
 | S10 | `:AgentsGrep <word>` | quickfix hits, one line in `trial/searches.log` |
-| S11 | first copy the view fixture into the root: `cp -R ~/code/agent-files/docs/examples/view-fixture ~/agent-files/threads/fixture` (the plugin only attaches to files under `threads/`). Open it, and your S6 thread | headers/`END` highlighted, tool fold closed, end mark shows `~Nk`. A status glyph shows only while a turn is running or its result is unseen: once you have viewed a finished thread the glyph goes away. Also (the interactive Neovim check): send a turn in the S6 thread; while it runs the spinner moves and the buffer is read-only; when the reply lands the buffer reloads with no "file changed" prompt, shows ✓ and becomes writable again. Then `rm -r ~/agent-files/threads/fixture` so it isn't counted in the trial |
+| S11 | first copy the view fixture into the root: `cp -R ~/code/agent-files/md/docs/examples/view-fixture ~/agent-files/threads/fixture` (the plugin only attaches to files under `threads/`). Open it, and your S6 thread | headers/`END` highlighted, tool fold closed, end mark shows `~Nk`. A status glyph shows only while a turn is running or its result is unseen: once you have viewed a finished thread the glyph goes away. Also (the interactive Neovim check): send a turn in the S6 thread; while it runs the spinner moves and the buffer is read-only; when the reply lands the buffer reloads with no "file changed" prompt, shows ✓ and becomes writable again. Then `rm -r ~/agent-files/threads/fixture` so it isn't counted in the trial |
 
 Report the result of each of S6-S11 to the agent. For a failure, include the exact symptom and the thread's `steps/` files.
 
@@ -76,11 +76,11 @@ Keep the data root under git; it records your edits for the H1 measurement.
 Optional, for the planning harness (ARCHITECTURE §13 Q17). If you run some threads with `model: claude-cli` (your plan, through `claude -p`), note in the journal whether they read as well as threads on the API backend. Their `steps/*.response.json` already records `cache_read_input_tokens`; nothing to do for that.
 
 ## 7. Day 10: decide
-Use the go and kill thresholds in [m1-plan §5](../docs/m1-plan.md#5-decision-criteria). `agent-files-stats` prints the H1 percentage, the fork count and the search count. The H2 helped/hurt tally, the H3 count of searches whose result you used, and the fallback rate come from the journal ("Forks today", "Searches whose result I used", "Used instead"). Also use the journal's "Read threads in" lines. H4 is not part of the decision. The HTML view is judged separately from the journal, not from H1-H3.
+Use the go and kill thresholds in [m1-plan §5](md/docs/m1-plan.md#5-decision-criteria). `agent-files-stats` prints the H1 percentage, the fork count and the search count. The H2 helped/hurt tally, the H3 count of searches whose result you used, and the fallback rate come from the journal ("Forks today", "Searches whose result I used", "Used instead"). Also use the journal's "Read threads in" lines. H4 is not part of the decision. The HTML view is judged separately from the journal, not from H1-H3.
 
 Then, with the agent:
 - Confirm or change the order after M1 (ARCHITECTURE §14: the record trial, then the planning harness, then the record viewer).
-- Decide whether the record trial (attribution and the DAG on real coding work) still runs if H1-H3 fail. It tests a different thesis ([direction-analysis §8](../docs/direction-analysis.md#8-the-trials)).
+- Decide whether the record trial (attribution and the DAG on real coding work) still runs if H1-H3 fail. It tests a different thesis ([direction-analysis §8](md/docs/direction-analysis.md#8-the-trials)).
 
 ## Things to watch
 - `status` shows `?` for a turn working more than 10 minutes with no heartbeat: the runner probably died; restart `watch` and it will close the turn as interrupted.
@@ -92,9 +92,5 @@ Then, with the agent:
 - Pull requests from the agent side land on `main` of this repo; the data root is separate and never pushed by these programs.
 
 ## Questions
-From [analysis/orchestrator-analysis.md](../analysis/orchestrator-analysis.md) §9 (2026-11-03). None blocks M1; answer when convenient.
-1. `unsupported` claims: label them in answers and forbid them in briefs (recommended), or one policy everywhere?
-2. Does a DAG node merged to its collection's main branch count as accepted by whoever merged it? Today no node in identikey-dev or lightning-mesh-dev has `status` or `accepted_by`.
-3. Measure graph against grep in the record trial, or in the adopt-first check before M6?
-4. Can a node accepted in another project ground an answer here, or only with a flag?
-5. Which code graph to grade first: Serena (precise, needs language servers) or Codebase-Memory (syntactic, every language)?
+- None blocking.
+- To answer eventually: [md/plans/dag-orchestration.md](md/plans/dag-orchestration.md#questions) (DAG-grounded orchestration, five questions, needed before M6).

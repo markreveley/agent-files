@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""agent-files-stats — trial measurement (docs/m1-build-spec.md §7.3). Standard library only."""
+"""agent-files-stats — trial measurement (md/docs/m1-build-spec.md §7.3). Standard library only."""
 import argparse
 import dataclasses
 import datetime
