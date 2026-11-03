@@ -16,10 +16,13 @@ class BackendError(Exception):
 
 
 class Control:
-    """Callbacks the runner hands to a backend. Both may raise Cancelled."""
+    """Callbacks the runner hands to a backend. Both may raise Cancelled.
+    `seen` holds what the provider has reported so far (usage, cost_usd, served_model). Backends update it
+    as events arrive, so the runner can record the spend of a turn that is stopped or fails mid-stream."""
     def __init__(self, on_text, on_tick):
         self.text = on_text
         self.tick = on_tick
+        self.seen: dict = {}
 
 
 def cost_usd(prices: dict, model: str, usage: dict, warn=None) -> float:

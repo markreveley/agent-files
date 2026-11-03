@@ -70,6 +70,7 @@ class Backends(unittest.TestCase):
         resp = self.step("response")
         self.assertEqual(resp["stop_reason"], "end_turn")
         self.assertAlmostEqual(resp["cost_usd"], (1000 * 3 + 500 * 15 + 200 * 3.75 + 300 * 0.3) / 1e6)
+        self.assertNotIn("partial", resp)
         (call,) = self.calls()
         self.assertEqual(call["extra_body"]["cache_control"], {"type": "ephemeral"})
         self.assertEqual(call["model"], "claude-test")
@@ -101,6 +102,32 @@ class Backends(unittest.TestCase):
         self.assertEqual(resp["served_model"], "claude-other")
         self.assertEqual(resp["cost_usd"], 0.0)               # priced by the served model, which has no entry
         self.assertIn("no [prices] entry for claude-other", r.stderr)
+
+    # Usage from message_start only: the stream ended before message_delta reported the output tokens.
+    PARTIAL_COST = (1000 * 3 + 1 * 15 + 200 * 3.75 + 300 * 0.3) / 1e6
+
+    def assert_partial_spend(self):
+        resp = self.step("response")
+        self.assertIs(resp["partial"], True)
+        self.assertIsNone(resp["stop_reason"])
+        self.assertEqual(resp["usage"]["input_tokens"], 1000)
+        self.assertAlmostEqual(resp["cost_usd"], self.PARTIAL_COST)
+        from agent_files import runner
+        self.assertAlmostEqual(runner.spend_today(self.e.root), self.PARTIAL_COST)   # the daily cap counts it
+
+    def test_anthropic_stop_mid_stream_records_spend(self):
+        self.e.env["FAKE_SDK_STOP"] = os.path.join(self.e.tdir("t"), "STOP")
+        r, text, agent = self.turn("claude-test", "stop_mid_stream")
+        self.assertEqual(self.e.status("t"), "interrupted", r.stderr)
+        self.assertEqual((agent.closed, agent.body), ("interrupted", "Hello "))
+        self.assert_partial_spend()
+
+    def test_anthropic_error_mid_stream_records_spend(self):
+        r, text, agent = self.turn("claude-test", "error_mid_stream")
+        self.assertEqual(self.e.status("t"), "failed", r.stderr)
+        self.assertIn("! error: overloaded_error: Overloaded\nEND (failed)\n", text)
+        self.assertEqual(self.step("error")["kind"], "api")
+        self.assert_partial_spend()
 
     # --- OpenAI-compatible -------------------------------------------------
 
@@ -152,6 +179,17 @@ class Backends(unittest.TestCase):
         self.assertIsNone(call["env"]["ANTHROPIC_AUTH_TOKEN"])
         self.assertIn("[you]\nhello there", call["stdin"])
         self.assertEqual(self.step("response")["cost_usd"], 0.0456)
+
+    def test_claude_cli_error_result_records_cost(self):
+        self.fake_claude()
+        r, text, agent = self.turn("claude-cli", "error")
+        self.assertEqual(self.e.status("t"), "failed", r.stderr)
+        self.assertEqual(agent.body, "plan reply")
+        self.assertIn("! error: overloaded\nEND (failed)\n", text)
+        self.assertEqual(self.step("error")["kind"], "api")
+        resp = self.step("response")
+        self.assertIs(resp["partial"], True)
+        self.assertEqual((resp["cost_usd"], resp["usage"]["input_tokens"]), (0.0123, 1000))
 
 
 if __name__ == "__main__":

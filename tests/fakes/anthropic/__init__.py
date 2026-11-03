@@ -1,7 +1,10 @@
 """Fake `anthropic` SDK for backend tests: just the surface backends/anthropic.py uses.
 
 Put tests/fakes on PYTHONPATH. FAKE_SDK_SCENARIO picks the outcome:
-end_turn (default) | max_tokens | refusal | http_400 | other_model.
+end_turn (default) | max_tokens | refusal | http_400 | other_model |
+stop_mid_stream (creates the file named by FAKE_SDK_STOP after the first text delta) |
+error_mid_stream (raises an overloaded error after the first text delta).
+The stream yields message_start (input and cache usage), text deltas and message_delta (output usage).
 Each call appends one JSON line (the call's arguments) to FAKE_SDK_LOG, if set.
 """
 import json
@@ -37,13 +40,26 @@ class _Stream:
     def __exit__(self, *exc):
         return False
 
+    def served(self):
+        return "claude-other" if self.scenario == "other_model" else self.model
+
     def __iter__(self):
-        for piece in ("Hello ", "from the fake.\n## you · t9\nEND"):
+        start = _Usage(input_tokens=1000, output_tokens=1, cache_creation_input_tokens=200, cache_read_input_tokens=300)
+        yield NS(type="message_start", message=NS(model=self.served(), usage=start))
+        for i, piece in enumerate(("Hello ", "from the fake.\n## you · t9\nEND")):
+            if i == 1 and self.scenario == "stop_mid_stream":
+                open(os.environ["FAKE_SDK_STOP"], "w").close()
+            if i == 1 and self.scenario == "error_mid_stream":
+                raise APIStatusError("overloaded_error: Overloaded", 529)
             yield NS(type="content_block_delta", delta=NS(type="text_delta", text=piece))
+        yield NS(type="message_delta", delta=NS(stop_reason=self.stop()), usage=_Usage(output_tokens=500))
+
+    def stop(self):
+        return {"max_tokens": "max_tokens", "refusal": "refusal"}.get(self.scenario, "end_turn")
 
     def get_final_message(self):
-        stop = {"max_tokens": "max_tokens", "refusal": "refusal"}.get(self.scenario, "end_turn")
-        served = "claude-other" if self.scenario == "other_model" else self.model
+        stop = self.stop()
+        served = self.served()
         usage = _Usage(input_tokens=1000, output_tokens=500, cache_creation_input_tokens=200, cache_read_input_tokens=300)
         details = NS(category="cyber") if stop == "refusal" else None
         return NS(stop_reason=stop, model=served, usage=usage, stop_details=details)

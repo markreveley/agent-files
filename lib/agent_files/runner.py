@@ -319,15 +319,19 @@ class Turn:
         log(tid, "start", f"t{N} model={model}")
 
         if not fail:                                                                     # steps 6-7
+            ctl = Control(self.on_text, self.tick)
+            # what the provider reported before a stop or failure, so billed tokens still reach response.json
+            partial = lambda: dict(ctl.seen, partial=True) if ctl.seen else {}
             try:
-                info = stream(body, Control(self.on_text, self.tick))
+                info = stream(body, ctl)
             except Cancelled:
-                pass
+                info = partial()
             except BackendError as e:
                 fail = (e.kind, e.message, e.http_status)
-                info = e.info or {}
+                info = e.info or partial()
             except Exception as e:  # noqa: BLE001 - a backend bug must not wedge the thread
                 fail = ("backend", f"{type(e).__name__}: {e}", None)
+                info = partial()
         # conflict / stop checked once more at the very end
         if not self.conflict and not fail:
             try:
@@ -402,6 +406,8 @@ class Turn:
                         "chars_out": sum(len(x) for x in self.out_text)}
                 if info.get("backend_caveats"):
                     resp["backend_caveats"] = info["backend_caveats"]
+                if info.get("partial"):
+                    resp["partial"] = True
                 fsutil.atomic_write(os.path.join(d, "steps", f"t{N:04d}.response.json"), assemble.dumps(resp) + "\n")
         fsutil.write_status(d, status)                                                    # step 12
         commit(self.root, tid, paths, f"reply {tid} t{N}", trailers("reply", N, model))   # step 13

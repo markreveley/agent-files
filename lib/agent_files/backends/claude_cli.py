@@ -76,10 +76,10 @@ def stream(body: dict, ctl, cfg: dict) -> dict:
                     for blk in ev.get("message", {}).get("content", []):
                         if blk.get("type") == "text":
                             ctl.text(blk["text"])
-                elif ev.get("type") == "result":
-                    info["usage"] = ev.get("usage", {}) or {}
+                elif ev.get("type") == "result":   # carries usage and cost even when is_error is set
+                    info["usage"] = ctl.seen["usage"] = ev.get("usage", {}) or {}
                     if "total_cost_usd" in ev:
-                        info["cost_usd"] = ev["total_cost_usd"]
+                        info["cost_usd"] = ctl.seen["cost_usd"] = ev["total_cost_usd"]
                     if ev.get("is_error"):
                         raise BackendError("api", str(ev.get("result", "claude -p error")))
         finally:

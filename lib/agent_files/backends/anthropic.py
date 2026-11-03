@@ -16,6 +16,19 @@ def build_body(req: dict, cfg: dict) -> dict:
     return body
 
 
+def _usage(u) -> dict:
+    return u.model_dump() if hasattr(u, "model_dump") else dict(u)
+
+
+def _record(ev, seen: dict) -> None:
+    """Note usage as it arrives: message_start carries input and cache tokens, message_delta cumulative counts."""
+    if ev.type == "message_start":
+        seen["served_model"] = ev.message.model
+        seen["usage"] = _usage(ev.message.usage)
+    elif ev.type == "message_delta" and getattr(ev, "usage", None) is not None:
+        seen.setdefault("usage", {}).update({k: v for k, v in _usage(ev.usage).items() if v is not None})
+
+
 def stream(body: dict, ctl, cfg: dict) -> dict:
     try:
         import anthropic
@@ -38,6 +51,7 @@ def stream(body: dict, ctl, cfg: dict) -> dict:
     try:
         with client.messages.stream(extra_body=extra, **args) as s:
             for ev in s:
+                _record(ev, ctl.seen)   # before tick(), which may cancel
                 ctl.tick()
                 if ev.type == "content_block_delta" and getattr(ev.delta, "type", "") == "text_delta":
                     ctl.text(ev.delta.text)
@@ -46,7 +60,7 @@ def stream(body: dict, ctl, cfg: dict) -> dict:
         raise BackendError("api", str(getattr(e, "message", e)), getattr(e, "status_code", None)) from e
     except anthropic.APIError as e:
         raise BackendError("api", str(e)) from e
-    usage = final.usage.model_dump() if hasattr(final.usage, "model_dump") else dict(final.usage)
+    usage = _usage(final.usage)
     info = {"stop_reason": final.stop_reason, "served_model": final.model, "usage": usage, "backend": "anthropic",
             "backend_caveats": caveats}
     if final.stop_reason == "refusal":

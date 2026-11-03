@@ -220,7 +220,7 @@ For a thread where `is_send` is true, with your turn `tK`:
 8. On normal completion: flush the last partial line, balance fences, append `END`.
 9. **On failure** (API error, refusal, spend cap, unknown backend): append any partial output, then a `! error: <one-line reason>` diagnostic, then `END (failed)`; write `steps/tNNNN.error.json`; status `failed`. If the failure happened before step 5, write the header first, so every send gets an agent turn.
 10. Append the scaffold `\n## you · t(N+1)\n\n` and update `last_turn`.
-11. Write `steps/tNNNN.response.json` (if there was a response).
+11. Write `steps/tNNNN.response.json` if there was a response, or if the provider reported usage or cost before the turn was stopped, hit a conflict or failed. Such a record has `"partial": true` and no `stop_reason`, and its `cost_usd` counts toward the spend cap (§5.6).
 12. Status: `done` (or the abnormal status set above).
 13. **Reply commit.** `git add <thread dir>`; commit `reply <thread id> tN` with trailers.
 
@@ -257,7 +257,7 @@ Chosen by the `model` string:
 
 #### 5.4.1 Anthropic
 
-- Official `anthropic` Python SDK, `client.messages.stream(...)`, text deltas appended as they arrive, final message from `get_final_message()`.
+- Official `anthropic` Python SDK, `client.messages.stream(...)`, text deltas appended as they arrive, final message from `get_final_message()`. Usage is noted as it arrives (`message_start`: input and cache tokens; `message_delta`: output tokens), so a stopped or failed stream still records what was billed up to that point.
 - Request: `model`, `max_tokens` (config), `system`, `messages` (text content only — D5), `cache_control: {type: "ephemeral"}` at the top level (automatic caching of the longest stable prefix), `output_config: {effort: <config>}` for models that take it. No `temperature`/`top_p`/`top_k` (current models reject them). No `thinking` parameter: current Opus/Sonnet run adaptive thinking by default, and the runner ignores thinking blocks in the response.
 - Refusal fallback: when `fallbacks = true`, send the server-side fallback option with its beta flag, as documented for the model at build time. Record the model that actually served the turn in `response.json`; if it differs from `model:`, add a diagnostic `! served by <model>` so a fallback is never silent.
 - `stop_reason`: `end_turn` → normal; `max_tokens` → normal close plus `! stopped: max_tokens`; `refusal` (with no fallback, or after fallback) → failed turn with `! error: refusal (<category>)`.
@@ -270,7 +270,7 @@ Draws from the Pro/Max plan's limits (the separate Agent SDK credit announced 20
 - Render the assembled messages as one transcript prompt (`[you]` / `[agent]` blocks) on stdin; the agent's system prompt via the flag that replaces the system prompt.
 - Run in an empty temporary directory, with all tools disabled, session persistence off, project/user settings not loaded, `--output-format stream-json`, and `AGENT_FILES_RUNNER=1` in the environment. `ANTHROPIC_API_KEY` and `ANTHROPIC_AUTH_TOKEN` are removed from the child's environment, so `claude -p` bills the plan, not the API.
 - **Verify every flag against `claude --help` at build time** (open question m1-plan §9.1). If a flag is missing, document the gap in `steps/` (`"backend_caveats": [...]`) rather than silently dropping it.
-- Cost: take `total_cost_usd` from the final result event if present.
+- Cost: take `total_cost_usd` and `usage` from the final result event if present, including an error result (`is_error`).
 
 #### 5.4.3 Mock
 
@@ -294,7 +294,7 @@ Mock turns write `steps/` like real ones, with `"backend": "mock"`.
  "request": { "...": "the exact body sent to the provider" }}
 ```
 
-`tNNNN.response.json`: `backend`, `served_model`, `stop_reason`, `usage` (as returned — for Anthropic including `cache_creation_input_tokens` and `cache_read_input_tokens`), `cost_usd` (computed from `[prices]`, or reported by `claude -p`), `duration_ms`, `chars_out`. The text is not duplicated; it is in `thread.md`.
+`tNNNN.response.json`: `backend`, `served_model`, `stop_reason`, `usage` (as returned — for Anthropic including `cache_creation_input_tokens` and `cache_read_input_tokens`), `cost_usd` (computed from `[prices]`, or reported by `claude -p`), `duration_ms`, `chars_out`, and `partial: true` when the turn was stopped or failed before the provider finished (§5.2 step 11). The text is not duplicated; it is in `thread.md`.
 
 `tNNNN.error.json`: `kind` (`api`, `refusal`, `spend_cap`, `config`, `backend`), `message`, `http_status` if any.
 
