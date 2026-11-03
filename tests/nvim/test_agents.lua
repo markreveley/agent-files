@@ -300,6 +300,39 @@ D.apply = orig_apply
 eq(mt(sd .. "/seen"), seen0, "seen: not rewritten while nothing changes")
 ok(applies <= 1, "seen: no reload loop (" .. applies .. " redraws in 1.5 s)")
 
+-- a reply streaming a line every 20-50 ms reloads live, and the lock lands during it --------------
+vim.cmd("AgentsNew fast-stream")
+vim.cmd("stopinsert")
+local fsd = tmp .. "/threads/fast-stream"
+local fsb = vim.api.nvim_get_current_buf()
+vim.api.nvim_buf_set_lines(fsb, -1, -1, false, { "go" })
+vim.cmd("AgentsSend")
+write_status(fsd, "working")
+append(fsd, "\n## agent · t2\n")
+local written, total, writer = 0, 50, vim.uv.new_timer()
+local function write_line()
+  written = written + 1
+  append(fsd, "line " .. written .. "\n")
+  if written < total then writer:start(20 + (written % 4) * 10, 0, write_line) end
+end
+writer:start(20, 0, write_line)
+local sizes, nsizes, locked = {}, 0, false
+vim.wait(6000, function()
+  if written < total then
+    local n = #buf_lines(fsb)
+    if not sizes[n] then sizes[n], nsizes = true, nsizes + 1 end
+    if not vim.bo[fsb].modifiable then locked = true end
+  end
+  return written >= total
+end, 10)
+writer:close()
+ok(nsizes >= 4, "fast stream: the buffer reloads while the reply streams (" .. nsizes .. " sizes seen)")
+ok(locked, "fast stream: read-only during the stream")
+append(fsd, "\nEND\n\n## you · t3\n\n")
+write_status(fsd, "done")
+ok(vim.wait(3000, function() return has(fsb, "## you · t3") and vim.bo[fsb].modifiable end, 20), "fast stream: finished")
+eq(buf_lines(fsb), readf(fsd .. "/thread.md"), "fast stream: buffer matches the file")
+
 print(("%d checks, %d failed"):format(n, fails))
 vim.fn.delete(tmp, "rf")
 os.exit(fails == 0 and 0 or 1)

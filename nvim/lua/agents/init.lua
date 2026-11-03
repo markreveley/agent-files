@@ -179,8 +179,15 @@ function M.attach(buf)
   w:start(dir, {}, function(_, fname)
     -- `seen` is the editor's own write (touch_seen refreshes the mark); reacting to it would loop
     if fname and fname:match("[^/]*$") == "seen" then return end
-    timer:stop()
-    timer:start(100, 0, vim.schedule_wrap(function() on_fs_event(buf) end))
+    -- throttle, not debounce: at most one reload per 100 ms, and one after the last event, so a
+    -- reply that streams faster than that still reloads live. Events while one is due are covered
+    -- by it: it reads the files when it runs.
+    if a.due then return end
+    a.due = true
+    timer:start(100, 0, vim.schedule_wrap(function()
+      a.due = false
+      on_fs_event(buf)
+    end))
   end)
   vim.api.nvim_create_autocmd("BufWipeout", { group = group, buffer = buf, callback = function() detach(buf) end })
   vim.api.nvim_create_autocmd("FileChangedShell", { group = group, buffer = buf, callback = function()
