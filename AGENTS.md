@@ -33,5 +33,5 @@ Smoke S6-S11 need a real model, editor or `claude` session and are the operator'
 - Work on a feature branch, push, open a draft PR against `main`.
 - Parallel sessions share the main checkout. Create your branch in a `git worktree`, never by switching branches in the main checkout, which moves every session's `HEAD`. Don't `git stash` there either: it stashes other sessions' edits too.
 - Say plainly what was not verified (live API, real `claude`, Neovim version) in the PR body.
-- Open questions for the operator: one that blocks the next step goes in `next-operator.md`. One to answer eventually goes in a plan under `md/plans/`, linked from `next-operator.md`, and moves there when its step comes up. Analysis docs hold findings and recommendations, not open questions.
+- Plan docs live in `md/plans/`. A question in a plan moves to `next-operator.md` when the step that waits on it comes up.
 - Do not put model identifiers in commits, PR text or code comments.
