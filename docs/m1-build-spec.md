@@ -464,7 +464,7 @@ Thread-aware display on top of whatever generic markdown renderer step 0 install
 - **Highlight groups**, linked to sensible defaults so colorschemes can override: `AgentsYou` (`## you · tN`), `AgentsAgent` (`## agent · tN`), `AgentsNote`, `AgentsCarry`, `AgentsEnd` (`END` and `END (…)`, dimmed), `AgentsEndAbnormal` (`END (interrupted|failed|conflict)`), `AgentsDiag` (`! ` lines), `AgentsTool` (`▸` lines). Matching uses the Lua parser, so markers inside fences are not highlighted.
 - **Folds:** `foldmethod=expr` with an expression that opens a fold at each `▸` line and includes the indented lines below it, closed by default. M1's runner writes no `▸` lines (no tools), so this is exercised by the fixture and later milestones; it costs nothing now.
 - **End mark:** virtual text at the end of the last `END` line (or of the last header, during a turn) showing the thread's mark from §9.2 plus the status word, e.g. `  ⠋ working · ~12k`. Updated with the marks.
-- Settings for thread buffers: `conceallevel=2`, `wrap`, `linebreak` (step 0 recommends them globally for markdown; the plugin sets them locally so threads read well either way).
+- Settings for thread buffers: `conceallevel=2`, `wrap`, `linebreak` (step 0 recommends them globally for markdown; the plugin sets them locally so threads read well either way). These and the fold settings are window-local (`:setlocal`), so other buffers and new windows keep their own. They are set the first time a thread shows in a window, not on every enter, so folds the user opened stay open.
 
 ## 10. Acceptance
 

@@ -262,6 +262,27 @@ local smark = vim.api.nvim_buf_get_extmarks(sb, D.ns_end, 0, -1, { details = tru
 ok(smark and smark[4].virt_text[1][1]:find("? stale", 1, true), "stale: end mark says stale")
 write_status(sd, "done")
 
+-- window settings: local to the thread in its window, set once -----------------------------------
+local function wopts() return { vim.wo.foldmethod, vim.wo.conceallevel, vim.wo.linebreak } end
+local other = tmp .. "/other.md"
+vim.fn.writefile({ "# notes", "", "text" }, other)
+eq({ vim.go.foldmethod, vim.go.conceallevel, vim.go.linebreak }, { "manual", 0, false }, "window: no global value set")
+vim.cmd("edit " .. tmp .. "/threads/fixture/thread.md")
+eq(wopts(), { "expr", 2, true }, "window: thread settings in the thread's window")
+vim.cmd("redraw")
+vim.api.nvim_win_set_cursor(0, { tool, 0 })
+vim.cmd("normal! zo")
+ok(vim.fn.foldclosed(tool) == -1, "window: fold opened")
+vim.cmd("doautocmd FocusGained")
+vim.cmd("vnew " .. other)
+eq(wopts(), { "manual", 0, false }, "window: a new window on another file keeps its defaults")
+vim.cmd("wincmd p")
+vim.cmd("redraw")
+ok(vim.fn.foldclosed(tool) == -1, "window: an opened fold stays open after FocusGained and a window switch")
+vim.cmd("edit " .. other)
+eq(wopts(), { "manual", 0, false }, "window: another file in the thread's window keeps its defaults")
+vim.cmd("only")
+
 print(("%d checks, %d failed"):format(n, fails))
 vim.fn.delete(tmp, "rf")
 os.exit(fails == 0 and 0 or 1)

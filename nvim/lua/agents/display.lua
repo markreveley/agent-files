@@ -88,14 +88,16 @@ function M.endmark(buf, lines, p, info)
   })
 end
 
-function M.setup_window()
-  vim.wo.conceallevel = 2
-  vim.wo.wrap = true
-  vim.wo.linebreak = true
-  vim.wo.foldmethod = "expr"
-  vim.wo.foldexpr = "v:lua.require'agents.display'.foldexpr(v:lnum)"
-  vim.wo.foldenable = true
-  vim.wo.foldlevel = 0
+local FOLDEXPR = "v:lua.require'agents.display'.foldexpr(v:lnum)"
+local WINOPTS = { conceallevel = 2, wrap = true, linebreak = true, foldmethod = "expr", foldexpr = FOLDEXPR,
+  foldenable = true, foldlevel = 0 }
+
+--- Thread settings for the thread buffer shown in `win`, like :setlocal, so other buffers and new
+--- windows keep their own. Only the first time the thread shows in that window: Vim restores these
+--- when the buffer comes back to the window, and setting them again would re-close the user's folds.
+function M.setup_window(win)
+  if vim.api.nvim_get_option_value("foldexpr", { win = win }) == FOLDEXPR then return end
+  for name, value in pairs(WINOPTS) do vim.api.nvim_set_option_value(name, value, { scope = "local", win = win }) end
 end
 
 return M
