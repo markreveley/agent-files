@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """agent-files-stats — trial measurement (docs/m1-build-spec.md §7.3). Standard library only."""
 import argparse
+import dataclasses
 import json
 import os
 import statistics
@@ -38,6 +39,27 @@ def body_up_to_last_end(text: str) -> str:
     return "\n".join(lines[: last + 1]) + ("\n" if last >= 0 else "")
 
 
+ABNORMAL = ("failed", "interrupted", "conflict")
+
+
+def settled(before: str, after: str) -> str:
+    """The part of `before` that `after` must keep: its body up to the last END, minus agent turns
+    that ended abnormally and are gone from `after`. Deleting a failed, interrupted or conflicted
+    turn to retry it is not a context edit; editing one, or deleting a normal turn, still is."""
+    b = T.parse(before)
+    kept = {t.id for t in T.parse(after).turns if t.role == "agent"}
+    turns = [t for t in b.turns if not (t.role == "agent" and t.closed in ABNORMAL and t.id not in kept)]
+    if len(turns) < len(b.turns):
+        before = dataclasses.replace(b, turns=turns).serialize()
+    return body_up_to_last_end(before)
+
+
+def context_edited(before: str, after: str) -> bool:
+    pre = settled(before, after)
+    a_body = "\n".join(after.split("\n")[len(T.parse(after).fm_raw):])
+    return bool(pre) and not (a_body + "\n").startswith(pre) and not a_body.startswith(pre)
+
+
 def classify(root, commit, tid):
     path = f"threads/{tid}/thread.md"
     after = show(root, commit, path)
@@ -46,9 +68,7 @@ def classify(root, commit, tid):
         return None
     b, a = T.parse(before), T.parse(after)
     kinds = set()
-    pre = body_up_to_last_end(before)
-    a_body = "\n".join(after.split("\n")[len(a.fm_raw):])
-    if pre and not (a_body + "\n").startswith(pre) and not a_body.startswith(pre):
+    if context_edited(before, after):
         kinds.add("context_edit")
     if b.frontmatter.get("model") != a.frontmatter.get("model"):
         kinds.add("model_switch")

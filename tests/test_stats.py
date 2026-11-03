@@ -1,4 +1,4 @@
-import json, os, subprocess, sys, unittest
+import json, os, re, subprocess, sys, unittest
 sys.path.insert(0, os.path.dirname(__file__))
 from helpers import Env, REPO
 
@@ -135,6 +135,65 @@ class Stats(unittest.TestCase):
         self.assertEqual(s["model_switches"], 0)
         self.assertEqual(s["threads_6plus_with_context_edit"], 0)     # sends are filtered...
         self.assertEqual((s["threads"], s["forks"]), (2, 1))          # ...thread and fork counts are not (spec §7.3)
+
+    # ---- helpers for the tests below -------------------------------------------------------
+
+    def reply(self, tid, q, edit=None):
+        """Optionally edit the thread, fill its trailing empty `## you` turn with `q`, and send."""
+        txt = self.e.read(tid)
+        if edit:
+            self.assertIn(edit[0], txt)
+            txt = txt.replace(*edit)
+        txt, n = re.subn(r"(## you · t\d+)\n\n$", lambda m: f"{m.group(1)}\n{q}\nEND\n", txt)
+        self.assertEqual(n, 1, txt)
+        self.send(tid, txt)
+
+    def commit(self, tid, body, event="reply", date=None):
+        """Write threads/<tid>/thread.md and commit only it, with runner-style trailers."""
+        rel = f"threads/{tid}/thread.md"
+        self.e.write_thread(tid, body)
+        env = dict(self.e.env, GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@t", GIT_COMMITTER_NAME="t", GIT_COMMITTER_EMAIL="t@t")
+        if date:
+            env.update(GIT_AUTHOR_DATE=date, GIT_COMMITTER_DATE=date)
+        msg = f"{event} {tid}\n\nAgent-Files-Event: {event}\nAgent-Files-Thread: {tid}\n"
+        for cmd in (["add", "--", rel], ["commit", "-q", "-m", msg, "--only", "--", rel]):
+            r = subprocess.run(["git", "-C", self.e.root, *cmd], env=env, capture_output=True, text=True)
+            self.assertEqual(r.returncode, 0, r.stderr)
+
+    # ---- fix: retrying an abnormally closed agent turn is not a context edit --------------
+
+    def test_retrying_a_failed_turn_is_not_a_context_edit(self):
+        self.e.write_thread("r", "## you · t1\nq1\nEND\n", model="mock/fail")
+        self.send("r")
+        txt = self.e.read("r")
+        self.assertIn("END (failed)", txt)
+        txt = txt[:txt.index("## agent · t2")].rstrip("\n") + "\n"     # delete the failed turn: t1 is sent again
+        self.send("r", txt.replace("model: mock/fail", "model: mock/echo"))
+        self.assertIn("echo: q1", self.e.read("r"))
+        s = self.stats()
+        self.assertEqual(s["threads_with_context_edit"], 0)
+        self.assertEqual(s["model_switches"], 1)
+
+    def test_only_removing_abnormal_agent_turns_is_exempt(self):
+        Q = "## you · t1\nq1\nEND\n\n"
+        FAILED = "## agent · t2\npartial\n! error: x\nEND (failed)\n\n"
+        cases = [   # (thread, before, after, is a context edit)
+            ("failed", Q + FAILED + "## you · t3\n\n", Q, False),
+            ("interrupted", Q + "## agent · t2\npartial\nEND (interrupted)\n\n## you · t3\n\n",
+             Q + "## you · t3\nagain\nEND\n", False),
+            ("conflict", Q + "## agent · t2\npartial\nEND (conflict)\n", Q, False),
+            ("kept", Q + FAILED + "## you · t3\n\n", Q + FAILED + "## you · t3\nmore\nEND\n", False),
+            ("normal-agent-deleted", Q + "## agent · t2\nanswer\nEND\n\n## you · t3\n\n", Q, True),
+            ("failed-and-premise", Q + FAILED + "## you · t3\n\n", Q.replace("q1", "q1 fixed"), True),
+            ("failed-turn-edited", Q + FAILED + "## you · t3\n\n",
+             Q + FAILED.replace("partial", "part") + "## you · t3\nmore\nEND\n", True),
+        ]
+        for tid, before, after, edit in cases:
+            with self.subTest(tid):
+                n = self.stats()["threads_with_context_edit"]
+                self.commit(tid, before)
+                self.commit(tid, after, event="send")
+                self.assertEqual(self.stats()["threads_with_context_edit"] - n, int(edit))
 
 
 if __name__ == "__main__":

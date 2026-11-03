@@ -364,7 +364,7 @@ Agent-Files-Model: claude-opus-5-5
 
 For each `send` commit, compare `thread.md` before (the thread's previous commit) and after:
 
-- **Context edit (H1):** the "before" body up to and including its last `END` line is not a byte-for-byte prefix of the "after" body. Frontmatter is excluded from both sides first. (Edits to `## carry` count.)
+- **Context edit (H1):** the "before" body up to and including its last `END` line is not a byte-for-byte prefix of the "after" body. Frontmatter is excluded from both sides first. (Edits to `## carry` count.) Deleting an agent turn that ended `END (failed)`, `END (interrupted)` or `END (conflict)` to retry it is not an edit: such a turn is left out of "before" when "after" no longer has an agent turn with its id. Any other change counts, including edits to your own turns, edits inside an abnormally ended turn, and deleting a normally closed agent turn.
 - **Model switch:** the frontmatter `model` value differs.
 - **Frontmatter edit:** any other frontmatter change.
 
