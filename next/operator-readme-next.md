@@ -10,48 +10,39 @@ Read with [agents-readme-next.md](agents-readme-next.md). M1 is built and tested
 
 Where this goes after the trial: [docs/direction-analysis.md](../docs/direction-analysis.md) (decided 2026-11-02). It changes nothing below.
 
-Already done on this Mac (checked 2026-11-01; on 2026-11-02 none of steps 1-6 had been started): the clone at `~/code/agent-files`, `./install.sh` (links in `~/.local/bin`, on `PATH`), `uv`, `git`, Python 3.14, Neovim 0.12.5, and TUIOS 0.12.1.
+Already done on this Mac: the clone at `~/code/agent-files` (pulled to `f627b15` on 2026-11-02), `./install.sh` (links in `~/.local/bin`, on `PATH`), `uv`, `git`, Python 3.14, Neovim 0.12.5, TUIOS 0.12.1 (pinned with `brew pin tuios`), ripgrep 15.2.0, and `agent-files-run init`. The data root is at `~/dev/repos/agent-files-data`, with `~/agent-files` linking to it. It has no remote; add a private one if you want an offsite backup, and push it yourself.
 
-## 1. Finish the install
-```sh
-git -C ~/code/agent-files pull   # the ~/.local/bin links run this clone, and it is behind main (at 7f6e6ee)
-agent-files-run init             # creates ~/agent-files (the data root) with config.toml, agents/, trial/
-brew install ripgrep             # agent-files-grep and :AgentsGrep (S10) need a standalone rg
-brew pin tuios                   # keep TUIOS 0.12.1 for the whole trial
-```
-Claude Code's `rg` doesn't count: it only exists inside a Claude Code shell.
-
-## 2. Configure
+## 1. Configure
 - Edit `~/agent-files/config.toml`: set `[prices.<model>]` for every model you will use (unknown models count as $0 and the spend cap then protects nothing) and check `daily_spend_cap_usd`.
 - Export `ANTHROPIC_API_KEY` in the shell that runs the runner.
 - For local models, make sure Ollama or LM Studio is running at the `base_url` in the config.
 
-## 3. Hook up Claude Code
-Re-run `./install.sh` in `~/code/agent-files` (after the pull in step 1) and paste the hook block it prints into `~/.claude/settings.json`, merging with the existing `hooks`. The block registers ten events, including `PermissionRequest`, `PostToolUseFailure` and `StopFailure`; it was verified against the Claude Code hooks reference. Do this before 3a. S9 below is the end-to-end check.
+## 2. Hook up Claude Code
+Re-run `./install.sh` in `~/code/agent-files` and paste the hook block it prints into `~/.claude/settings.json`, merging with the existing `hooks`. The block registers ten events, including `PermissionRequest`, `PostToolUseFailure` and `StopFailure`; it was verified against the Claude Code hooks reference. Do this before 2a. S9 below is the end-to-end check.
 
-## 3a. Host Claude Code and Codex in TUIOS
+## 2a. Host Claude Code and Codex in TUIOS
 Since 2026-11-01 TUIOS hosts harness sessions and owns attention for them ([docs/host-analysis.md](../docs/host-analysis.md), ARCHITECTURE §5.1).
-- TUIOS is installed and pinned in step 1; do not upgrade it mid-trial.
-- Run this after step 3, so the `agent-files-hook` entries are already there for it to leave alone: `tuios integration install` for Claude Code (and Codex) so its Inbox gets hook-reported state. It adds its own entries to `~/.claude/settings.json`, leaves the `agent-files-hook` entries alone and keeps a `settings.json.tuios.bak`. Check both sets of hooks are present afterwards.
+- TUIOS is installed and pinned at 0.12.1; do not upgrade it mid-trial.
+- Run this after step 2, so the `agent-files-hook` entries are already there for it to leave alone: `tuios integration install` for Claude Code (and Codex) so its Inbox gets hook-reported state. It adds its own entries to `~/.claude/settings.json`, leaves the `agent-files-hook` entries alone and keeps a `settings.json.tuios.bak`. Check both sets of hooks are present afterwards.
 - `[agents.approvals]` **off** is simplest. If you turn it on, TUIOS holds permission prompts for up to 300 s and Claude's own dialog doesn't appear, but the observed status still shows `blocked` (`agent-files-hook` maps `PermissionRequest`).
 - Don't pass `--statusline` unless you also pass `--then <your current statusline command>`; it refuses to replace an existing one otherwise.
 - Don't use `ask-agent`, agent mail or the delivery queue on Claude sessions: they type agent-written text into the TUI (ARCHITECTURE §5.1 policy rule).
 - If TUIOS misbehaves during the trial, note it in the journal and switch to herdr. Known gaps: Esc leaves a pane "working"; Codex hooks can break when its app-server was started from another pane (TUIOS #1391).
 
-## 4. Editor
+## 3. Editor
 Add `~/code/agent-files/nvim` to Neovim's `runtimepath` and call:
 ```lua
 require('agents').setup({ root = '~/agent-files', tabline = true })
 ```
 Do view-layer step 0 (a generic markdown renderer, about an hour) and confirm you can read `docs/examples/view-fixture/thread.md` comfortably. A trial that fails on unpleasant reading tests your editor setup, not the idea.
 
-## 5. Start the runner
+## 4. Start the runner
 ```sh
 agent-files-run watch     # leave running; a second copy exits with code 2
 ```
-Tell the agent when `watch` is running, or which of steps 1-5 failed and how.
+Tell the agent when `watch` is running, or which of steps 1-4 failed and how.
 
-## 6. Run the manual smoke tests (spec §10.2)
+## 5. Run the manual smoke tests (spec §10.2)
 `sh tests/smoke.sh` already covers S1-S5 with the mock backend. By hand:
 
 | # | Do | Pass when |
@@ -65,7 +56,7 @@ Tell the agent when `watch` is running, or which of steps 1-5 failed and how.
 
 Report the result of each of S6-S11 to the agent. For a failure, include the exact symptom and the thread's `steps/` files.
 
-## 7. Start the trial
+## 6. Start the trial
 When S1-S11 pass, write the date at the top of `~/agent-files/trial/journal.md`: that is day 1. Each day fill the journal template. Daily commands:
 ```sh
 agent-files-stats          # H1-H3 numbers, plus observed sessions (information only; H4 is dropped) and spend
@@ -75,7 +66,7 @@ Keep the data root under git; it records your edits for the H1 measurement.
 
 Optional, for the planning harness (ARCHITECTURE §13 Q17). If you run some threads with `model: claude-cli` (your plan, through `claude -p`), note in the journal whether they read as well as threads on the API backend. Their `steps/*.response.json` already records `cache_read_input_tokens`; nothing to do for that.
 
-## 8. Day 10: decide
+## 7. Day 10: decide
 Use the go and kill thresholds in [m1-plan §5](../docs/m1-plan.md#5-decision-criteria) (H1-H3 and the fallback rate; `agent-files-stats` prints the numbers), plus the journal's "Used instead" and "Read threads in" lines. H4 is not part of the decision. The HTML view is judged separately from the journal, not from H1-H3.
 
 Then, with the agent:

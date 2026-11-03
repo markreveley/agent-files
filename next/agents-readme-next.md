@@ -17,7 +17,7 @@ You are continuing the M1 build of agent-files. For what agent-files is for and 
   - Headless plugin tests on Neovim 0.12.5 (44 checks).
   - The hook, against the Claude Code hooks reference (PR #10).
   - The `claude -p` flags, with one real turn (PR #13; results in spec §14.1, remaining gaps in `claude_cli.CAVEATS`).
-- Not verified: anything through the runner against a real model (S6-S8), the hook in a live `claude` session (S9), and the interactive Neovim behaviour (S11). All three wait on the operator's install and smoke tests.
+- Not verified: anything through the runner against a real model (S6-S8), the hook in a live `claude` session (S9), and the interactive Neovim behaviour (S11). All three wait on the operator's configuration and smoke tests.
 - Harness sessions run in TUIOS, and H4 is not a trial hypothesis ([docs/host-analysis.md](../docs/host-analysis.md)). No M1 code changes because of that. ARCHITECTURE.md was checked against that decision and the code on 2026-11-01, and its stale lines were fixed (PR #18), so don't re-audit it.
 - **Direction, decided with the operator on 2026-11-02** ([docs/direction-analysis.md](../docs/direction-analysis.md), ARCHITECTURE v0.6):
   - agent-files is the logbook for human–agent work. It is not a host: building a Charm-based host like TUIOS was reconsidered and rejected. It is not a coding harness either. Don't reopen these without new evidence.
@@ -26,15 +26,16 @@ You are continuing the M1 build of agent-files. For what agent-files is for and 
   - Before building any capture of coding sessions, grade **Entire** (§12.1, §13 Q16).
   - Principle 13 keeps the format, the hook, the links and the HTML viewer extractable.
   - **M1 is unchanged** (spec, H1–H3, thresholds). The record trial (attribution and the DAG) is the next trial.
-- Operator steps 1-6 were last checked at the end of 2026-11-02, and none had been started: the install clone was at `7f6e6ee`, there was no `~/agent-files`, no standalone `rg`, TUIOS wasn't pinned, there were no hook entries in `~/.claude/settings.json`, and `watch` wasn't running.
+- The install is finished (2026-11-02; the agent ran it at the operator's request): install clone pulled to `f627b15`, `agent-files-run init` run, ripgrep 15.2.0 installed, TUIOS pinned at 0.12.1. Operator steps 1-5 (configure, hook, TUIOS integration, editor, `watch`) and the smoke tests are not started: on 2026-11-02 there were no `agent-files-hook` entries in `~/.claude/settings.json` and `watch` wasn't running.
 
 ## Environment facts (operator's Mac)
 - The repo checkout is `/Users/mark/dev/repos/agent-files`, and parallel sessions share it. Make branches in a `git worktree` (AGENTS.md, Workflow).
 - GitHub deletes a PR's branch when it merges (turned on 2026-11-01), and it retargets PRs stacked on that branch to `main`. After a merge, remove only your worktree and local branch.
-- `threads/` at the repo root holds session logs the operator saves, such as `2026-11-02-01.md`, the thread behind direction-analysis. They are not data-root threads, and no program reads them. The repo is public, so commit a log only after trimming it to the prompts and prose replies, labelled `U:`/`A:`. Auto mode blocked a push of an untrimmed transcript that still had tool output and request IDs.
-- The operator's install clone is `~/code/agent-files`, a separate clone that the `~/.local/bin/agent-files-*` links point at. It is at `7f6e6ee`, behind `main`, until the operator pulls it.
+- `threads/` at the repo root holds session logs, one per thread, such as `2026-11-02-01.md` (the thread behind direction-analysis). They are not data-root threads, and no program reads them. `/end` writes them with `node ~/.claude/skills/end/thread-from-export.mjs --session threads/<date>-<name>.md` (since 2026-11-02 it reads the session transcript, so the operator no longer has to `/export`). The repo is public: commit only that trimmed form (user prompts and prose replies), never a raw transcript. `threads/raw/` and `threads/redact.json` are git-ignored. Auto mode blocked a push of an untrimmed transcript once.
+- The operator's install clone is `~/code/agent-files`, a separate clone that the `~/.local/bin/agent-files-*` links point at. Pulled to `f627b15` on 2026-11-02; it falls behind `main` again whenever a PR merges.
+- The data root lives at `~/dev/repos/agent-files-data` (its own local git repo, no remote), and `~/agent-files` is a symlink to it (operator's choice, 2026-11-02). The Python programs use `abspath`, so they keep the link path; the plugin compares both forms (`nvim/lua/agents/init.lua:22-24`). It must stay outside this code checkout, which is public.
 - Tool versions: Claude Code 2.1.316 (logged in with claude.ai, so `claude -p` works without an API key), Neovim 0.12.5, TUIOS 0.12.1, Python 3.14.
-- **No standalone `rg`.** In a Claude Code shell, `rg` is a function that subprocesses can't see, so `tests.test_stats.Stats.test_numbers` fails with exit 127. It is a known failure until the operator runs `brew install ripgrep`, not a regression. Don't touch the test.
+- **ripgrep is at `/opt/homebrew/bin/rg`** (installed 2026-11-02), and `tests.test_stats` passes. Inside a Claude Code shell, `type rg` still shows a shell function; check the path, not `command -v`.
 - To re-check the `claude -p` flags after a Claude Code upgrade:
   1. Run the backend's exact `claude_cli.command()` argv once, from a shell with every `CLAUDE*` env var removed.
   2. In the stream's `system`/`init` event, `tools`, `mcp_servers`, `slash_commands` and `skills` should all be empty.
