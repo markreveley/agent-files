@@ -1,10 +1,10 @@
 # agent-files — Architecture
 
-> Status: draft v0.6 · 2026-11-02 · this document describes the **target** architecture; what gets built is gated by the M1 trial ([docs/m1-plan.md](docs/m1-plan.md)).
+> Status: draft v0.6 · 2026-11-02 · this document describes the **target** architecture; what gets built is gated by the M1 trial ([md/docs/m1-plan.md](md/docs/m1-plan.md)).
 > Collapse the agent interface down to **files, processes, and an editor**.
-> **Direction (v0.6).** agent-files is the logbook for human–agent work. It is not a host and not a coding harness. Planning happens in its own small loop (the planning harness, M6). Coding is farmed out to Claude Code and Codex, and their sessions come back as records feeding a DAG built on artifact-dag ([docs/direction-analysis.md](docs/direction-analysis.md)).
-> **Adopt before building.** Planned work that an existing tool already does is dropped from the plan and the tool is used instead; the tool that covers the most goes first. v0.5 applied this: TUIOS hosts harness sessions and owns attention for them, which removed the tier-1 bridge, the doorbell and the Elixir supervisor ([docs/host-analysis.md](docs/host-analysis.md)). v0.6 applies it to the knowledge base (artifact-dag) and to capturing coding sessions (Entire is graded first).
-> Supplemental: [docs/direction-analysis.md](docs/direction-analysis.md) — what agent-files is for, the planning harness, neighbours to integrate with, the product shape · [docs/m1-plan.md](docs/m1-plan.md) — the M1 trial and go/no-go criteria · [docs/m1-build-spec.md](docs/m1-build-spec.md) — the first M1 build, specified · [docs/host-analysis.md](docs/host-analysis.md) — TUIOS, herdr, cmux, workmux, parrot.nvim and Pi Durable graded against this plan · [docs/related-repos.md](docs/related-repos.md) — what we take from itsjustshell2, elixir-mind, socrates, manifold and artifact-dag · [docs/juggler-analysis.md](docs/juggler-analysis.md) — reference comparison, storage format tradeoff, own agent loop · [docs/role-of-neovim.md](docs/role-of-neovim.md) — Neovim's role · [docs/view-layer.md](docs/view-layer.md) — readable text in Neovim, rich HTML view in the browser.
+> **Direction (v0.6).** agent-files is the logbook for human–agent work. It is not a host and not a coding harness. Planning happens in its own small loop (the planning harness, M6). Coding is farmed out to Claude Code and Codex, and their sessions come back as records feeding a DAG built on artifact-dag ([md/docs/direction-analysis.md](md/docs/direction-analysis.md)).
+> **Adopt before building.** Planned work that an existing tool already does is dropped from the plan and the tool is used instead; the tool that covers the most goes first. v0.5 applied this: TUIOS hosts harness sessions and owns attention for them, which removed the tier-1 bridge, the doorbell and the Elixir supervisor ([md/docs/host-analysis.md](md/docs/host-analysis.md)). v0.6 applies it to the knowledge base (artifact-dag) and to capturing coding sessions (Entire is graded first).
+> Supplemental: [md/docs/direction-analysis.md](md/docs/direction-analysis.md) — what agent-files is for, the planning harness, neighbours to integrate with, the product shape · [md/docs/m1-plan.md](md/docs/m1-plan.md) — the M1 trial and go/no-go criteria · [md/docs/m1-build-spec.md](md/docs/m1-build-spec.md) — the first M1 build, specified · [md/docs/host-analysis.md](md/docs/host-analysis.md) — TUIOS, herdr, cmux, workmux, parrot.nvim and Pi Durable graded against this plan · [md/docs/related-repos.md](md/docs/related-repos.md) — what we take from itsjustshell2, elixir-mind, socrates, manifold and artifact-dag · [md/docs/juggler-analysis.md](md/docs/juggler-analysis.md) — reference comparison, storage format tradeoff, own agent loop · [md/docs/role-of-neovim.md](md/docs/role-of-neovim.md) — Neovim's role · [md/docs/view-layer.md](md/docs/view-layer.md) — readable text in Neovim, rich HTML view in the browser.
 
 ## 1. Thesis
 
@@ -18,18 +18,18 @@ Most agent UIs are chat panels bolted onto a harness. Here we flip that:
 
 - A **thread is a file** — `thread.md`, in a directory of its own. The conversation, tool calls and permission questions live in plain markdown on disk; live state (status, session) sits beside it in tiny sidecar files.
 - An **agent is a declaration** (a file naming its runtime, model, tools, permissions and grounding). The **process** that runs it is ephemeral — it exists only while there is work to do.
-- **Neovim is a viewer/editor**, not the host. It watches files, shows status, and is where you write. Anything else that can read files (`grep`, `cat`, a phone reading a synced folder) is also a client. The HTML view ([docs/view-layer.md](docs/view-layer.md)) is the client for readers who don't use Neovim, and the first piece of any GUI.
+- **Neovim is a viewer/editor**, not the host. It watches files, shows status, and is where you write. Anything else that can read files (`grep`, `cat`, a phone reading a synced folder) is also a client. The HTML view ([md/docs/view-layer.md](md/docs/view-layer.md)) is the client for readers who don't use Neovim, and the first piece of any GUI.
 - **Memory is files too:** threads are scratch; durable knowledge is promoted into a DAG (§7, built on artifact-dag) that new threads are grounded in.
 
 Unix analogy: program vs. process. The file is the program and its state; the runner is just a process.
 
-**Built for the operator first, in a shape that could become a product.** The format, the hook, the record links and the viewer are built so they can be pulled out and used by others (principle 13). Whether agent-files becomes a product is decided later, on evidence ([direction-analysis §7](docs/direction-analysis.md#7-built-for-the-operator-first-kept-product-shaped)).
+**Built for the operator first, in a shape that could become a product.** The format, the hook, the record links and the viewer are built so they can be pulled out and used by others (principle 13). Whether agent-files becomes a product is decided later, on evidence ([direction-analysis §7](md/docs/direction-analysis.md#7-built-for-the-operator-first-kept-product-shaped)).
 
 ### Non-goals
 
 - Being a terminal. Ghostty renders. Interactive TUIs (lazygit, an agent's own TUI) stay in a real terminal.
-- Being a session host or the attention layer for harness TUIs. **TUIOS** hosts `claude` and `codex` sessions (detach, attach, survive the terminal app), tracks their state, holds the needs-you Inbox across sessions and machines, and manages worktrees per agent. herdr is the fallback; Superlogical Rex is ungraded. See §5.1 and §12. A host built with Charm (as TUIOS is) was reconsidered on 2026-11-02 and rejected: the layer is crowded, commoditizing and unmonetized ([direction-analysis §4](docs/direction-analysis.md#4-the-host-fork-reconsidered)).
-- Being a coding harness. Claude Code, Codex, etc. own the coding loop. We do not modify, wrap or proxy them. We sit beside them and own *the planning harness, context assembly for the threads we run, the record, the knowledge base and enforcement*. A general coding harness would compete with Juggler and the vendors on their strengths ([direction-analysis §3](docs/direction-analysis.md#3-weaknesses-and-the-planning-harness)).
+- Being a session host or the attention layer for harness TUIs. **TUIOS** hosts `claude` and `codex` sessions (detach, attach, survive the terminal app), tracks their state, holds the needs-you Inbox across sessions and machines, and manages worktrees per agent. herdr is the fallback; Superlogical Rex is ungraded. See §5.1 and §12. A host built with Charm (as TUIOS is) was reconsidered on 2026-11-02 and rejected: the layer is crowded, commoditizing and unmonetized ([direction-analysis §4](md/docs/direction-analysis.md#4-the-host-fork-reconsidered)).
+- Being a coding harness. Claude Code, Codex, etc. own the coding loop. We do not modify, wrap or proxy them. We sit beside them and own *the planning harness, context assembly for the threads we run, the record, the knowledge base and enforcement*. A general coding harness would compete with Juggler and the vendors on their strengths ([direction-analysis §3](md/docs/direction-analysis.md#3-weaknesses-and-the-planning-harness)).
 - Being a forge or a capture service for coding sessions. Entire captures sessions and links them to commits; agent-files reads such records and links them to decisions (§9.6, §12.1).
 
 ## 2. Principles — the agent you can `cat`
@@ -49,12 +49,12 @@ Unix analogy: program vs. process. The file is the program and its state; the ru
 11. **One machine writer per file.** Every file has exactly one process allowed to write it (§4.4). Many readers, one writer, no locks to get wrong.
 12. **Review is enforcement.** What a machine can check, a machine checks while the code is written; the guarantee lives in the outermost ring that can enforce it, and humans own the checks (§9).
 13. **Extractable.** The parts others could use stand on their own:
-    - **The format.** It gets a standalone, versioned spec (`FORMAT.md`), and `docs/examples/view-fixture/` grows into conformance fixtures that every parser passes (Python, Lua, and JavaScript for the HTML view). Implementation-only fields go in sidecars, never in the format. Knowledge-base nodes use artifact-dag's schema.
+    - **The format.** It gets a standalone, versioned spec (`FORMAT.md`), and `md/docs/examples/view-fixture/` grows into conformance fixtures that every parser passes (Python, Lua, and JavaScript for the HTML view). Implementation-only fields go in sidecars, never in the format. Knowledge-base nodes use artifact-dag's schema.
     - **The hook.** `agent-files-hook` has a documented contract (event in, files out) and works without the runner or the editor.
     - **The links.** Every turn is addressable as `<thread path>#tN`. Links to code use shared formats where they exist (§9.6).
     - **The viewer.** It is HTML, built from the files.
 
-    ([direction-analysis §7](docs/direction-analysis.md#7-built-for-the-operator-first-kept-product-shaped).)
+    ([direction-analysis §7](md/docs/direction-analysis.md#7-built-for-the-operator-first-kept-product-shaped).)
 
 **The cat test.** A feature passes if you can see it with `cat`, find it with `grep`, undo it with `git`, and do it by hand from a shell. A feature that fails the test needs its reason written down.
 
@@ -209,7 +209,7 @@ A line is a **marker** only at column 0, outside fenced code blocks and outside 
 4. **Snippets.** In tiers 2–3 a leading `/name args` line is expanded from `snippets/` (or `.claude/commands/`, skills) before sending. In tier 1 you type into Claude Code itself, which expands its own commands.
 5. **Session actions.** `/fork` creates a branch exactly as `:AgentsFork` does (§8). `/clear` in replay mode starts a fork with an empty `## carry`. `/compact` is compaction (rule 9 below). In tier 1 these are Claude Code's own commands.
 6. **Tool calls** are one-line `▸` summaries with output indented beneath (folded by indentation in Neovim) or moved to `out/` and linked. All folds closed = the collapsed natural-language transcript.
-7. **Permissions (tiers 2–3).** The runtime writes one `? PERMISSION pN …` line, sets `blocked`, and waits; there is at most one pending question per thread. You answer `> y`, `> n` or `> always` on the line below it and save — the one place you write inside an agent turn, safe because the runtime is waiting, not writing. `always` allows that exact tool call pattern for the rest of the runtime's process (a persistent rules file is proposed; [juggler analysis §3](docs/juggler-analysis.md#3-what-we-borrow--translated-to-files)). Tier-1 permissions are answered in the TUI, or from the TUIOS Inbox (§5.1).
+7. **Permissions (tiers 2–3).** The runtime writes one `? PERMISSION pN …` line, sets `blocked`, and waits; there is at most one pending question per thread. You answer `> y`, `> n` or `> always` on the line below it and save — the one place you write inside an agent turn, safe because the runtime is waiting, not writing. `always` allows that exact tool call pattern for the rest of the runtime's process (a persistent rules file is proposed; [juggler analysis §3](md/docs/juggler-analysis.md#3-what-we-borrow--translated-to-files)). Tier-1 permissions are answered in the TUI, or from the TUIOS Inbox (§5.1).
 8. **Status.** Only the thread's runtime writes `status`; for an `observed` thread that is `agent-files-hook`. "Idle" is not a status: a thread whose `status` file is older than its `seen` file is shown as idle. `closed` is terminal and applies to sub-threads (§8).
 9. **Compaction** is the one machine rewrite above `END`: an explicit operation the runtime performs while holding the turn (its `status` is `working`), moving the replaced turns to `archive/` and recording a `## note · compaction`. Turn ids of surviving turns are unchanged.
 
@@ -227,7 +227,7 @@ A line is a **marker** only at column 0, outside fenced code blocks and outside 
 
 The tier-1 bridge (`agent-files-bridge`: tmux hosting, Channels input, transcript output) is dropped (2026-11-01). Tier 1 is resume-only by nature — Claude Code owns its context — so editing the file could never change what the agent sees, and a bridge would have bought a second keyboard and a mirror at the cost of the most fragile code in the plan.
 
-- **Host: TUIOS**, pinned to a known version. It keeps `claude` / `codex` running in daemon sessions you detach from and attach to at will, and owns the Inbox (everything waiting on you, across sessions and machines), alerts, seen marks, per-agent worktrees (`tuios worktree`, `ship`) and remote hosts (`tuios hosts`). herdr (core for hosting, its TUI for attention) is the fallback; plain tmux also works, without attention. Grades and caveats: [host-analysis](docs/host-analysis.md).
+- **Host: TUIOS**, pinned to a known version. It keeps `claude` / `codex` running in daemon sessions you detach from and attach to at will, and owns the Inbox (everything waiting on you, across sessions and machines), alerts, seen marks, per-agent worktrees (`tuios worktree`, `ship`) and remote hosts (`tuios hosts`). herdr (core for hosting, its TUI for attention) is the fallback; plain tmux also works, without attention. Grades and caveats: [host-analysis](md/docs/host-analysis.md).
 - **agent-files' part: the `observed` thread.** `agent-files-hook` (Claude Code hooks) creates `threads/_observed/<project>-<session>/` and writes its `status` — the record, the fallback measure in the M1 trial, and a source for `agents.nvim`. `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PostToolUseFailure` → `working`; `PermissionRequest` (the moment the dialog opens) or `Notification` with `permission_prompt` → `blocked`; `idle_prompt` ignored (it fires ~60 s after a finished turn); `Stop` → `done`; `StopFailure` → `failed`; `SessionEnd` → the directory is removed. `Stop` does not fire on Esc (documented), so an interrupted session stays `working` until its next event (TUIOS has the same gap). No turns are written: the transcript stays in the harness (`transcript_path`). Capturing it is part of the record trial (§14), and Entire is graded before any capture is built (§12.1); a markdown mirror into the observed thread is the fallback.
 - **Coexisting with TUIOS's integration.** `tuios integration install` adds its own hook entries to `~/.claude/settings.json` and removes only its own (it backs the file up as `settings.json.tuios.bak`); `agent-files-hook` entries are left alone, and Claude Code runs both. `[agents.approvals]` off is simplest. If it is on, TUIOS holds `PermissionRequest` for up to 300 s and the dialog and its `Notification` never appear; the observed status still shows `blocked`, because `agent-files-hook` maps `PermissionRequest` itself.
 - **Adapter rule.** Anything agent-files does with TUIOS goes through its JSON CLI from one module, so switching to herdr changes one file. M1 needs none.
@@ -245,11 +245,11 @@ The tier-1 bridge (`agent-files-bridge`: tmux hosting, Channels input, transcrip
 
 - Multi-provider client: `agent-files-run` (a script).
 - No tool loop; structured outputs; caching under our control; exact requests written to `steps/` (on the API backends; through `claude -p`, only what we sent).
-- **Decided (2026-11-02): this tier grows into the planning harness** (`runtime: native`, M6). Direct is the special case with no tools and one step, so there is one code path instead of two ([juggler analysis §6](docs/juggler-analysis.md#6-should-we-have-our-own-agent-loop), [direction-analysis §3](docs/direction-analysis.md#3-weaknesses-and-the-planning-harness)).
+- **Decided (2026-11-02): this tier grows into the planning harness** (`runtime: native`, M6). Direct is the special case with no tools and one step, so there is one code path instead of two ([juggler analysis §6](md/docs/juggler-analysis.md#6-should-we-have-our-own-agent-loop), [direction-analysis §3](md/docs/direction-analysis.md#3-weaknesses-and-the-planning-harness)).
   - **Scope:** planning, research, review, extraction, proposing nodes and writing briefs. It has no code-editing or shell tools: coding goes to a harness (§8.1).
   - **Two modes:**
     - *Full fidelity* on the API backends: exact requests, caching under our control, any provider.
-    - *Cheap:* the unmodified `claude -p` on the operator's plan. Tools come over MCP (`--mcp-config --strict-mcp-config`) and structured output through `--json-schema`. Its losses are listed in [direction-analysis §5](docs/direction-analysis.md#5-claude--p-as-the-planning-harnesss-cheap-mode). The value of the loop does not depend on this mode.
+    - *Cheap:* the unmodified `claude -p` on the operator's plan. Tools come over MCP (`--mcp-config --strict-mcp-config`) and structured output through `--json-schema`. Its losses are listed in [direction-analysis §5](md/docs/direction-analysis.md#5-claude--p-as-the-planning-harnesss-cheap-mode). The value of the loop does not depend on this mode.
 
 ## 6. Context assembly
 
@@ -281,7 +281,7 @@ The habit of carrying an entire thread forward because everything said earlier *
 
 ## 7. Knowledge base (DAG)
 
-**Built on artifact-dag** (adopted 2026-11-02). artifact-dag supplies the node schema (`SCHEMA.md`), the parser, the Datalog lint (`dagcheck --lint`, `lint/rules.dl`) and the viewer (`build-viewer`), and `kb/` is a `dag/` folder in its sense. agent-files adds what artifact-dag lacks: acceptance status, supersession, the gate, grounding and the retraction walk. Where an addition is generic, it goes into artifact-dag rather than into a parallel schema. The earlier reasons for not adopting it ([related-repos](docs/related-repos.md)) were the claude.ai-only viewer, since retired, and Node tooling, which is acceptable for the KB: the standard-library rule covers the parser, the hook, stats and grep.
+**Built on artifact-dag** (adopted 2026-11-02). artifact-dag supplies the node schema (`SCHEMA.md`), the parser, the Datalog lint (`dagcheck --lint`, `lint/rules.dl`) and the viewer (`build-viewer`), and `kb/` is a `dag/` folder in its sense. agent-files adds what artifact-dag lacks: acceptance status, supersession, the gate, grounding and the retraction walk. Where an addition is generic, it goes into artifact-dag rather than into a parallel schema. The earlier reasons for not adopting it ([related-repos](md/docs/related-repos.md)) were the claude.ai-only viewer, since retired, and Node tooling, which is acceptable for the KB: the standard-library rule covers the parser, the hook, stats and grep.
 
 `kb/<node id>.md`, one node per file. Ids are artifact-dag's `<prefix>:<slug>`, used the same way everywhere (`grounding:`, `depends_on:`); examples elsewhere in this document that use bare slugs (`decision-0007`) are shorthand for the same thing.
 
@@ -328,7 +328,7 @@ Body: evidence, reasoning, caveats. [[claim:pool-created-per-request]] in the bo
 
 ### 8.1 The logbook loop — briefs out, records back
 
-Planning happens in agent-files (the planning harness, §5.3); coding happens in a harness. The two halves meet at two seams. (Decided 2026-11-02; [direction-analysis §1, §3](docs/direction-analysis.md#1-what-agent-files-is-for).)
+Planning happens in agent-files (the planning harness, §5.3); coding happens in a harness. The two halves meet at two seams. (Decided 2026-11-02; [direction-analysis §1, §3](md/docs/direction-analysis.md#1-what-agent-files-is-for).)
 
 - **Out: the brief.** A plan ends with a brief, `threads/<id>/briefs/<n>.md`. It holds the task and the accepted nodes it rests on, assembled like grounding (§6), including the "no silent caps" line. A brief is a file the coding session reads, not text typed into its TUI:
   - *Interactive:* you start `claude` or `codex` in TUIOS and point it at the brief in your own first prompt. The §5.1 policy rule holds: only your text is typed into the TUI. How a session outside the data root reads the brief is open (§13 Q18).
@@ -493,11 +493,11 @@ Everything agent-files runs is a script: stdlib Python for the core pieces, Lua 
 | `agent-files-check` | Runs the checks for one trigger and prints JSON results; `install` sets up hooks, git hooks and commit trailers in a code repo (§9) | M7 (a probe earlier) |
 | supervisor | Owns `headless` threads, spawning, the inbox; a script | M3 (deferred) |
 
-**Dropped (2026-11-01):** `agent-files-bridge` (tier 1 is hosted by TUIOS, §5.1), and the doorbell — `agent-files-ring`, the editor registry and `agent-files-notify` (attention for harness sessions is the TUIOS Inbox; for agent-files' own threads the local file watcher is enough, [role-of-neovim](docs/role-of-neovim.md)).
+**Dropped (2026-11-01):** `agent-files-bridge` (tier 1 is hosted by TUIOS, §5.1), and the doorbell — `agent-files-ring`, the editor registry and `agent-files-notify` (attention for harness sessions is the TUIOS Inbox; for agent-files' own threads the local file watcher is enough, [role-of-neovim](md/docs/role-of-neovim.md)).
 
 ### 10.2 The Elixir target — dropped
 
-Dropped on 2026-11-01. The case for Elixir/OTP + Jido was a daemon supervising many long-lived processes, routing between them, surviving crashes and spanning machines. For harness sessions all of that is now TUIOS's job: it hosts the processes, keeps them across terminal restarts, routes attention and spans hosts. What is left for agent-files — `direct` threads, later `headless` sub-threads — is a handful of short-lived processes that scripts handle. Revisit only if headless tier-2 load makes the scripts hurt ([m1-plan §6](docs/m1-plan.md#6-triggers-for-a-long-lived-supervisor)); the file format still makes any swap invisible to threads.
+Dropped on 2026-11-01. The case for Elixir/OTP + Jido was a daemon supervising many long-lived processes, routing between them, surviving crashes and spanning machines. For harness sessions all of that is now TUIOS's job: it hosts the processes, keeps them across terminal restarts, routes attention and spans hosts. What is left for agent-files — `direct` threads, later `headless` sub-threads — is a handful of short-lived processes that scripts handle. Revisit only if headless tier-2 load makes the scripts hurt ([m1-plan §6](md/docs/m1-plan.md#6-triggers-for-a-long-lived-supervisor)); the file format still makes any swap invisible to threads.
 
 **Multi-machine.** Harness sessions on other machines are TUIOS's (`tuios hosts`). agent-files' own runtimes run on one machine per root; a synced root (git or Syncthing) is read anywhere but run in one place (§13 Q9).
 
@@ -511,10 +511,10 @@ Runs in Ghostty, or in a TUIOS pane. TUIOS hosts tier-1 TUI sessions (detached, 
 - **Quickfix:** `:AgentsBlocked` fills the quickfix list with one entry per blocked thread, pointing at its `? PERMISSION` line (or at the thread, for observed sessions).
 - **Locking and drafts:** buffer read-only while `working`; on reload, unsaved drafts are re-applied below the new last `END` (§4.5 rule 1).
 - **Folds:** by indentation — each `▸` line folds the output beneath it.
-- **Display:** highlights for turn markers and a status mark on the last `END`, on top of a generic markdown renderer. A read-only HTML view generated from the same files is optional ([docs/view-layer.md](docs/view-layer.md)); markdown stays the only source.
+- **Display:** highlights for turn markers and a status mark on the last `END`, on top of a generic markdown renderer. A read-only HTML view generated from the same files is optional ([md/docs/view-layer.md](md/docs/view-layer.md)); markdown stays the only source.
 - **Acknowledge:** viewing a thread touches its `seen` file.
 - **Needs-you jump:** `:AgentsNext` jumps to the next blocked thread's question (the quickfix list's `:cnext`).
-- **Commands that write files:** `:AgentsSend` (append `END`, save), `:AgentsStop` (`touch STOP`), `:AgentsNew` (thread directory + `## you · t1`), `:AgentsFork` (branch per §8, selection → `## carry`), `:AgentsClose` (close a sub-thread), `:AgentsPrune` (`rm -r` a branch), `:AgentsGrep` (`rg` across `threads/` into quickfix). Each has a plain-shell equivalent; the full table is in [role-of-neovim §7](docs/role-of-neovim.md#7-the-other-direction-neovims-only-output-is-files).
+- **Commands that write files:** `:AgentsSend` (append `END`, save), `:AgentsStop` (`touch STOP`), `:AgentsNew` (thread directory + `## you · t1`), `:AgentsFork` (branch per §8, selection → `## carry`), `:AgentsClose` (close a sub-thread), `:AgentsPrune` (`rm -r` a branch), `:AgentsGrep` (`rg` across `threads/` into quickfix). Each has a plain-shell equivalent; the full table is in [role-of-neovim §7](md/docs/role-of-neovim.md#7-the-other-direction-neovims-only-output-is-files).
 
 ### 11.1 Neovim's RPC server — a doorbell, not a mailbox
 
@@ -532,11 +532,11 @@ What it is not: a store, a message transport, or a requirement. All state goes t
 
 Optional: a headless `nvim --headless --listen <addr>` on a remote machine can hold the editor session, and a laptop attaches with `nvim --remote-ui --server <addr>` — the editor's equivalent of `tmux attach`.
 
-Who rings, for whom, when, and what happens if nobody answers: [docs/role-of-neovim.md](docs/role-of-neovim.md). Not built in M1: locally the file watcher is enough.
+Who rings, for whom, when, and what happens if nobody answers: [md/docs/role-of-neovim.md](md/docs/role-of-neovim.md). Not built in M1: locally the file watcher is enough.
 
 ## 12. Relation to TUIOS and herdr
 
-**TUIOS is adopted** as the host and attention layer for harness sessions; **herdr is the fallback.** Graded against 21 host-and-attention items from this plan, TUIOS covered 10 fully, 10 partly and missed 1; herdr (its TUI plus herdr-core) covered 9, 7 and missed 5. Details, sources and risks: [host-analysis](docs/host-analysis.md).
+**TUIOS is adopted** as the host and attention layer for harness sessions; **herdr is the fallback.** Graded against 21 host-and-attention items from this plan, TUIOS covered 10 fully, 10 partly and missed 1; herdr (its TUI plus herdr-core) covered 9, 7 and missed 5. Details, sources and risks: [host-analysis](md/docs/host-analysis.md).
 
 | Concern | Owner | Notes |
 |---|---|---|
@@ -561,7 +561,7 @@ Who rings, for whom, when, and what happens if nobody answers: [docs/role-of-neo
 
 ### 12.1 Relation to record and attribution tools
 
-Entire, Zed's DeltaDB and git-ai answer *which conversation wrote this line?* agent-files answers *which decision is this line serving, and is it still true?* So it integrates at the record level and builds above it ([direction-analysis §6](docs/direction-analysis.md#6-neighbours-integrate-or-compete)).
+Entire, Zed's DeltaDB and git-ai answer *which conversation wrote this line?* agent-files answers *which decision is this line serving, and is it still true?* So it integrates at the record level and builds above it ([direction-analysis §6](md/docs/direction-analysis.md#6-neighbours-integrate-or-compete)).
 
 | Tool | Stance |
 |---|---|
@@ -580,25 +580,25 @@ Numbers are stable; closed questions keep their number.
 4. *Closed (2026-11-01):* Elixir clients for Claude/Codex — no Elixir target (§10.2).
 5. KB granularity and how much grounding to inline vs. summarize.
 6. Codex and other vendors' terms for headless use on consumer plans.
-7. *Closed (2026-11-02):* a native agent loop — yes, as the planning harness (M6, §5.3); not a coding harness ([direction-analysis §3](docs/direction-analysis.md#3-weaknesses-and-the-planning-harness)). Q12 (Pi) is still graded first.
+7. *Closed (2026-11-02):* a native agent loop — yes, as the planning harness (M6, §5.3); not a coding harness ([direction-analysis §3](md/docs/direction-analysis.md#3-weaknesses-and-the-planning-harness)). Q12 (Pi) is still graded first.
 8. Which Juggler borrowings to adopt beyond branching-as-directories: intra-turn states (now designed from Pi Durable's recovery patterns, juggler-analysis §3), an approval rules file, budgets. Worktree workspaces are TUIOS's.
 9. Locks across machines, for agent-files' own runtimes only (harness sessions on other hosts are TUIOS's): an advisory `lock` file naming the host, or "runtimes only on one machine"? Default: one machine.
 10. How a sub-thread's agent declares its turn final (a structured marker, a tool call, or always one task per sub-thread).
 11. **Enforcement (§9).** Which of an agent's tests count as protected oracles and which are its own working tests? How fast must ring-0 checks be before they slow the loop more than they save? How do exceptions expire? Which formal tools are worth it for which cores? Can Claude Code's `Stop` hook reliably keep a session working until checks pass, without loops?
-12. **Pi as a harness.** Pi (`pi --mode rpc`, MIT, multi-provider) could serve as a tier-2 harness for non-Claude models, or as the M6 loop instead of growing our own. Open: can its RPC mode or extensions write the exact requests we want in `steps/`? Pi Durable itself is ruled out as a foundation: it owns opaque state and history is immutable, so it cannot replay an edited file ([host-analysis](docs/host-analysis.md)).
+12. **Pi as a harness.** Pi (`pi --mode rpc`, MIT, multi-provider) could serve as a tier-2 harness for non-Claude models, or as the M6 loop instead of growing our own. Open: can its RPC mode or extensions write the exact requests we want in `steps/`? Pi Durable itself is ruled out as a foundation: it owns opaque state and history is immutable, so it cannot replay an edited file ([host-analysis](md/docs/host-analysis.md)).
 13. **Claude Code's own features vs. M3.** Its subagents, `/rewind` and session forking overlap sub-threads for coding work. Grade them against M3 before building it, as TUIOS was graded against M2.
 14. **TUIOS gaps to watch in the trial:** Esc leaves a Claude pane "working"; Codex hooks break when the shared app-server was started from another pane (TUIOS issue #1391); verb meanings have changed between releases.
-15. **T3 Code as a host.** T3 Code runs Claude Code, Codex and others from one GUI, on the operator's own subscriptions. It could replace TUIOS beside agent-files only if its Claude sessions fire `agent-files-hook` (S9 run in T3 Code). CLIProxyAPI is rejected for Claude: it proxies subscription tokens, which Anthropic forbids. See [docs/multi-subscription-analysis.md](docs/multi-subscription-analysis.md).
+15. **T3 Code as a host.** T3 Code runs Claude Code, Codex and others from one GUI, on the operator's own subscriptions. It could replace TUIOS beside agent-files only if its Claude sessions fire `agent-files-hook` (S9 run in T3 Code). CLIProxyAPI is rejected for Claude: it proxies subscription tokens, which Anthropic forbids. See [md/docs/multi-subscription-analysis.md](md/docs/multi-subscription-analysis.md).
 16. **Entire for capture.** Grade Entire (and SpecStory) against what the return path in §8.1 needs, before building any capture of coding sessions. The test: capture of observed Claude Code and Codex sessions, a checkpoint id we can cite, local-only use with no account, and transcripts kept out of public remotes. Open: what its memory (entire-brain) does.
 17. **`claude -p` fidelity for the planning harness.** Does a flattened thread read as well as the same thread through the API backend, and do `claude-cli` turns get cache reads? Both can be observed during M1 at no cost (`steps/*.response.json`, the journal). A synthetic session file with `--resume` would restore real turns, but it depends on Claude Code's internal format.
 18. **How a coding session reads a brief.** Options: by path, with `--add-dir` for the data root; a copy committed into the code repo; or a `CLAUDE.md` import. Decide at M6.
 19. **Acceptance defaults.** Which node types default to `manual`, `auto` or `sample` (§7), and what share `sample` sends for review.
-20. **Product.** Reconsider only when M1 passes, the operator has used the record → accept → ground loop for a month, and two or three other people use it without help ([direction-analysis §7](docs/direction-analysis.md#7-built-for-the-operator-first-kept-product-shaped)).
+20. **Product.** Reconsider only when M1 passes, the operator has used the record → accept → ground loop for a month, and two or three other people use it without help ([direction-analysis §7](md/docs/direction-analysis.md#7-built-for-the-operator-first-kept-product-shaped)).
 
 ## 14. Milestones
 
 - **M0** — these documents.
-- **M1 — thesis trial** ([docs/m1-plan.md](docs/m1-plan.md)): the thread format, `agent-files-run` (direct replay, no tools), minimal `agents.nvim`, `observed` status for ordinary `claude` sessions, measurement; ten working days of use; then a go/no-go decision on H1–H3 against criteria fixed in advance. Harness sessions run in TUIOS during the trial.
+- **M1 — thesis trial** ([md/docs/m1-plan.md](md/docs/m1-plan.md)): the thread format, `agent-files-run` (direct replay, no tools), minimal `agents.nvim`, `observed` status for ordinary `claude` sessions, measurement; ten working days of use; then a go/no-go decision on H1–H3 against criteria fixed in advance. Harness sessions run in TUIOS during the trial.
 - **M2** — *Dropped (2026-11-01):* the tier-1 bridge. Replaced by adopting TUIOS: operator setup, no build (§5.1, §12).
 
 Everything below happens only after the day-10 decision. The order follows the logbook loop (§8.1); the trial's results may change it.
@@ -613,7 +613,7 @@ Everything below happens only after the day-10 decision. The order follows the l
 - **M3** — supervisor + tier 2 (Claude, Codex) with `? PERMISSION` lines, `STOP`, sub-threads and the inbox, on scripts. This includes headless coding sub-threads that run a brief (§8.1). Only for headless and direct work whose record should be files; grade TUIOS `start-agent`, Claude Code subagents and Pi first (§13 Q12–Q13).
 - **M4** — tier 3 + council.
 - **M5a** — KB on artifact-dag: its schema, lint and viewer, plus what agent-files adds (§7): `status`, `accepted_by`, acceptance policies, the gate, grounding, proposals, extraction and the reading-pace check.
-- **M5b** — KB invalidation: the retraction walk, `disputed` marking, inbox notes to affected threads. Only once M5a shows proposals accepted at reading pace. elixir-mind documented this step and never built it; socrates built its gate and ratification but has never run them on real input ([related-repos](docs/related-repos.md)).
+- **M5b** — KB invalidation: the retraction walk, `disputed` marking, inbox notes to affected threads. Only once M5a shows proposals accepted at reading pace. elixir-mind documented this step and never built it; socrates built its gate and ratification but has never run them on real input ([related-repos](md/docs/related-repos.md)).
 - **M6** — **the planning harness** (`runtime: native`; decided 2026-11-02, §5.3), grown from `agent-files-run`.
   - Tools for reading, search, web fetch, proposing nodes and writing briefs (§8.1); no code-editing or shell tools.
   - The API mode writes every request to `steps/`; the `claude -p` mode uses MCP tools and `--json-schema`.

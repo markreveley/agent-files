@@ -153,7 +153,7 @@ ok(#readf(tmp .. "/trial/searches.log") == 1, "search logged")
 
 -- display on the view fixture --------------------------------------------------------------------
 vim.fn.mkdir(tmp .. "/threads/fixture", "p")
-vim.fn.writefile(readf(repo .. "/docs/examples/view-fixture/thread.md"), tmp .. "/threads/fixture/thread.md")
+vim.fn.writefile(readf(repo .. "/md/docs/examples/view-fixture/thread.md"), tmp .. "/threads/fixture/thread.md")
 write_status(tmp .. "/threads/fixture", "failed")
 vim.cmd("edit " .. tmp .. "/threads/fixture/thread.md")
 local fb = vim.api.nvim_get_current_buf()

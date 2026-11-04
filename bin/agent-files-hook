@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""agent-files-hook — observed status for hand-started `claude` sessions (docs/m1-build-spec.md §6).
+"""agent-files-hook — observed status for hand-started `claude` sessions (md/docs/m1-build-spec.md §6).
 
 Standard library only, no network, always exits 0, prints nothing.
 """

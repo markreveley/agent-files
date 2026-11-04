@@ -106,7 +106,7 @@ class Parser(unittest.TestCase):
         self.assertEqual(th.frontmatter["model"], "x")
 
     def test_round_trip_fixtures(self):
-        files = glob.glob(os.path.join(FIX, "*.md")) + glob.glob(os.path.join(ROOT, "docs", "examples", "**", "thread.md"), recursive=True)
+        files = glob.glob(os.path.join(FIX, "*.md")) + glob.glob(os.path.join(ROOT, "md", "docs", "examples", "**", "thread.md"), recursive=True)
         self.assertTrue(files)
         for f in files:
             txt = open(f, encoding="utf-8").read()

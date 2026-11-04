@@ -1,6 +1,6 @@
 # The view layer — readable in Neovim, rich in the browser
 
-> Status: draft · 2026-10-31 · companion to [ARCHITECTURE.md](../ARCHITECTURE.md) and [role-of-neovim.md](role-of-neovim.md)
+> Status: draft · 2026-10-31 · companion to [ARCHITECTURE.md](../../ARCHITECTURE.md) and [role-of-neovim.md](role-of-neovim.md)
 > Not part of M1's go/no-go. Steps 0–1 are in the first M1 build — step 0 is a prerequisite of the smoke test, step 1 is part of `agents.nvim` ([m1-build-spec §9.5](m1-build-spec.md#95-display-view-layer-step-1)); step 2 is an optional prototype ([m1-build-spec §12](m1-build-spec.md#12-the-html-view--how-it-plugs-in)).
 
 **Summary.** Markdown stays the single source of truth. Neovim is made to display it well. A separate, read-only HTML view is generated from the same files for rich display (tables, charts, collapsible tool output). The HTML is a cache: delete it and nothing is lost. Nothing is ever translated back from HTML to text.
@@ -37,7 +37,7 @@ Instead of a template file you edit, the markdown carries conventions that degra
 | Fenced ```` ```csv ```` block | Readable rows | Sortable table |
 | Fenced ```` ```chart ```` block (see §5.3) | A few lines of `key: value` data | Bar or line chart |
 | Fenced ```` ```mermaid ```` block | Diagram source | Diagram |
-| `▸ Read src/x.ts (212 lines)` plus indented output ([ARCHITECTURE §4.2](../ARCHITECTURE.md)) | A fold | Collapsed `<details>` |
+| `▸ Read src/x.ts (212 lines)` plus indented output ([ARCHITECTURE §4.2](../../ARCHITECTURE.md)) | A fold | Collapsed `<details>` |
 | `## you · tN` / `## agent · tN` … `END` | Turn headers | Chat-style turns, `END` hidden |
 | Frontmatter | YAML | Header card (agent, model, kind, status) |
 
@@ -110,7 +110,7 @@ Each thread page shows: the frontmatter card; a breadcrumb and links to child br
 
 #### 5.5 Test fixture
 
-The same fixture is used by the parser and plugin tests ([m1-build-spec §10.1](m1-build-spec.md#101-automated-tests-must-pass-before-the-smoke-test)), so it is created in build step 5 even if the renderer is never built. Create `docs/examples/view-fixture/thread.md` with, in one thread: frontmatter; a user turn with a pipe table; an agent turn with a `▸` tool fold (long indented output), a `chart` block, a `csv` block, a `mermaid` block, and a line that looks like a marker inside a code fence; a closed turn with `END (interrupted)`; a runner diagnostic (`! error: …`) in a failed turn; an escaped marker line (`\END`); and a trailing draft turn without `END`. Add a child directory with its own `thread.md`.
+The same fixture is used by the parser and plugin tests ([m1-build-spec §10.1](m1-build-spec.md#101-automated-tests-must-pass-before-the-smoke-test)), so it is created in build step 5 even if the renderer is never built. Create `md/docs/examples/view-fixture/thread.md` with, in one thread: frontmatter; a user turn with a pipe table; an agent turn with a `▸` tool fold (long indented output), a `chart` block, a `csv` block, a `mermaid` block, and a line that looks like a marker inside a code fence; a closed turn with `END (interrupted)`; a runner diagnostic (`! error: …`) in a failed turn; an escaped marker line (`\END`); and a trailing draft turn without `END`. Add a child directory with its own `thread.md`.
 
 #### 5.6 Acceptance checks
 
@@ -137,7 +137,7 @@ Treat this like the M1 trial: set the question in advance.
 
 ## 7. Open questions
 
-1. Should `chart` and `csv` blocks be formalized in the thread grammar ([ARCHITECTURE §4.3](../ARCHITECTURE.md)), or stay renderer-only conventions?
+1. Should `chart` and `csv` blocks be formalized in the thread grammar ([ARCHITECTURE §4.3](../../ARCHITECTURE.md)), or stay renderer-only conventions?
 2. Does the model produce these blocks reliably if the agent's system prompt asks for them, or should the renderer detect plain tables only?
 3. Where does the cache live on a synced or multi-machine root — per machine, never synced?
 4. Should agent-produced HTML artifacts in `out/` be served by the same renderer, with a sandboxed frame, or opened directly?
