@@ -67,6 +67,17 @@ You are continuing the M1 build of agent-files. For what agent-files is for and 
    - Use the journal's notes on `claude-cli` threads and the `cache_read_input_tokens` in their `steps/*.response.json` for §13 Q17.
 6. **After the trial, optional:** T3 Code as a host (ARCHITECTURE §13 Q15, [md/docs/multi-subscription-analysis.md](md/docs/multi-subscription-analysis.md)). First ask the operator to run S9 with T3 Code as the host. Only if it passes, grade T3 Code against host-analysis §1, beside Rex's grades. Don't use CLIProxyAPI for Claude. Rex is graded in [rex-host §2](md/docs/rex-host.md#2-rex-against-the-21-host-items).
 
+7. **Now, analysis only: revisit the doorbell and editor registry** (operator's request, 2026-11-03). They were dropped on 2026-11-01 because the TUIOS Inbox covered attention for harness sessions. TUIOS is no longer the host, and Rex has no Inbox, so the reason may no longer hold. Write an analysis in `md/analysis/`, dated, deciding whether to reinstate them in whole, in part or not at all.
+   - Collect every resource:
+     - [md/docs/role-of-neovim.md](md/docs/role-of-neovim.md) §2–§10 (the full design: the cast, who rings, the registry, `agent-files-ring`, `agent-files-notify`);
+     - ARCHITECTURE §11.1 (the doorbell, kept as a record) and the "Dropped" line under §10.1;
+     - [md/docs/host-analysis.md](md/docs/host-analysis.md) (why TUIOS replaced it) and [md/docs/rex-host.md](md/docs/rex-host.md) (what Rex lacks: C4, C6);
+     - the commits that added it (`dddd259`, `489a3ed`) and dropped it (`e194b0a`, PR #8, `9807116`);
+     - [md/plans/nvim-addressing.md](md/plans/nvim-addressing.md), which uses the same mechanism (finding Neovims by socket) for a different job.
+   - Examine the nvim-addressing plan in that light. Do the two merge into one registry (sockets named by repo, rings and terminal access through the same lookup), or stay separate? Its Q1 is answered by this analysis.
+   - Weigh what Rex already gives (the Activity sidebar, `program_status`, `rex events --json`) against what the doorbell would add: focus, jump-to-question, alerts when no editor is looking.
+   - The result goes to the operator as a recommendation. Building waits for the day-10 decision.
+
 Build nothing new before the day-10 decision ([m1-plan §5](md/docs/m1-plan.md#5-decision-criteria)) beyond the fixes in item 1.
 
 ## Pending operator decisions

@@ -5,7 +5,7 @@ Durable rules only. What to do next lives in [next-agents.md](next-agents.md) an
 ## Where to read first
 - Direction: [md/docs/direction-analysis.md](md/docs/direction-analysis.md) (what agent-files is for, the planning harness, what to adopt). Design: [ARCHITECTURE.md](ARCHITECTURE.md). Current build: [md/docs/m1-build-spec.md](md/docs/m1-build-spec.md) (wins over the plan for M1), then [md/docs/m1-plan.md](md/docs/m1-plan.md), [md/docs/view-layer.md](md/docs/view-layer.md), [md/docs/role-of-neovim.md](md/docs/role-of-neovim.md).
 - Do not build anything the spec lists under "Not in this build" (§13).
-- **Adopt before building.** Before building any milestone, grade existing tools against it the way [md/docs/host-analysis.md](md/docs/host-analysis.md) graded M2, and drop what they already do. Never build what is marked dropped: the tier-1 bridge, the doorbell (`agent-files-ring`, registry, `agent-files-notify`), the Elixir supervisor. Harness sessions are hosted by Rex, TUIOS as fallback (ARCHITECTURE §5.1, [md/docs/rex-host.md](md/docs/rex-host.md), which supersedes host-analysis's host decision).
+- **Adopt before building.** Before building any milestone, grade existing tools against it the way [md/docs/host-analysis.md](md/docs/host-analysis.md) graded M2, and drop what they already do. Harness sessions are hosted by Rex, TUIOS as fallback (ARCHITECTURE §5.1, [md/docs/rex-host.md](md/docs/rex-host.md), which supersedes host-analysis's host decision).
 
 ## Layout
 - `bin/` entry points; `lib/agent_files/` shared Python; `nvim/` the `agents.nvim` plugin; `tests/`; `md/docs/examples/view-fixture/` shared parser/plugin fixture.
@@ -34,5 +34,5 @@ Smoke S6-S11 need a real model, editor or `claude` session and are the operator'
 - Work on a feature branch, push, open a draft PR against `main`.
 - Parallel sessions share the main checkout. Create your branch in a `git worktree`, never by switching branches in the main checkout, which moves every session's `HEAD`. Don't `git stash` there either: it stashes other sessions' edits too.
 - Say plainly what was not verified (live API, real `claude`, Neovim version) in the PR body.
-- Plan docs live in `md/plans/`. A question in a plan moves to `next-operator.md` when the step that waits on it comes up.
+- **What to build comes from `next-agents.md`**, not from reading other docs. Its steps link to the plans they come from. Plan docs live in `md/plans/`, and each opens with a dated status line (`> Status: proposed · YYYY-MM-DD`), updated when the plan changes. A question in a plan moves to `next-operator.md` when the step that waits on it comes up.
 - Do not put model identifiers in commits, PR text or code comments.

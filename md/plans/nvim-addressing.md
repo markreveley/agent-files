@@ -1,7 +1,7 @@
 # Plan: Neovim instances you can address by name
 
-> Status: proposed · 2026-11-03 · extends `agents.term` ([ARCHITECTURE §11.2](../../ARCHITECTURE.md), [operator-neovim §3](../operator-neovim.md#3-reading-and-typing-into-the-agents-inside-neovim))
-> Not built before the M1 day-10 decision (Q2, decided 2026-11-03), and not until Q1 is answered.
+> Status: proposed · 2026-11-03 (Q2, Q3 decided; Q1 moved to the doorbell revisit) · extends `agents.term` ([ARCHITECTURE §11.2](../../ARCHITECTURE.md), [operator-neovim §3](../operator-neovim.md#3-reading-and-typing-into-the-agents-inside-neovim))
+> Not built before the M1 day-10 decision (Q2), and not until the doorbell revisit answers Q1.
 
 **Goal.** Every Neovim the operator starts gets a socket at a known path, and the socket's name is its id: `agent-files`, `identikey-dev`, one per repo. An agent in one Neovim can then list the others and read or type into their terminals by id (`agent-files-term --server identikey-dev capture claude`), instead of needing a random socket path that only `:echo v:servername` reveals.
 
@@ -65,7 +65,9 @@ Whether that difference is enough is Q1.
 
 ## Questions
 
-1. **Is this the dropped registry under another name?** Recommendation: no. It writes no file, rings nothing and carries no thread data; it is a naming convention for sockets. If you count it as the registry, the plan stops here.
+1. **Is this the dropped registry under another name?** *Moved (2026-11-03):* the operator asked to revisit the doorbell and its editor registry now that TUIOS is no longer the host ([next-agents.md](../../next-agents.md), step 7). That analysis answers this question, and may merge the two designs.
 2. *Decided (2026-11-03): after the M1 day-10 decision.* It stays a plan until then.
 3. *Decided (2026-11-03): the repo name*, with `--name` for anything else. The Rex session label was the alternative; it works only inside Rex and can change while Neovim runs.
-4. **Replace `nvim` or use another name?** The function above makes every `nvim` addressable, including quick edits from a shell, which then appear in `peers`. A separate name (say `nv`) keeps quick edits out. Recommendation: replace `nvim`; `peers` shows the working directory, so stray ones are easy to tell apart.
+4. **Replace `nvim` or use another name?** The function above makes every `nvim` addressable, including quick edits from a shell, which then appear in `peers`. A separate name (say `nv`) keeps quick edits out. Recommendation: replace `nvim`; `peers` shows the working directory, so stray ones are easy to tell apart. Two more points:
+   - *For replacing:* a Neovim started without the launcher is unreachable, and you find out only when an agent can't find it. With the function there is no second command to remember.
+   - *A limit either way:* a shell function covers only `nvim` typed in an interactive shell. Programs that start Neovim themselves (`git commit` through `$EDITOR`, for example) bypass it. Those are the short-lived edits you'd want left out anyway.

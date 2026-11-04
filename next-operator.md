@@ -90,4 +90,4 @@ Then, with the agent:
 ## Questions
 - None blocking.
 - To answer eventually: [md/plans/dag-orchestration.md](md/plans/dag-orchestration.md#questions) (DAG-grounded orchestration, five questions, needed before M6).
-- After day 10: [md/plans/nvim-addressing.md](md/plans/nvim-addressing.md) (Neovims addressable by repo name). Q1 (is it the dropped editor registry?) and Q4 (replace `nvim` or use another name?) are open.
+- After day 10: [md/plans/nvim-addressing.md](md/plans/nvim-addressing.md) (Neovims addressable by repo name). Q4 (replace `nvim` or use another name?) is open; Q1 waits on the agent's doorbell revisit (next-agents step 7).
