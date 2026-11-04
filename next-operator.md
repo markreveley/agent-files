@@ -10,7 +10,7 @@ Read with [next-agents.md](next-agents.md). M1 is built and tested against the m
 
 Where this goes after the trial: [md/docs/direction-analysis.md](md/docs/direction-analysis.md) (decided 2026-11-02). It changes nothing below.
 
-Already done on this Mac: the clone at `~/code/agent-files` (at `f627b15`; step 2 pulls the audit fixes and the `md/` layout), `./install.sh` (links in `~/.local/bin`, on `PATH`), `uv`, `git`, Python 3.14, Neovim 0.12.5, Rex Beta 0.1.0 (the host, step 2a), TUIOS 0.12.1 (the fallback, pinned with `brew pin tuios`), ripgrep 15.2.0, and `agent-files-run init`. The data root is at `~/dev/repos/agent-files-data`, with `~/agent-files` linking to it. It has no remote; add a private one if you want an offsite backup, and push it yourself.
+Already done on this Mac: the clone at `~/code/agent-files` (pulled to `1aa3c6f` on 2026-11-03), `./install.sh` (re-run the same day; links in `~/.local/bin`, on `PATH`, including the new `agent-files-term`), `uv`, `git`, Python 3.14, Neovim 0.12.5, Rex Beta 0.1.0 (the host, step 2a), TUIOS 0.12.1 (the fallback, pinned with `brew pin tuios`), ripgrep 15.2.0, and `agent-files-run init`. The data root is at `~/dev/repos/agent-files-data`, with `~/agent-files` linking to it. It has no remote; add a private one if you want an offsite backup, and push it yourself.
 
 ## 1. Configure
 - Prices are done (agent, at your request, 2026-11-02): `~/agent-files/config.toml` has blocks for `claude-opus-5-5`, `claude-fable-5-1`, `claude-sonnet-5-5` and `claude-haiku-5-5`, checked against Anthropic's pricing page that day. The edit is not committed in the data root; commit it if you want it in history. Any other paid model needs its own block, keyed by the exact `model:` name in quotes; without one it counts as $0 and the spend cap doesn't protect it. Local `ollama/...` and `lmstudio/...` models need none.
@@ -19,7 +19,7 @@ Already done on this Mac: the clone at `~/code/agent-files` (at `f627b15`; step 
 - For local models, make sure Ollama or LM Studio is running at the `base_url` in the config.
 
 ## 2. Hook up Claude Code
-First run `git -C ~/code/agent-files pull`; the audit fixes (2026-11-02) must be in the install clone. Then run `./install.sh` in `~/code/agent-files` and add the hook block it prints to `~/.claude/settings.json`. The block registers ten events, including `PermissionRequest`, `PostToolUseFailure` and `StopFailure`, and calls the hook by its absolute path. It was verified against the Claude Code hooks reference.
+The install clone is already pulled and `./install.sh` re-run (agent, 2026-11-03). Run `~/code/agent-files/install.sh` again only to see the hook block it prints, then add that block to `~/.claude/settings.json`. The block registers ten events, including `PermissionRequest`, `PostToolUseFailure` and `StopFailure`, and calls the hook by its absolute path. It was verified against the Claude Code hooks reference.
 
 Merge it; don't paste it in whole. Your `settings.json` already has a `"hooks"` object with arrays for `SessionStart`, `PreToolUse`, `PostToolUse` and `PostToolUseFailure`. For those four events, add the printed `{ "hooks": [ … ] }` entry to the existing array. Add the other six events as new keys in the same `"hooks"` object. A second `"hooks"` key would silently drop one set. Afterwards check it with `python3 -m json.tool ~/.claude/settings.json > /dev/null`.
 
