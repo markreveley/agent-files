@@ -69,7 +69,7 @@ Exit status: 0 done; 1 refused, no match, or Neovim not reachable (the reason go
 
 ## 4. Config to add
 
-In `~/.dotfiles/nvim/.config/nvim/init.lua` (not done; the install clone must have the change first, `git -C ~/code/agent-files pull`):
+In `~/.dotfiles/nvim/.config/nvim/init.lua` (not done yet; the install clone already has `agents.term`, pulled 2026-11-03):
 
 ```lua
 vim.opt.rtp:append(vim.fn.expand("~/code/agent-files/nvim"))
