@@ -1,0 +1,76 @@
+#!/usr/bin/env python3
+"""agent-files-term — list, read and type into the terminal buffers of a Neovim (ARCHITECTURE §11.2).
+
+  agent-files-term ls [--json]
+  agent-files-term capture TARGET [-n LINES]
+  agent-files-term send TARGET [TEXT | -] [--no-enter]
+
+TARGET is a terminal's buffer number, or a harness name, command, directory or title that matches
+exactly one terminal. The Neovim is $NVIM (set inside its :terminal) or --server ADDR.
+
+Every send from here counts as an agent send: a terminal running a harness that takes only
+human-written text (claude, codex by default) refuses it. Exit 0 ok, 1 refused or failed, 2 usage.
+"""
+import argparse, json, os, shutil, subprocess, sys
+
+
+def call(server, req):
+    payload = json.dumps(req, ensure_ascii=True).replace("'", "''")
+    expr = "luaeval('require(\"agents.term\").rpc(_A)', '%s')" % payload
+    nvim = shutil.which("nvim") or "nvim"
+    try:
+        p = subprocess.run([nvim, "--server", server, "--remote-expr", expr],
+                           capture_output=True, text=True, timeout=10)
+    except (OSError, subprocess.TimeoutExpired) as e:
+        return {"ok": False, "error": "cannot reach Neovim at %s: %s" % (server, e)}
+    out = p.stdout.strip()
+    try:
+        return json.loads(out)
+    except ValueError:
+        msg = (p.stderr.strip() or out or "no reply").splitlines()[-1]
+        return {"ok": False, "error": "Neovim at %s: %s (is agents.nvim loaded?)" % (server, msg)}
+
+
+def main(argv):
+    ap = argparse.ArgumentParser(prog="agent-files-term", description=__doc__.split("\n\n")[0])
+    ap.add_argument("--server", default=os.environ.get("NVIM"), help="Neovim socket (default $NVIM)")
+    sub = ap.add_subparsers(dest="op", required=True)
+    ls = sub.add_parser("ls")
+    ls.add_argument("--json", action="store_true")
+    cap = sub.add_parser("capture")
+    cap.add_argument("target")
+    cap.add_argument("-n", "--lines", type=int)
+    snd = sub.add_parser("send")
+    snd.add_argument("target")
+    snd.add_argument("text", nargs="?", default="-")
+    snd.add_argument("--no-enter", action="store_true")
+    a = ap.parse_args(argv)
+    if not a.server:
+        print("agent-files-term: no Neovim: $NVIM is unset; pass --server", file=sys.stderr)
+        return 2
+
+    if a.op == "ls":
+        r = call(a.server, {"op": "ls"})
+    elif a.op == "capture":
+        r = call(a.server, {"op": "capture", "target": a.target, "lines": a.lines})
+    else:
+        text = sys.stdin.read() if a.text == "-" else a.text
+        r = call(a.server, {"op": "send", "target": a.target, "text": text, "enter": not a.no_enter})
+
+    if not r.get("ok"):
+        print("agent-files-term: %s" % r.get("error"), file=sys.stderr)
+        return 1
+    if a.op == "ls":
+        if a.json:
+            print(json.dumps(r["terminals"], indent=1))
+        else:
+            for t in r["terminals"]:
+                print("%4d  %-8s %-6s %s%s" % (t["buf"], t["harness"] or "-", t["policy"], t["cmd"] or "?",
+                                               "" if t["running"] else "  (exited)"))
+    elif a.op == "capture":
+        print(r["text"])
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

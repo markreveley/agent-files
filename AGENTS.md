@@ -5,17 +5,18 @@ Durable rules only. What to do next lives in [next-agents.md](next-agents.md) an
 ## Where to read first
 - Direction: [md/docs/direction-analysis.md](md/docs/direction-analysis.md) (what agent-files is for, the planning harness, what to adopt). Design: [ARCHITECTURE.md](ARCHITECTURE.md). Current build: [md/docs/m1-build-spec.md](md/docs/m1-build-spec.md) (wins over the plan for M1), then [md/docs/m1-plan.md](md/docs/m1-plan.md), [md/docs/view-layer.md](md/docs/view-layer.md), [md/docs/role-of-neovim.md](md/docs/role-of-neovim.md).
 - Do not build anything the spec lists under "Not in this build" (§13).
-- **Adopt before building.** Before building any milestone, grade existing tools against it the way [md/docs/host-analysis.md](md/docs/host-analysis.md) graded M2, and drop what they already do. Never build what is marked dropped: the tier-1 bridge, the doorbell (`agent-files-ring`, registry, `agent-files-notify`), the Elixir supervisor. Harness sessions are hosted by TUIOS (ARCHITECTURE §5.1).
+- **Adopt before building.** Before building any milestone, grade existing tools against it the way [md/docs/host-analysis.md](md/docs/host-analysis.md) graded M2, and drop what they already do. Never build what is marked dropped: the tier-1 bridge, the doorbell (`agent-files-ring`, registry, `agent-files-notify`), the Elixir supervisor. Harness sessions are hosted by Rex, TUIOS as fallback (ARCHITECTURE §5.1, [md/docs/rex-host.md](md/docs/rex-host.md), which supersedes host-analysis's host decision).
 
 ## Layout
 - `bin/` entry points; `lib/agent_files/` shared Python; `nvim/` the `agents.nvim` plugin; `tests/`; `md/docs/examples/view-fixture/` shared parser/plugin fixture.
-- `md/` holds the prose: `docs/` (design, specs, decision records), `analysis/`, `plans/`, `audits/`, `threads/` (session logs). The handoff files `next-agents.md` and `next-operator.md` stay at the root.
+- `md/` holds the prose: `docs/` (design, specs, decision records), `analysis/`, `plans/`, `audits/`, `threads/` (session logs). `md/operator-neovim.md` is the operator's own editor layout, not part of agent-files. The handoff files `next-agents.md` and `next-operator.md` stay at the root.
 - **The data root is `$AGENT_FILES_ROOT` (default `~/agent-files/`), never this checkout.** Programs refuse to run if the root contains `bin/agent-files-run`. Tests use temp roots; never write into a real root from a session.
 
 ## Rules for code
 - One parser: everything reading `thread.md` imports `lib/agent_files/thread.py`. `nvim/lua/agents/thread.lua` mirrors it; change both together, with tests.
 - `thread.py`, the hook, stats and grep use the standard library only. `anthropic` and `openai` are imported lazily inside their backends.
 - `agent-files-hook` must finish in under 100 ms, exit 0 and print nothing.
+- `agents.term` refuses agent sends (everything through `agent-files-term`) to a terminal whose harness policy is `human` (ARCHITECTURE §5.1, §11.2). Never add a way around it from the agent side; the tests check it.
 - Runner output is escaped (`\END`, `\## you`, `\! `); never write model text to `thread.md` without `escape_line`.
 - Git failures never fail a turn. Commit only the thread's `thread.md`, `steps/` and `out/`, never sidecars (`status`, `seen`, `STOP`, `last_turn`).
 - Do not edit the operator's `config.toml` or `trial/journal.md`.

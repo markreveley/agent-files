@@ -438,6 +438,7 @@ function M.setup(opts)
   vim.api.nvim_create_user_command("AgentsNext", function() M.next(false) end, {})
   vim.api.nvim_create_user_command("AgentsBlocked", function() M.next(true) end, {})
   vim.api.nvim_create_user_command("AgentsGrep", function(c) M.grep(c.args) end, { nargs = "+" })
+  require("agents.term").setup(M.opts.term) -- :AgentsTerms, :AgentsTermSend, :AgentsTermCapture
   if M.opts.tabline then
     vim.o.showtabline = 2
     vim.o.tabline = "%!v:lua.require'agents'.tabline()"
