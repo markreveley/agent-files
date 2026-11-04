@@ -121,7 +121,7 @@ The published evidence is about code graphs. It says cheaper, not better.
 **For the knowledge DAG, three things matter more than the papers:**
 - **Scale.** At today's size the orchestrator can read the whole title index every turn, so choosing nodes needs no search. Efficiency starts to matter only across many DAGs, or at about ten times the size.
   - identikey-dev: 565 node files, 564 with ids (462 definitions, 102 claims), about 255 KB in all; the titles alone are about 18 KB (roughly 4–5k tokens).
-  - lightning-mesh-dev: 278 nodes (163 claims, 115 definitions).
+  - A second project DAG: 278 nodes (163 claims, 115 definitions).
 - **Status, not speed.** Grep finds every place something was said. It can't tell which of three conflicting statements was accepted. A DAG walk returns accepted conclusions and what they rest on, and that is the claim worth testing.
 - **Staleness.** Grep reads the files as they are now; a DAG is only as current as its last edit. A stale node handed over as settled is worse than grep. So walk the DAG first, then grep to check the sources its nodes cite. The gate's "sources resolve" check and invalidation (M5b) are what make DAG-first safe.
 
@@ -135,7 +135,7 @@ When to run it is a question in the [plan](../plans/dag-orchestration.md#questio
 ## 6. Resource DAGs
 
 - **Other projects' DAGs:**
-  - Ids are already global, and lightning-mesh-dev already links to 11 identikey-dev nodes. They show as external nodes unless the viewer joins both collections. The two DAGs define no id in common.
+  - Ids are already global, and a second project DAG already links to 11 identikey-dev nodes. They show as external nodes unless the viewer joins both collections. The two DAGs define no id in common.
   - A registry is a list of collection paths in config. The walk tool resolves an external id by looking it up there.
   - Grounding from another collection should show where the node came from and who accepted it: a node accepted for one project was accepted for that project's purposes.
 - **DAGs built from outside material:**
@@ -204,7 +204,7 @@ Hedging words alone ("probably X") don't make a statement exempt.
 
 ## Sources
 
-- Repo: [ARCHITECTURE.md](../../ARCHITECTURE.md) §6, §7, §8.1; [direction-analysis](../docs/direction-analysis.md); [juggler-analysis](../docs/juggler-analysis.md); [m1-build-spec](../docs/m1-build-spec.md) §5.4.2, §14.1; artifact-dag `SCHEMA.md`, `README.md`, `.claude/skills/dag/SKILL.md`; node counts from the operator's identikey-dev and lightning-mesh-dev `dag/` folders (2026-11-03)
+- Repo: [ARCHITECTURE.md](../../ARCHITECTURE.md) §6, §7, §8.1; [direction-analysis](../docs/direction-analysis.md); [juggler-analysis](../docs/juggler-analysis.md); [m1-build-spec](../docs/m1-build-spec.md) §5.4.2, §14.1; artifact-dag `SCHEMA.md`, `README.md`, `.claude/skills/dag/SKILL.md`; node counts from the operator's identikey-dev `dag/` folder and a second, private project DAG (2026-11-03)
 - Claude Code Projects: [VentureBeat, 2026-09](https://venturebeat.com/orchestration/anthropic-launches-claude-code-projects-an-always-on-conversation-that-remembers-and-delegates-your-long-running-dev-work)
 - Juggler: [juggler.studio/features.html](https://juggler.studio/features.html) (read 2026-11-03)
 - Anthropic: [multi-agent research system](https://www.anthropic.com/engineering/multi-agent-research-system), [effective context engineering](https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents)

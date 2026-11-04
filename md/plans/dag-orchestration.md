@@ -10,7 +10,7 @@
 Each step names the question it waits on. When a step comes up, its question moves to [next-operator.md](../../next-operator.md) as blocking.
 
 1. **Measure graph against grep** (analysis §5). Run about 20 real questions three ways: grep only, DAG-grounded, and both. Record tokens and tool calls from `steps/`, and grade answers against accepted nodes. Write the hypotheses and thresholds first. *Waits on Q3.*
-2. **Acceptance for existing DAGs** (analysis §6). No node in identikey-dev or lightning-mesh-dev has `status` or `accepted_by` (0 of 842 files, 2026-11-03), so nothing counts as `grounded` yet. *Waits on Q2.*
+2. **Acceptance for existing DAGs** (analysis §6). No node in identikey-dev or the second project DAG has `status` or `accepted_by` (0 of 842 files, 2026-11-03), so nothing counts as `grounded` yet. *Waits on Q2.*
 3. **Registry and walk tool.** A config list of collection paths. A walk tool (neighbours and dependencies of an id, resolved across collections) built on artifact-dag's parser and served over MCP (`--mcp-config --strict-mcp-config`).
 4. **Choosing nodes from a question.** At today's scale, read the whole title index, about 4–5k tokens for identikey-dev. Briefs keep the "no silent caps" line (ARCHITECTURE §6).
 5. **Claim labels** (analysis §7):
