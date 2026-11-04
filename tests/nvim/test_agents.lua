@@ -333,6 +333,57 @@ write_status(fsd, "done")
 ok(vim.wait(3000, function() return has(fsb, "## you · t3") and vim.bo[fsb].modifiable end, 20), "fast stream: finished")
 eq(buf_lines(fsb), readf(fsd .. "/thread.md"), "fast stream: buffer matches the file")
 
+-- agents.term: capture and send, with the send policy (ARCHITECTURE §11.2) -----------------------
+local Term = require("agents.term")
+Term.opts.policy.cat = "human" -- treat `cat` as a harness that takes only human-written text
+local function open_term(cmd)
+  vim.cmd("enew")
+  vim.fn.jobstart(cmd, { term = true })
+  return vim.api.nvim_get_current_buf()
+end
+local function screen_has(b, s)
+  for _, l in ipairs(vim.api.nvim_buf_get_lines(b, 0, -1, false)) do if l:find(s, 1, true) then return true end end
+  return false
+end
+local tb = open_term({ "cat" })
+local listed = nil
+for _, t in ipairs(Term.list()) do if t.buf == tb then listed = t end end
+ok(listed and listed.harness == "cat" and listed.policy == "human" and listed.running, "term: list finds the harness " .. vim.inspect(listed))
+local t1, e1 = Term.send("cat", "from an agent", "agent")
+ok(t1 == nil and e1:find("human%-written"), "term: agent send refused by policy: " .. tostring(e1))
+ok(Term.send(tostring(tb), "typed by you", "human"), "term: human send accepted")
+ok(vim.wait(3000, function() return screen_has(tb, "typed by you") end, 20), "term: sent text reaches the terminal")
+local cap = Term.capture(tb)
+ok(cap and screen_has(tb, "typed by you") and cap[#cap]:match("%S"), "term: capture drops trailing blank lines")
+eq(#Term.capture(tb, 1), 1, "term: capture -n keeps the last lines")
+local reply = vim.json.decode(Term.rpc(vim.json.encode({ op = "send", target = tb, text = "x" })))
+ok(reply.ok == false and reply.error:find("human%-written"), "term: rpc sends are agent sends: " .. vim.inspect(reply))
+vim.b[tb].agents_send = "any"
+ok(Term.send(tb, "allowed now", "agent"), "term: b:agents_send = 'any' lets agents send")
+ok(vim.wait(3000, function() return screen_has(tb, "allowed now") end, 20), "term: agent text arrives")
+vim.b[tb].agents_send = "anyy"
+eq(Term.resolve(tb).policy, "human", "term: a mistyped override fails closed")
+vim.b[tb].agents_send = nil
+local tb2 = open_term({ "cat" })
+local amb, ae = Term.resolve("cat")
+ok(amb == nil and ae:find("give a buffer number"), "term: ambiguous target refused: " .. tostring(ae))
+eq(Term.resolve(tb2).buf, tb2, "term: buffer number resolves")
+local sh = open_term({ "sh" })
+eq(Term.resolve(sh).policy, "any", "term: a plain shell takes agent text")
+ok(Term.send(sh, "echo one\necho two", "agent"), "term: multi-line send to a shell")
+ok(vim.wait(3000, function() return screen_has(sh, "two") end, 20), "term: shell ran both lines")
+ok(select(2, Term.send(99999, "x", "human")):find("no terminal buffer"), "term: unknown buffer refused")
+-- the Ex commands: the unnamed register, then a range from another buffer
+vim.fn.setreg('"', "echo via-$((40+2))")
+vim.cmd("AgentsTermSend " .. sh)
+ok(vim.wait(3000, function() return screen_has(sh, "via-42") end, 20), "term: :AgentsTermSend sends the register")
+vim.cmd("enew")
+vim.api.nvim_buf_set_lines(0, 0, -1, false, { "echo range-$((1+1))" })
+vim.cmd("1AgentsTermSend " .. sh)
+ok(vim.wait(3000, function() return screen_has(sh, "range-2") end, 20), "term: :AgentsTermSend sends a range")
+ok(vim.fn.exists(":AgentsTermSend") == 2 and vim.fn.exists(":AgentsTermCapture") == 2 and vim.fn.exists(":AgentsTerms") == 2, "term: commands defined")
+for _, b in ipairs({ tb, tb2, sh }) do pcall(vim.fn.jobstop, vim.bo[b].channel) end
+
 print(("%d checks, %d failed"):format(n, fails))
 vim.fn.delete(tmp, "rf")
 os.exit(fails == 0 and 0 or 1)

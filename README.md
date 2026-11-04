@@ -10,11 +10,12 @@ Direction: [md/docs/direction-analysis.md](md/docs/direction-analysis.md). Desig
 | `bin/agent-files-hook` | Claude Code hook → observed status for hand-started sessions |
 | `bin/agent-files-stats` | trial measurement (H1–H3; observed sessions as information) |
 | `bin/agent-files-grep` | logged `rg` over all threads |
-| `nvim/` | `agents.nvim`: marks, read-only while working, `:AgentsNew/Send/Stop/Fork/Next/Blocked/Grep` |
+| `bin/agent-files-term` | list, read and type into Neovim's terminal buffers; agents can't type into `claude` / `codex` (ARCHITECTURE §11.2) |
+| `nvim/` | `agents.nvim`: marks, read-only while working, `:AgentsNew/Send/Stop/Fork/Next/Blocked/Grep`; `:AgentsTerms`, `:AgentsTermSend`, `:AgentsTermCapture` |
 
 **The data root is `~/agent-files/` (or `$AGENT_FILES_ROOT`) — do not clone this repo there.**
 
-Claude Code and Codex sessions run in [TUIOS](https://tuios.dev/), which hosts them and owns attention for them; agent-files observes them through hooks ([md/docs/host-analysis.md](md/docs/host-analysis.md)).
+Claude Code and Codex sessions run in [Superlogical Rex](https://superlogical.com), which hosts them (often inside Neovim's `:terminal`, with Neovim in a Rex pane); agent-files observes them through hooks ([md/docs/rex-host.md](md/docs/rex-host.md)). TUIOS is the fallback host.
 
 ```sh
 ./install.sh                 # symlinks bin/*, prints the hook block for ~/.claude/settings.json

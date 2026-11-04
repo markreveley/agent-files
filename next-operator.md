@@ -10,7 +10,7 @@ Read with [next-agents.md](next-agents.md). M1 is built and tested against the m
 
 Where this goes after the trial: [md/docs/direction-analysis.md](md/docs/direction-analysis.md) (decided 2026-11-02). It changes nothing below.
 
-Already done on this Mac: the clone at `~/code/agent-files` (at `f627b15`; step 2 pulls the audit fixes and the `md/` layout), `./install.sh` (links in `~/.local/bin`, on `PATH`), `uv`, `git`, Python 3.14, Neovim 0.12.5, TUIOS 0.12.1 (pinned with `brew pin tuios`), ripgrep 15.2.0, and `agent-files-run init`. The data root is at `~/dev/repos/agent-files-data`, with `~/agent-files` linking to it. It has no remote; add a private one if you want an offsite backup, and push it yourself.
+Already done on this Mac: the clone at `~/code/agent-files` (at `f627b15`; step 2 pulls the audit fixes and the `md/` layout), `./install.sh` (links in `~/.local/bin`, on `PATH`), `uv`, `git`, Python 3.14, Neovim 0.12.5, Rex Beta 0.1.0 (the host, step 2a), TUIOS 0.12.1 (the fallback, pinned with `brew pin tuios`), ripgrep 15.2.0, and `agent-files-run init`. The data root is at `~/dev/repos/agent-files-data`, with `~/agent-files` linking to it. It has no remote; add a private one if you want an offsite backup, and push it yourself.
 
 ## 1. Configure
 - Prices are done (agent, at your request, 2026-11-02): `~/agent-files/config.toml` has blocks for `claude-opus-5-5`, `claude-fable-5-1`, `claude-sonnet-5-5` and `claude-haiku-5-5`, checked against Anthropic's pricing page that day. The edit is not committed in the data root; commit it if you want it in history. Any other paid model needs its own block, keyed by the exact `model:` name in quotes; without one it counts as $0 and the spend cap doesn't protect it. Local `ollama/...` and `lmstudio/...` models need none.
@@ -25,24 +25,20 @@ Merge it; don't paste it in whole. Your `settings.json` already has a `"hooks"` 
 
 Do this before 2a. S9 below is the end-to-end check.
 
-## 2a. Host Claude Code and Codex in TUIOS
-Since 2026-11-01 TUIOS hosts harness sessions and owns attention for them ([md/docs/host-analysis.md](md/docs/host-analysis.md), ARCHITECTURE §5.1).
-- TUIOS is installed and pinned at 0.12.1; do not upgrade it mid-trial.
-- After step 2, run `tuios integration install claude-code`, and also `tuios integration install codex` if you use Codex. Your Inbox then gets hook-reported state. `tuios integration status` shows whether it took.
-  - It adds its own entries to `~/.claude/settings.json` and leaves the `agent-files-hook` entries alone. Check that both sets are there afterwards.
-  - It keeps a symlinked `settings.json` a symlink and rewrites the file in `~/.dotfiles`. Its one-time backup, `settings.json.tuios.bak`, lands beside that file in your public dotfiles repo; don't commit it.
-  - It also writes a small skill to `~/.claude/skills/tuios/SKILL.md`. Pass `--no-skill` if you don't want that.
-  - Don't pass `--mcp-write`: it lets agents type into panes (ARCHITECTURE §5.1).
-- TUIOS 0.12.1 has no separate approvals switch: `tuios list-options agents` shows only `agents.enabled` and `agents.fold_working`, and its help files approvals under `agents.enabled`. S9 shows whether Claude's own permission dialog still appears inside TUIOS. Either way, the observed status shows `blocked`, because `agent-files-hook` maps `PermissionRequest`.
-- Don't pass `--statusline` unless you also pass `--then <your current statusline command>`; it refuses to replace an existing one otherwise.
-- Don't use `ask-agent`, agent mail or the delivery queue on Claude sessions: they type agent-written text into the TUI (ARCHITECTURE §5.1 policy rule).
-- If TUIOS misbehaves during the trial, note it in the journal and switch to herdr. Known gaps: Esc leaves a pane "working"; Codex hooks can break when its app-server was started from another pane (TUIOS #1391).
+## 2a. Host in Rex
+Since 2026-11-03 Rex hosts harness sessions and your editor; TUIOS is the fallback ([md/docs/rex-host.md](md/docs/rex-host.md), ARCHITECTURE §5.1).
+- Done by the agent on 2026-11-03: `rex` is linked into `~/.local/bin` from `/Applications/Rex Beta.app/Contents/Helpers/Rex Server.rex/Contents/MacOS/rex`. Rex's Claude Code hook (added by `rex skill setup`, already in `~/.claude/settings.json`) calls `rex` by name and failed silently before that. If a Rex update moves the binary, `which rex` stops finding it; re-link it.
+- One Rex session per repo, Neovim in it, harnesses in Neovim's `:terminal` as you do now. Quitting the app keeps them all; reopening attaches again.
+- Don't run `tuios integration install`; TUIOS stays installed and pinned at 0.12.1 as the fallback. If Rex misbehaves during the trial, note it in the journal and switch.
+- The policy rule (ARCHITECTURE §5.1): agents must not `rex send` their own text into a pane running `claude` or `codex`. The Rex skill teaches agents `rex send` for any pane, and nothing stops it there. Inside Neovim, `agent-files-term` refuses it.
+- Remote hosts (`rex hosts add LABEL ENDPOINT`) are optional and not part of the trial.
 
 ## 3. Editor
 Add `~/code/agent-files/nvim` to Neovim's `runtimepath` and call:
 ```lua
 require('agents').setup({ root = '~/agent-files', tabline = true })
 ```
+That also defines `:AgentsTerms`, `:AgentsTermSend` and `:AgentsTermCapture` (ARCHITECTURE §11.2); your own layout is in [md/operator-neovim.md](md/operator-neovim.md). They are outside the trial's measurement.
 Do view-layer step 0 (a generic markdown renderer, about an hour) and confirm you can read `md/docs/examples/view-fixture/thread.md` comfortably. A trial that fails on unpleasant reading tests your editor setup, not the idea.
 
 ## 4. Start the runner
@@ -59,7 +55,7 @@ Tell the agent when `watch` is running, or which of steps 1-4 failed and how.
 | S6 | `model: claude-opus-5-5`. Make the first message long: paste 2,000+ characters of real text (Opus 5.5 caches nothing under 512 tokens, and a short exchange reads 0 even when caching works). Send, then send a short second message within 5 min | real reply; second `steps/*.response.json` has `cache_read_input_tokens > 0` |
 | S7 | delete an earlier agent turn, rewrite your first turn, send | reply arrives, no 400 |
 | S8 | `model: ollama/<name>`, send | reply, `cost_usd: 0` |
-| S9 | start `claude` in a project **inside TUIOS**, trigger a permission prompt | a directory `~/agent-files/threads/_observed/<project>-…/` appears. `:AgentsNext` lists it as blocked as soon as the permission dialog opens (not ~6 s later). Open its `thread.md`: after you answer, the end mark shows the spinner (working), then ✓ (done) when Claude finishes. The directory is gone after you exit `claude`. The TUIOS Inbox shows the same prompt. (`:AgentsNext` lists only threads that need you, never working ones.) |
+| S9 | start `claude` in a project **inside Rex** (in Neovim's `:terminal`, as you work), trigger a permission prompt | a directory `~/agent-files/threads/_observed/<project>-…/` appears. `:AgentsNext` lists it as blocked as soon as the permission dialog opens (not ~6 s later). Open its `thread.md`: after you answer, the end mark shows the spinner (working), then ✓ (done) when Claude finishes. The directory is gone after you exit `claude`. Note in the journal what Rex's Activity sidebar shows for it (ARCHITECTURE §13 Q14). (`:AgentsNext` lists only threads that need you, never working ones.) |
 | S10 | `:AgentsGrep <word>` | quickfix hits, one line in `trial/searches.log` |
 | S11 | first copy the view fixture into the root: `cp -R ~/code/agent-files/md/docs/examples/view-fixture ~/agent-files/threads/fixture` (the plugin only attaches to files under `threads/`). Open it, and your S6 thread | headers/`END` highlighted, tool fold closed, end mark shows `~Nk`. A status glyph shows only while a turn is running or its result is unseen: once you have viewed a finished thread the glyph goes away. Also (the interactive Neovim check): send a turn in the S6 thread; while it runs the spinner moves and the buffer is read-only; when the reply lands the buffer reloads with no "file changed" prompt, shows ✓ and becomes writable again. Then `rm -r ~/agent-files/threads/fixture` so it isn't counted in the trial |
 

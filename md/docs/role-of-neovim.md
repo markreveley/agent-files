@@ -1,7 +1,7 @@
 # The role of Neovim
 
 > Status: draft · 2026-11-01 · companion to [ARCHITECTURE.md](../../ARCHITECTURE.md) §11
-> Built: the file watcher and the file-writing commands. **The doorbell (§3–§6, §9–§10 and the ring rows of §8: ring, registry, notify) is dropped (2026-11-01) and kept here as a record.** Attention for Claude Code and Codex sessions is the TUIOS Inbox ([host-analysis](host-analysis.md)); for agent-files' own threads the local file watcher is enough.
+> Built: the file watcher and the file-writing commands. **The doorbell (§3–§6, §9–§10 and the ring rows of §8: ring, registry, notify) is dropped (2026-11-01) and kept here as a record.** Attention for Claude Code and Codex sessions is their observed threads, with Rex's Activity sidebar outside the editor ([rex-host](rex-host.md), which supersedes the TUIOS Inbox of [host-analysis](host-analysis.md)); for agent-files' own threads the local file watcher is enough.
 
 Neovim is a client, not a host: it is where you read threads, write turns, and notice what needs you — for agent-files' own threads. Its RPC server was to be a **doorbell** — a best-effort signal that tells one Neovim instance to look at one file now, so that the person at that editor notices. Nothing in agent-files depends on it; the files are the mailbox.
 
@@ -11,13 +11,13 @@ Neovim does three jobs in agent-files, all on the human side of the system.
 
 1. **Viewer.** It renders thread files: folds for tool output, a status mark per thread in the tabline, the needs-you list in quickfix.
 2. **Editor.** It is where you write your turns, fork threads, and answer permission questions. Ending your turn with `END` (`:AgentsSend`) is sending; saving a draft is not.
-3. **Attention surface — for agent-files' threads.** When a `direct` thread (or an `observed` mirror) needs you: a tabline mark, a popup, the terminal bell, an entry in the quickfix list. Harness sessions ask for you in the TUIOS Inbox.
+3. **Attention surface — for agent-files' threads.** When a `direct` thread (or an `observed` mirror) needs you: a tabline mark, a popup, the terminal bell, an entry in the quickfix list. Harness sessions ask for you through their observed threads, so the same marks and `:AgentsNext` cover them.
 
 What Neovim is **not**:
 
 - **Not a store.** No thread state lives only in Neovim. Close every editor and nothing is lost.
-- **Not a host.** Agents run under their runtimes, and tier-1 TUIs run in TUIOS, not inside the editor. A `claude` you start in Neovim's own `:terminal` lives and dies with that Neovim; start it in TUIOS if it should outlive the editor.
-- **Not a transport.** Messages to agents travel as file writes, never over Neovim's socket.
+- **Not a host.** Agents run under their runtimes, and Rex hosts the processes. A `claude` you start in Neovim's own `:terminal` lives as long as that Neovim does, and Neovim runs in a Rex pane, so both outlive the terminal app ([rex-host](rex-host.md)).
+- **Not a transport for threads.** Messages to agent-files' threads travel as file writes, never over Neovim's socket. `agents.term` types into harness terminals over that socket, and those are not threads (ARCHITECTURE §11.2).
 - **Not a requirement.** `cat`, `grep`, `tail -f`, any other editor, or a tmux status-line script can do everything Neovim does here, less comfortably.
 
 ## 2. The cast: who writes, who reads, who rings
@@ -265,7 +265,7 @@ end
 
 ## 11. Open questions
 
-*Questions 1–3 are closed with the doorbell (2026-11-01): escalation for harness sessions is TUIOS notifications; remote editors are not planned; there is no registry.*
+*Questions 1–3 are closed with the doorbell (2026-11-01): escalation for harness sessions is the host's notifications (Rex since 2026-11-03); remote editors are not planned; there is no registry.*
 
 1. **Escalation ladder.** When no editor answers a `blocked` ring, which comes next — an OS notification, a tmux status flag, a phone push — and after how long?
 2. **Remote editing.** A headless `nvim --headless --listen <socket>` on a remote machine, attached from a laptop with `nvim --remote-ui --server <socket>` over a forwarded socket, would let a runtime ring the editor where the threads live. Worth supporting, or later?
