@@ -1,6 +1,6 @@
 # Plan: Neovim instances you can address by name
 
-> Status: proposed · 2026-11-04 (Q2, Q3 decided; Q1 moved to the doorbell revisit) · extends `agents.term` ([ARCHITECTURE §11.2](../../ARCHITECTURE.md), [operator-neovim §3](../operator-neovim.md#3-reading-and-typing-into-the-agents-inside-neovim))
+> Status: proposed · 2026-11-04 (Q2, Q3 decided; Q1 moved to the doorbell revisit) · extends `agents.term` ([ARCHITECTURE §11.2](../../governance/ARCHITECTURE.md), [operator-neovim §3](../../docs/operator-neovim.md#3-reading-and-typing-into-the-agents-inside-neovim))
 > Not built until the doorbell revisit answers Q1.
 
 **Goal.** Every Neovim the operator starts gets a socket at a known path, and the socket's name is its id: `agent-files`, `identikey-dev`, one per repo. An agent in one Neovim can then list the others and read or type into their terminals by id (`agent-files-term --server identikey-dev capture claude`), instead of needing a random socket path that only `:echo v:servername` reveals.
@@ -60,12 +60,12 @@ Whether that difference is enough is Q1.
 2. `agent-files-term`: id resolution for `--server`, `peers`, `ls --all`.
 3. `agents.nvim`: `vim.g.agents_nvim_id`, and the id in `:AgentsTerms`.
 4. Tests: `tests/test_term.py` starts two headless Neovims through `agent-files-nvim`, checks `peers` lists both, and sends and captures across them, including a refused send to a `human`-policy terminal in the other Neovim. Plus a dead socket being removed, and an id collision getting `-2`.
-5. Docs: ARCHITECTURE §11.2, [operator-neovim](../operator-neovim.md) §3.1 and §4 (the function), the README table.
+5. Docs: ARCHITECTURE §11.2, [operator-neovim](../../docs/operator-neovim.md) §3.1 and §4 (the function), the README table.
 6. Operator: add the function to the dotfiles, restart Neovims. *Waits on Q4.*
 
 ## Questions
 
-1. **Is this the dropped registry under another name?** *Moved (2026-11-03):* the operator asked to revisit the doorbell and its editor registry now that TUIOS is no longer the host ([next-agents.md](../../next-agents.md), step 7). That analysis answers this question, and may merge the two designs.
+1. **Is this the dropped registry under another name?** *Moved (2026-11-03):* the operator asked to revisit the doorbell and its editor registry now that TUIOS is no longer the host ([next-agents.md](../../../next-agents.md), step 7). That analysis answers this question, and may merge the two designs.
 2. *Decided (2026-11-04): when to build.* As soon as Q1 is answered; nothing else gates it.
 3. *Decided (2026-11-03): the repo name*, with `--name` for anything else. The Rex session label was the alternative; it works only inside Rex and can change while Neovim runs.
 4. **Replace `nvim` or use another name?** The function above makes every `nvim` addressable, including quick edits from a shell, which then appear in `peers`. A separate name (say `nv`) keeps quick edits out. Recommendation: replace `nvim`; `peers` shows the working directory, so stray ones are easy to tell apart. Two more points:

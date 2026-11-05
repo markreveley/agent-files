@@ -1,4 +1,4 @@
 __pycache__/
 *.pyc
-md/threads/raw/
-md/threads/redact.json
+LOCAL.md
+.claude/worktrees/

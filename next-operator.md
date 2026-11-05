@@ -8,9 +8,9 @@ updated: 2026-11-04
 
 Read with [next-agents.md](next-agents.md).
 
-**What changed on 2026-11-04** (thread: [md/threads/2026-11-04-nvim-sidebar.md](md/threads/2026-11-04-nvim-sidebar.md)):
+**What changed on 2026-11-04** (thread: thread-archive `threads/agent-files/2026-11-04-nvim-sidebar.md`):
 - **The trial is gone.** No hypotheses, journal, measurement or day-10 decision, and no freeze: building goes ahead. `init` no longer creates `trial/`, the hook and `agent-files-grep` no longer log there, and `agent-files-stats` now reports threads, turns, spend and live observed sessions.
-- **agent-files is Neovim-first** (ARCHITECTURE v0.8). `agents.nvim` will host your `claude` and `codex` sessions in terminal buffers, listed in a sidebar beside agent-files' own threads. Rex hosts Neovim. The separate neovim-agent-sidebar repo is folded in: its design is now [md/plans/2026-11-04-nvim-sidebar.md](md/plans/2026-11-04-nvim-sidebar.md), which the agent builds next.
+- **agent-files is Neovim-first** (ARCHITECTURE v0.8). `agents.nvim` will host your `claude` and `codex` sessions in terminal buffers, listed in a sidebar beside agent-files' own threads. Rex hosts Neovim. The separate neovim-agent-sidebar repo is folded in: its design is now [md/plans/2026-11-04-nvim-sidebar/nvim-sidebar.md](md/plans/2026-11-04-nvim-sidebar/nvim-sidebar.md), which the agent builds next.
 
 M1 is built and tested against the mock backend. Nothing has yet run through the runner against a real model, in your editor, or with a live `claude` session; steps 1-5 below do that.
 
@@ -40,7 +40,7 @@ Add `~/code/agent-files/nvim` to Neovim's `runtimepath` and call:
 ```lua
 require('agents').setup({ root = '~/agent-files', tabline = true })
 ```
-That also defines `:AgentsTerms`, `:AgentsTermSend` and `:AgentsTermCapture` (ARCHITECTURE §11.2); your own layout is in [md/operator-neovim.md](md/operator-neovim.md). The sidebar's commands and your keymaps for it come with its build (plan step 5).
+That also defines `:AgentsTerms`, `:AgentsTermSend` and `:AgentsTermCapture` (ARCHITECTURE §11.2); your own layout is in [md/docs/operator-neovim.md](md/docs/operator-neovim.md). The sidebar's commands and your keymaps for it come with its build (plan step 5).
 Do view-layer step 0 (a generic markdown renderer, about an hour) and confirm you can read `md/docs/examples/view-fixture/thread.md` comfortably.
 
 ## 4. Start the runner
@@ -71,6 +71,7 @@ Report each result to the agent; for a failure, include the exact symptom and th
 
 ## Questions
 - None blocking.
-- For the sidebar, when its steps come up: [Q1 and Q2 of the plan](md/plans/2026-11-04-nvim-sidebar.md#questions) (selection broadcast to every session; whether `--resume` keeps the session id, which the agent checks).
-- [md/plans/nvim-addressing.md](md/plans/nvim-addressing.md): Q4 (replace `nvim` or use another name?) is open; Q1 waits on the doorbell analysis (next-agents).
-- Before M6: [md/plans/dag-orchestration.md](md/plans/dag-orchestration.md#questions).
+- For the sidebar, when its steps come up: [Q1 and Q2 of the plan](md/plans/2026-11-04-nvim-sidebar/nvim-sidebar.md#questions) (selection broadcast to every session; whether `--resume` keeps the session id, which the agent checks).
+- [md/plans/2026-11-03-nvim-addressing/nvim-addressing.md](md/plans/2026-11-03-nvim-addressing/nvim-addressing.md): Q4 (replace `nvim` or use another name?) is open; Q1 waits on the doorbell analysis (next-agents).
+- Design and build questions not owned by one plan (ARCHITECTURE §13 and build spec §14, both now pointers): [md/plans/2026-11-04-open-questions/open-questions.md](md/plans/2026-11-04-open-questions/open-questions.md). None blocks the next step.
+- Before M6: [md/plans/2026-11-03-dag-orchestration/dag-orchestration.md](md/plans/2026-11-03-dag-orchestration/dag-orchestration.md#questions).

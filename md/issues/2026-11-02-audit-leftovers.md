@@ -1,10 +1,12 @@
----
-type: handoff
-audience: agent
-updated: 2026-11-04
----
-
 # Adversarial audit, 2026-11-02: what is left
+
+| | |
+|---|---|
+| Checked | parser, runner and backends, hook/stats/install, Neovim plugin, docs: five parallel read-only audits |
+| Commit | the tree before the audit fixes merged in PR #24 (`b1bd8d8`) |
+| Rechecked | 2026-11-04: items about code removed since were dropped |
+| Reported | here only; no tracker entries |
+| Status | every item below is open. Delete an item when it is fixed and has a test |
 
 Five parallel read-only audits ran before first use: parser, runner and backends, hook/stats/install, Neovim plugin, and docs. At the time the baseline was green: 70 unit tests, 44 Neovim checks, smoke S1-S5.
 

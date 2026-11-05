@@ -1,9 +1,9 @@
 # Rex as the host — how Superlogical Rex works with agent-files
 
-> Status: decision record · 2026-11-04 · companion to [ARCHITECTURE.md](../../ARCHITECTURE.md) §5.1, §12
+> Status: decision record · 2026-11-04 · companion to [ARCHITECTURE.md](../governance/ARCHITECTURE.md) §5.1, §12
 > **Supersedes the host decision in [host-analysis.md](host-analysis.md)** (TUIOS hosts, herdr fallback) and the "keep TUIOS" line in [direction-analysis §4](direction-analysis.md#4-the-host-fork-reconsidered). Those documents stay as they are, as the record of the earlier decision; where they name TUIOS as the host, read Rex.
 > Method: the installed Rex Beta 0.1.0 (1758), whose CLI is `rex 0.0.1793645657-gd018d2`: its `--help` for every command, the guide it gives agents (`rex skill show`), the server and app actions (`rex actions`, `rex -C <app> actions`), and one look at a live server (`rex whoami`, `rex ls`, `rex block call … program_status`). Nothing was run inside Rex beyond that. *(cli)* marks a claim read from the CLI's help or guide but not exercised.
-> **Narrowed (2026-11-04):** agent-files is now Neovim-first. `agents.nvim` starts and shows the `claude` and `codex` sessions in Neovim terminal buffers ([sidebar plan](../plans/2026-11-04-nvim-sidebar.md)); Rex hosts Neovim, not the sessions directly. A harness in its own Rex block still works but is not the path agent-files is built for.
+> **Narrowed (2026-11-04):** agent-files is now Neovim-first. `agents.nvim` starts and shows the `claude` and `codex` sessions in Neovim terminal buffers ([sidebar plan](../plans/2026-11-04-nvim-sidebar/nvim-sidebar.md)); Rex hosts Neovim, not the sessions directly. A harness in its own Rex block still works but is not the path agent-files is built for.
 
 **Decision.** Rex hosts harness sessions and the operator's editor. TUIOS (installed, pinned at 0.12.1) is the fallback, then herdr. agent-files stays what it was: the logbook beside the host, reached by the host only through Claude Code's hooks, and reaching the host only through one adapter module (none is needed for M1). Attention for harness sessions moves from the TUIOS Inbox to agent-files' own observed threads in `agents.nvim`, plus Rex's Activity sidebar.
 
@@ -60,7 +60,7 @@ F = does it as specified or better, P = partly, N = not at all, ? = not found.
 ```
 
 - **Rex owns the processes; agent-files owns the record.** Nothing in a thread depends on Rex. Kill the Rex server and every thread is intact; only the running harness processes are lost (principle 1).
-- **The hook path is unchanged.** `agent-files-hook` is configured in Claude Code, not in the host ([m1-plan §3](m1-plan.md)), so the observed thread appears the same under Rex, TUIOS or a bare terminal. S9 is run inside Rex.
+- **The hook path is unchanged.** `agent-files-hook` is configured in Claude Code, not in the host ([m1-plan §3](../plans/2026-10-31-m1/m1.md)), so the observed thread appears the same under Rex, TUIOS or a bare terminal. S9 is run inside Rex.
 - **Rex's own Claude Code integration coexists.** `rex skill setup` added one `SessionStart` entry to `~/.claude/settings.json` (`rex __internal session-start …`, which tells the agent its `REX_SESSION` and `REX_BLOCK`), and a skill at `~/.claude/skills/rex`. The `agent-files-hook` entries go beside it, and Claude Code runs both. That hook calls `rex` by name, so `rex` must be on `PATH`. It is a link in `~/.local/bin` to the CLI inside `Rex Beta.app` (2026-11-03).
 - **A harness inside Neovim inherits Neovim's `REX_BLOCK`.** To Rex, it is the Neovim pane. A `rex send` to that block types into Neovim, not into the harness. Reach a harness inside Neovim through `agents.term` (ARCHITECTURE §11.2), and a harness in its own Rex block through `rex send`.
 - **Adapter rule.** Anything agent-files does with Rex goes through its JSON CLI from one module, so a switch back to TUIOS or to herdr changes one file. M1 needs none.
@@ -81,8 +81,8 @@ Still allowed: your own text through either path (`:AgentsTermSend` on a selecti
 
 - ARCHITECTURE v0.7: §1, §5, §5.1, §8, §10, §11 (new §11.2), §12, §13 Q8, Q9, Q13–Q15, §14.
 - README, AGENTS.md, next-agents.md, next-operator.md (step 2a is now "Host in Rex"; S9 runs inside Rex), role-of-neovim §1.
-- The operator's own Neovim layout, outside agent-files: [md/operator-neovim.md](../operator-neovim.md).
-- Not edited, read with this record: [host-analysis](host-analysis.md), [direction-analysis](direction-analysis.md), [juggler-analysis](juggler-analysis.md) (worktrees "adopted from TUIOS" are now unowned), [multi-subscription-analysis](multi-subscription-analysis.md) ("replace TUIOS" now means "replace Rex"), [m1-plan](m1-plan.md) (the needs-you list for harness sessions is the observed threads), and the session logs in `md/threads/`.
+- The operator's own Neovim layout, outside agent-files: [operator-neovim.md](operator-neovim.md).
+- Not edited, read with this record: [host-analysis](host-analysis.md), [direction-analysis](direction-analysis.md), [juggler-analysis](../analysis/2026-10-31-juggler/juggler.md) (worktrees "adopted from TUIOS" are now unowned), [multi-subscription-analysis](../analysis/2026-11-01-multi-subscription/multi-subscription.md) ("replace TUIOS" now means "replace Rex"), [m1-plan](../plans/2026-10-31-m1/m1.md) (the needs-you list for harness sessions is the observed threads), and the session logs (now in thread-archive, `threads/agent-files/`).
 
 ## 6. Sources
 

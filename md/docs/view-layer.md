@@ -1,6 +1,6 @@
 # The view layer — readable in Neovim, rich in the browser
 
-> Status: draft · 2026-11-04 · companion to [ARCHITECTURE.md](../../ARCHITECTURE.md) and [role-of-neovim.md](role-of-neovim.md)
+> Status: draft · 2026-11-04 · companion to [ARCHITECTURE.md](../governance/ARCHITECTURE.md) and [role-of-neovim.md](role-of-neovim.md)
 > Steps 0–1 are in the first M1 build — step 0 is a prerequisite of the smoke test, step 1 is part of `agents.nvim` ([m1-build-spec §9.5](m1-build-spec.md#95-display-view-layer-step-1)); step 2 is an optional prototype ([m1-build-spec §12](m1-build-spec.md#12-the-html-view--how-it-plugs-in)).
 
 **Summary.** Markdown stays the single source of truth. Neovim is made to display it well. A separate, read-only HTML view is generated from the same files for rich display (tables, charts, collapsible tool output). The HTML is a cache: delete it and nothing is lost. Nothing is ever translated back from HTML to text.
@@ -37,7 +37,7 @@ Instead of a template file you edit, the markdown carries conventions that degra
 | Fenced ```` ```csv ```` block | Readable rows | Sortable table |
 | Fenced ```` ```chart ```` block (see §5.3) | A few lines of `key: value` data | Bar or line chart |
 | Fenced ```` ```mermaid ```` block | Diagram source | Diagram |
-| `▸ Read src/x.ts (212 lines)` plus indented output ([ARCHITECTURE §4.2](../../ARCHITECTURE.md)) | A fold | Collapsed `<details>` |
+| `▸ Read src/x.ts (212 lines)` plus indented output ([ARCHITECTURE §4.2](../governance/ARCHITECTURE.md)) | A fold | Collapsed `<details>` |
 | `## you · tN` / `## agent · tN` … `END` | Turn headers | Chat-style turns, `END` hidden |
 | Frontmatter | YAML | Header card (agent, model, kind, status) |
 
@@ -57,7 +57,7 @@ Most of the "looks broken" problem is the renderer, not the format.
 
 ### Step 1 — thread-aware display in `agents.nvim`
 
-Generic markdown rendering does not know about turns. Add to the plugin ([m1-plan §3.2](m1-plan.md); specified in [m1-build-spec §9.5](m1-build-spec.md#95-display-view-layer-step-1)):
+Generic markdown rendering does not know about turns. Add to the plugin ([m1-plan §3.2](../plans/2026-10-31-m1/m1.md); specified in [m1-build-spec §9.5](m1-build-spec.md#95-display-view-layer-step-1)):
 
 - Highlight groups for `## you · tN`, `## agent · tN`, `END`, and `▸` tool lines.
 - A fold for each `▸` line with its indented output, closed by default.
@@ -135,7 +135,7 @@ Candidates, each optional and in this order: a jump-to-line link that opens a tu
 
 ## 7. Open questions
 
-1. Should `chart` and `csv` blocks be formalized in the thread grammar ([ARCHITECTURE §4.3](../../ARCHITECTURE.md)), or stay renderer-only conventions?
+1. Should `chart` and `csv` blocks be formalized in the thread grammar ([ARCHITECTURE §4.3](../governance/ARCHITECTURE.md)), or stay renderer-only conventions?
 2. Does the model produce these blocks reliably if the agent's system prompt asks for them, or should the renderer detect plain tables only?
 3. Where does the cache live on a synced or multi-machine root — per machine, never synced?
 4. Should agent-produced HTML artifacts in `out/` be served by the same renderer, with a sandboxed frame, or opened directly?

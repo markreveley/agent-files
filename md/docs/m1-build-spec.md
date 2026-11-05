@@ -1,6 +1,6 @@
 # M1 build spec — the first build
 
-> Status: draft · 2026-11-04 · implements [m1-plan.md](m1-plan.md) §3 against [ARCHITECTURE.md](../../ARCHITECTURE.md) §4, with steps 0–1 of [view-layer.md](view-layer.md)
+> Status: draft · 2026-11-04 · implements [m1-plan.md](../plans/2026-10-31-m1/m1.md) §3 against [ARCHITECTURE.md](../governance/ARCHITECTURE.md) §4, with steps 0–1 of [view-layer.md](view-layer.md)
 > Audience: whoever writes the code. Where this spec and the plan disagree, this spec wins for M1; where it is silent, the plan and the architecture apply.
 
 **Summary.** The first M1 build is four small programs and one Neovim plugin, all reading and writing the same plain-text files: `agent-files-run` (the replay runtime), `agent-files-hook` (observed status for hand-started `claude` sessions), `agent-files-stats` (threads, turns and spend), `agent-files-grep` (cross-thread search), and `agents.nvim`, which also makes threads readable in Neovim (view-layer steps 0–1). The optional HTML view (`agent-files-render`, view-layer step 2) is specified there, not here; this spec only fixes how it plugs in (§12). The build is done when the automated tests pass and the smoke test in §10 passes by hand. This document pins down everything the plan left open: the exact grammar and parser, turn numbering, escaping, request assembly, backends, git commits, configuration, and the acceptance tests.
@@ -497,5 +497,5 @@ Exactly as m1-plan §2: no tools in the runner (so no `▸` folds, `out/` only f
 
    Both are in `backend_caveats`. Every `response.json` from this backend says `"backend": "claude_cli"`, so its turns can be filtered out of any cache or request comparison; `agent-files-stats` makes none today.
    **Re-checked 2026-11-02** (Claude Code 2.1.317, same method, `ANTHROPIC_API_KEY` and `ANTHROPIC_AUTH_TOKEN` removed as the backend now does). Results are unchanged: no tools, MCP servers, slash commands or skills; about 660 input tokens; `apiKeySource: none`, so the turn ran on the plan. With no `model:` suffix, `claude -p` uses Claude Code's own default model, which was `claude-fable-5-1` on this machine. Its `total_cost_usd` (an API-equivalent figure, 0.013 for a one-word reply) counts toward the daily cap (§5.6).
-2. **Effort per thread.** M1 uses one `effort` from config. If a per-thread knob is wanted, add an optional `effort:` frontmatter field — a format addition, not a change.
-3. **Spinner cost.** A 120 ms timer redrawing the tabline is cheap, but if it flickers in Ghostty, fall back to a static `…`.
+2. *Open:* effort per thread → [open-questions S2](../plans/2026-11-04-open-questions/open-questions.md#s2).
+3. *Open:* spinner cost → [open-questions S3](../plans/2026-11-04-open-questions/open-questions.md#s3).
