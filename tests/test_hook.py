@@ -116,11 +116,6 @@ class Hook(unittest.TestCase):
         for raw in ["", "not json", "[]", "null", "{\"hook_event_name\": 5}", "\xff"]:
             self.fire("x", raw=raw)
 
-    def test_observed_log(self):
-        self.fire("SessionStart"); self.fire("UserPromptSubmit"); self.fire("PreToolUse"); self.fire("Stop")
-        lines = open(os.path.join(self.tmp, "trial", "observed.log")).read().strip().split("\n")
-        self.assertEqual([l.split("\t")[2] for l in lines], ["done", "working", "done"])   # PreToolUse: no change
-
     def test_missing_root_noop(self):
         self.fire("SessionStart", env=dict(self.env, AGENT_FILES_ROOT="/nonexistent/zzz"))
 

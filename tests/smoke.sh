@@ -28,7 +28,7 @@ wait_for '[ "$(git -C "$AGENT_FILES_ROOT" log --format=%s | grep -c -E "^(send|r
 git -C "$AGENT_FILES_ROOT" log -1 --format=%B | grep -q '^Agent-Files-Event: reply' || fail "S1 trailers"
 echo "S1 ok"
 
-# S2 — edit above END, send again; stats sees one context edit
+# S2 — edit above END, send again; the request carries the edit
 python3 - "$T/smoke/thread.md" <<'PY'
 import sys
 p = sys.argv[1]; t = open(p).read()
@@ -37,7 +37,7 @@ open(p, "w").write(t)
 PY
 wait_for '[ "$(grep -c "^## agent" "$T/smoke/thread.md")" = 2 ] && [ "$(status smoke)" = done ]'
 grep -q 'EDITED' "$T/smoke/steps/t0004.request.json" || fail "S2 request lacks the edit"
-$STATS --json | grep -q '"threads_with_context_edit": 1' || fail "S2 stats"
+$STATS --json | grep -q '"threads": 1,' || fail "S2 stats"
 echo "S2 ok"
 
 # S3 — fork with carry

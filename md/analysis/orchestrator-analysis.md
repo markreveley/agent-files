@@ -1,6 +1,6 @@
 # DAG-grounded orchestration: analysis
 
-> Status: draft · 2026-11-03 · companion to [ARCHITECTURE.md](../../ARCHITECTURE.md) §6, §7, §8.1 and [direction-analysis](../docs/direction-analysis.md) §3, §5 · plan: [dag-orchestration](../plans/dag-orchestration.md)
+> Status: draft · 2026-11-04 · companion to [ARCHITECTURE.md](../../ARCHITECTURE.md) §6, §7, §8.1 and [direction-analysis](../docs/direction-analysis.md) §3, §5 · plan: [dag-orchestration](../plans/dag-orchestration.md)
 > Method: the operator's proposal and answers (thread of 2026-11-03), the repo's design docs, the operator's two project DAGs (counted 2026-11-03), `claude --help` on Claude Code 2.1.317, and a web survey (2026-11-03). Claims that rest only on a secondary page are marked *(unverified)*.
 
 **Summary.** The proposal works like this:
@@ -8,7 +8,7 @@
 - The agent explores by walking DAGs first. It has an index of other DAGs it can walk too.
 - Answers may claim nothing that the DAG or a cited source doesn't support.
 
-Most of this is already designed: the orchestrator is the planning harness (M6), and the subgraph it hands over is the brief (§8.1). Four parts are new: choosing nodes from the question, a walk tool, a registry of DAGs, and labelling every claim in an answer. The evidence says a graph is cheaper than grep, not more accurate. For a knowledge DAG the gain is knowing what was accepted, not speed. All of it is M6 work; nothing is built before the day-10 decision. The order of work and its open questions are in the [plan](../plans/dag-orchestration.md).
+Most of this is already designed: the orchestrator is the planning harness (M6), and the subgraph it hands over is the brief (§8.1). Four parts are new: choosing nodes from the question, a walk tool, a registry of DAGs, and labelling every claim in an answer. The evidence says a graph is cheaper than grep, not more accurate. For a knowledge DAG the gain is knowing what was accepted, not speed. All of it is M6 work. The order of work and its open questions are in the [plan](../plans/dag-orchestration.md).
 
 ## 1. The proposal, mapped
 
@@ -128,7 +128,7 @@ The published evidence is about code graphs. It says cheaper, not better.
 **The measurement:** take about 20 questions from real threads and run each three ways: grep only, DAG-grounded, and both.
 - Tokens and tool calls come from `steps/`.
 - Grade answers against accepted nodes.
-- Write the hypotheses and thresholds first, as m1-plan §5 did.
+- Decide in advance what result would change the plan.
 
 When to run it is a question in the [plan](../plans/dag-orchestration.md#questions).
 

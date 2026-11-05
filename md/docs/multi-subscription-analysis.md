@@ -1,9 +1,10 @@
 # Multi-subscription tools: CLIProxyAPI and T3 Code
 
-> Status: research spike · 2026-11-01 · companion to [host-analysis.md](host-analysis.md) and [ARCHITECTURE.md](../../ARCHITECTURE.md) §5.1, §13 Q6, Q15
+> Status: research spike · 2026-11-04 · companion to [host-analysis.md](host-analysis.md) and [ARCHITECTURE.md](../../ARCHITECTURE.md) §5.1, §13 Q6, Q15
 > Method: READMEs, project sites, T3 Code's `docs/internals/overview.md` and `providers.md`, and Anthropic's Claude Code legal and compliance page. Nothing was cloned, built or run. The video "T3 Code broke me" (youtube.com/watch?v=uLGxb4F3SyI) could not be read; only its title was available.
+> **Superseded in part (2026-11-04):** agent-files is now Neovim-first: harness sessions run in Neovim terminal buffers under `agents.nvim`, so T3 Code is no longer a host candidate. §2 on CLIProxyAPI stands.
 
-**Decision.** CLIProxyAPI is not used for Claude. T3 Code doesn't change M1 or the trial. After the trial, T3 Code may be graded as a harness host next to TUIOS, but only if a session it starts fires `agent-files-hook` (§3).
+**Decision.** CLIProxyAPI is not used for Claude. T3 Code doesn't change M1. T3 Code may later be graded as a harness host next to TUIOS, but only if a session it starts fires `agent-files-hook` (§3).
 
 ## 1. Both put several subscriptions behind one interface, at different levels
 
@@ -20,7 +21,7 @@
 - Anthropic enforces this server-side. Press reports date it from January 2026, with a written clarification in February and wider blocking in April (The Register, 2026-02-20; Winbuzzer, 2026-02-19). Using it risks the operator's account.
 - It also breaks ARCHITECTURE: "We do not modify, wrap or proxy them."
 - The permitted route already exists: the `claude_cli` backend runs the unmodified `claude -p` on the operator's own subscription, which the same page allows.
-- **Codex, Gemini and Grok through the proxy:** this depends on each vendor's terms, which is open question Q6. Not before the day-10 decision either way.
+- **Codex, Gemini and Grok through the proxy:** this depends on each vendor's terms, which is open question Q6.
 
 ## 3. T3 Code: which parts of agent-files work with it
 
@@ -35,7 +36,7 @@ T3 Code does not run agent-files, just as TUIOS doesn't. Like TUIOS, it could on
 
 **The test that decides it:** run smoke test S9 with T3 Code as the host. Start a Claude session in T3 Code, trigger a permission prompt, and check that `_observed/...` appears in the data root and that `:AgentsNext` shows `blocked`. If it fails, T3 Code can't host sessions for agent-files and isn't a candidate.
 
-**If S9 passes:** grade T3 Code against the 21 items in [host-analysis §1](host-analysis.md#1-session-host-and-attention--21-items) before switching anything. TUIOS stays pinned for the trial regardless.
+**If S9 passes:** grade T3 Code against the 21 items in [host-analysis §1](host-analysis.md#1-session-host-and-attention--21-items) before switching anything.
 
 ## Sources
 - github.com/router-for-me/CLIProxyAPI

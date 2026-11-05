@@ -5,7 +5,7 @@ Durable rules only. What to do next lives in [next-agents.md](next-agents.md) an
 ## Where to read first
 - Direction: [md/docs/direction-analysis.md](md/docs/direction-analysis.md) (what agent-files is for, the planning harness, what to adopt). Design: [ARCHITECTURE.md](ARCHITECTURE.md). Current build: [md/docs/m1-build-spec.md](md/docs/m1-build-spec.md) (wins over the plan for M1), then [md/docs/m1-plan.md](md/docs/m1-plan.md), [md/docs/view-layer.md](md/docs/view-layer.md), [md/docs/role-of-neovim.md](md/docs/role-of-neovim.md).
 - Do not build anything the spec lists under "Not in this build" (§13).
-- **Adopt before building.** Before building any milestone, grade existing tools against it the way [md/docs/host-analysis.md](md/docs/host-analysis.md) graded M2, and drop what they already do. Harness sessions are hosted by Rex, TUIOS as fallback (ARCHITECTURE §5.1, [md/docs/rex-host.md](md/docs/rex-host.md), which supersedes host-analysis's host decision).
+- **Adopt before building.** Before building any milestone, grade existing tools against it the way [md/docs/host-analysis.md](md/docs/host-analysis.md) graded M2, and drop what they already do. agent-files is Neovim-first (ARCHITECTURE v0.8): harness sessions run in Neovim's terminals, hosted by `agents.nvim`, and Rex keeps Neovim alive. Don't design for other editors or hosts until the operator asks.
 
 ## Layout
 - `bin/` entry points; `lib/agent_files/` shared Python; `nvim/` the `agents.nvim` plugin; `tests/`; `md/docs/examples/view-fixture/` shared parser/plugin fixture.
@@ -19,7 +19,7 @@ Durable rules only. What to do next lives in [next-agents.md](next-agents.md) an
 - `agents.term` refuses agent sends (everything through `agent-files-term`) to a terminal whose harness policy is `human` (ARCHITECTURE §5.1, §11.2). Never add a way around it from the agent side; the tests check it.
 - Runner output is escaped (`\END`, `\## you`, `\! `); never write model text to `thread.md` without `escape_line`.
 - Git failures never fail a turn. Commit only the thread's `thread.md`, `steps/` and `out/`, never sidecars (`status`, `seen`, `STOP`, `last_turn`).
-- Do not edit the operator's `config.toml` or `trial/journal.md`.
+- Do not edit the operator's `config.toml`.
 - Never skip, disable or weaken a test to get green.
 
 ## Checks before every push

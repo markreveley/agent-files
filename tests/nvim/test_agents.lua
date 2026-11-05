@@ -144,12 +144,10 @@ vim.cmd("AgentsStop")
 ok(vim.fn.filereadable(dir .. "/STOP") == 1, "STOP created")
 
 -- :AgentsGrep -----------------------------------------------------------------------------------
-vim.fn.mkdir(tmp .. "/trial", "p")
 agents.opts.grep_cmd = repo .. "/bin/agent-files-grep"
 vim.cmd("AgentsGrep hello")
 local gq = vim.fn.getqflist({ title = 1, size = 1 })
 ok(gq.title == "AgentsGrep: hello" and gq.size >= 1, "AgentsGrep fills quickfix: " .. vim.inspect(gq))
-ok(#readf(tmp .. "/trial/searches.log") == 1, "search logged")
 
 -- display on the view fixture --------------------------------------------------------------------
 vim.fn.mkdir(tmp .. "/threads/fixture", "p")

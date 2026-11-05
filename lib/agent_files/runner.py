@@ -50,14 +50,6 @@ model: null
 You are a helpful, concise assistant. The conversation is a plain-text file the user can edit
 at any point; treat the transcript you are shown as the truth.
 """
-JOURNAL = """## 2026-11-02
-- Used it for:
-- Used instead (Claude app / plain TUI), and why:
-- Worst friction:
-- Forks today: <thread> — helped | hurt | neutral — why
-- Searches whose result I used: <pattern> → <thread>
-- Read threads in: Neovim | browser view | Warp/other viewer   (view-layer §6)
-"""
 
 
 def init(root: str) -> None:
@@ -75,8 +67,6 @@ def init(root: str) -> None:
     put(".gitignore", GITIGNORE)
     put("config.toml", cfgmod.CONFIG_TEMPLATE)
     put("agents/default.md", DEFAULT_AGENT)
-    put("trial/journal.md", JOURNAL)
-    put("trial/searches.log", "")
     os.makedirs(os.path.join(root, "threads"), exist_ok=True)
     keep = os.path.join(root, "threads", ".gitkeep")
     if not os.path.exists(keep):
