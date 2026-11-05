@@ -6,6 +6,7 @@
 - [`2026-11-04-open-questions/`](2026-11-04-open-questions/open-questions.md): every open design and build question not owned by one plan (ARCHITECTURE §13, build spec §14, juggler §7). Proposed.
 - [`2026-11-04-inline-ask/`](2026-11-04-inline-ask/inline-ask.md): questions written inline in any Markdown file, answered on save by `agents.nvim`. Proposed.
 - [`2026-11-04-nvim-sidebar/`](2026-11-04-nvim-sidebar/nvim-sidebar.md): the agent sidebar in `agents.nvim`. Proposed.
+- [`2026-11-05-provenance/`](2026-11-05-provenance/provenance.md): provenance for direct turns: provider ids, hashed and committed step records, operator authorship, `verify`. Proposed; from the investigations repo's Agent Habitat analysis.
 
 ---
 
