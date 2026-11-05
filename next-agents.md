@@ -1,7 +1,7 @@
 ---
 type: handoff
 audience: agent
-updated: 2026-11-04
+updated: 2026-11-05
 ---
 
 # Next steps for agents (AI coding sessions)
@@ -11,7 +11,8 @@ Read with [next-operator.md](next-operator.md). Rewrite both at the end of each 
 You are continuing the M1 build of agent-files. For what agent-files is for and where it goes after M1, read [md/docs/direction-analysis.md](md/docs/direction-analysis.md). For M1 itself, read [md/docs/m1-build-spec.md](md/docs/m1-build-spec.md) first; where it is silent, [md/plans/2026-10-31-m1/m1.md](md/plans/2026-10-31-m1/m1.md) and [ARCHITECTURE.md](md/governance/ARCHITECTURE.md) apply. Standing rules and the pre-push checks are in [AGENTS.md](AGENTS.md).
 
 ## State
-- Git: `main` at `47930bf` has PR #35, which laid the repo out per [repo-template](https://github.com/markreveley/repo-template) (`868468a`): ARCHITECTURE in `md/governance/`, plans and analyses in dated folders, a README with the pinned template text in every `md/` folder, the open questions gathered into [md/plans/2026-11-04-open-questions/open-questions.md](md/plans/2026-11-04-open-questions/open-questions.md), threads moved to thread-archive. `check-layout.sh` reports `layout ok`, and `template-sync` reports every pin in sync. No other branches or worktrees exist.
+- Git: `main` at `a5960e4` has PR #37, the inline-questions plan, on top of PR #35 (the [repo-template](https://github.com/markreveley/repo-template) layout at `868468a`: ARCHITECTURE in `md/governance/`, dated plan and analysis folders, pinned template text in every `md/` README, open questions in [md/plans/2026-11-04-open-questions/open-questions.md](md/plans/2026-11-04-open-questions/open-questions.md), threads in thread-archive). `check-layout.sh` reports `layout ok`. Another session's worktree, `claude/provenance-plan` (at `agent-files-worktrees/provenance-plan`), is not this thread's; leave it to that session or `/merge-worktrees`.
+- **Inline questions (2026-11-04, operator's request; thread: thread-archive `threads/agent-files/2026-11-05-inline-ask-plan.md`):** a `<-`/`->` question in any `.md` file, answered on save in a `===` block by `agents.nvim`. Operator's decisions: a changed question replaces its answer; all `*.md` files by default; built into agent-files with no new dependency (aider is reference only). Triggered by `BufWritePost`, not file watching. Plan: [md/plans/2026-11-04-inline-ask/inline-ask.md](md/plans/2026-11-04-inline-ask/inline-ask.md); next step 2.
 - **Layout rules (2026-11-04):** follow each `md/` folder's README for names and form (AGENTS.md, Layout). ARCHITECTURE §13, build spec §14 and juggler §7 keep closed questions and numbered pointers; a new open question goes in the open-questions plan (`A`/`S`/`J` + its source number), not in those sections. After a template change, run the `template-sync` skill.
 - **2026-11-04, operator's decisions** (thread: thread-archive `threads/agent-files/2026-11-04-nvim-sidebar.md`):
   - **The trial is cancelled, and every trace of it removed.** No hypotheses, journal, measurement or day-10 gate; building is not frozen. `init` no longer creates `trial/`; the hook and grep no longer log; `agent-files-stats` reports threads, turns, spend (by day and thread) and live observed sessions. The session logs were left as written. Don't reintroduce a trial or measurement gate unless the operator asks.
