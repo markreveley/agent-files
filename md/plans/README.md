@@ -4,6 +4,7 @@
 - [`2026-11-03-dag-orchestration/`](2026-11-03-dag-orchestration/dag-orchestration.md): DAG-grounded orchestration, part of M6. Proposed.
 - [`2026-11-03-nvim-addressing/`](2026-11-03-nvim-addressing/nvim-addressing.md): Neovim instances addressable by name. Proposed; waits on the doorbell revisit.
 - [`2026-11-04-open-questions/`](2026-11-04-open-questions/open-questions.md): every open design and build question not owned by one plan (ARCHITECTURE §13, build spec §14, juggler §7). Proposed.
+- [`2026-11-04-inline-ask/`](2026-11-04-inline-ask/inline-ask.md): questions written inline in any Markdown file, answered on save by `agents.nvim`. Proposed.
 - [`2026-11-04-nvim-sidebar/`](2026-11-04-nvim-sidebar/nvim-sidebar.md): the agent sidebar in `agents.nvim`. Proposed.
 
 ---
