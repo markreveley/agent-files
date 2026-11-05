@@ -11,6 +11,7 @@ Durable rules only. What to do next lives in [next-agents.md](next-agents.md) an
 - `bin/` entry points; `lib/agent_files/` shared Python; `nvim/` the `agents.nvim` plugin; `tests/`; `md/docs/examples/view-fixture/` shared parser/plugin fixture.
 - `md/` holds the prose: `docs/` (design, specs, decision records), `analysis/`, `plans/`, `audits/`, `threads/` (session logs). `md/operator-neovim.md` is the operator's own editor layout, not part of agent-files. The handoff files `next-agents.md` and `next-operator.md` stay at the root.
 - **The data root is `$AGENT_FILES_ROOT` (default `~/agent-files/`), never this checkout.** Programs refuse to run if the root contains `bin/agent-files-run`. Tests use temp roots; never write into a real root from a session.
+- **The install clone is `~/code/agent-files`**, separate from this checkout; the operator's `~/.local/bin/agent-files-*` links and Neovim's `runtimepath` point into it. It falls behind `main` after every merge. Pull it (`git -C ~/code/agent-files pull --ff-only`, then `./install.sh` there if an executable was added) only when the operator asks; check `git status` there first and never pull over local changes.
 
 ## Rules for code
 - One parser: everything reading `thread.md` imports `lib/agent_files/thread.py`. `nvim/lua/agents/thread.lua` mirrors it; change both together, with tests.
