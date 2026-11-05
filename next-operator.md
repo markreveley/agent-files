@@ -1,7 +1,7 @@
 ---
 type: handoff
 audience: operator
-updated: 2026-11-04
+updated: 2026-11-05
 ---
 
 # Next steps for the operator
@@ -77,3 +77,4 @@ Report each result to the agent; for a failure, include the exact symptom and th
 - [md/plans/2026-11-03-nvim-addressing/nvim-addressing.md](md/plans/2026-11-03-nvim-addressing/nvim-addressing.md): Q4 (replace `nvim` or use another name?) is open; Q1 waits on the doorbell analysis (next-agents).
 - Design and build questions not owned by one plan (ARCHITECTURE §13 and build spec §14, both now pointers): [md/plans/2026-11-04-open-questions/open-questions.md](md/plans/2026-11-04-open-questions/open-questions.md). None blocks the next step.
 - Before M6: [md/plans/2026-11-03-dag-orchestration/dag-orchestration.md](md/plans/2026-11-03-dag-orchestration/dag-orchestration.md#questions).
+- Accept, change or drop the provenance plan? [md/plans/2026-11-05-provenance/provenance.md](md/plans/2026-11-05-provenance/provenance.md) makes direct-turn records checkable (provider ids, hashed step records, your name on `send` commits, a `verify` command). Its Q1-Q4 come to you when its steps do.
