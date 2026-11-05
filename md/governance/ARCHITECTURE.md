@@ -593,28 +593,28 @@ Entire, Zed's DeltaDB and git-ai answer *which conversation wrote this line?* ag
 
 ## 13. Open questions
 
-Numbers are stable; closed questions keep their number.
+Numbers are stable; closed questions keep their number. Open ones are in the [open-questions plan](../plans/2026-11-04-open-questions/open-questions.md), under the same number with an `A` (`A3` is Q3 here); a question closes there and its answer comes back here.
 
 1. *Closed (2026-11-01):* Channels for a tier-1 bridge — no bridge (§5.1).
 2. *Closed (2026-11-01):* Claude Code hook behaviour, verified against the hooks reference: `Stop` does not fire on interrupt, the failure event is `StopFailure`, `Notification` carries `notification_type`, and `PermissionRequest` signals a pending prompt at once (build spec §6).
-3. Default `context:` mode — resume for code threads, replay for discussion threads?
+3. *Open:* default `context:` mode → [open-questions A3](../plans/2026-11-04-open-questions/open-questions.md#a3).
 4. *Closed (2026-11-01):* Elixir clients for Claude/Codex — no Elixir target (§10.2).
-5. KB granularity and how much grounding to inline vs. summarize.
-6. Codex and other vendors' terms for headless use on consumer plans.
+5. *Open:* KB granularity and how much grounding to inline vs. summarize → [open-questions A5](../plans/2026-11-04-open-questions/open-questions.md#a5).
+6. *Open:* Codex and other vendors' terms for headless use on consumer plans → [open-questions A6](../plans/2026-11-04-open-questions/open-questions.md#a6).
 7. *Closed (2026-11-02):* a native agent loop — yes, as the planning harness (M6, §5.3); not a coding harness ([direction-analysis §3](../docs/direction-analysis.md#3-weaknesses-and-the-planning-harness)). Q12 (Pi) is still graded first.
-8. Which Juggler borrowings to adopt beyond branching-as-directories: intra-turn states (now designed from Pi Durable's recovery patterns, juggler-analysis §3), an approval rules file, budgets. Worktree workspaces are not planned.
-9. Locks across machines, for agent-files' own runtimes only (harness sessions on other hosts are Rex's): an advisory `lock` file naming the host, or "runtimes only on one machine"? Default: one machine.
-10. How a sub-thread's agent declares its turn final (a structured marker, a tool call, or always one task per sub-thread).
-11. **Enforcement (§9).** Which of an agent's tests count as protected oracles and which are its own working tests? How fast must ring-0 checks be before they slow the loop more than they save? How do exceptions expire? Which formal tools are worth it for which cores? Can Claude Code's `Stop` hook reliably keep a session working until checks pass, without loops?
-12. **Pi as a harness.** Pi (`pi --mode rpc`, MIT, multi-provider) could serve as a tier-2 harness for non-Claude models, or as the M6 loop instead of growing our own. Open: can its RPC mode or extensions write the exact requests we want in `steps/`? Pi Durable itself is ruled out as a foundation: it owns opaque state and history is immutable, so it cannot replay an edited file ([host-analysis](../docs/host-analysis.md)).
-13. **Claude Code's own features vs. M3.** Its subagents, `/rewind` and session forking overlap sub-threads for coding work. Grade them against M3 before building it, as TUIOS and Rex were graded against M2.
-14. **Host gaps to watch:** Esc leaves an observed session "working" (a Claude Code gap); whether sessions survive a Rex update.
-15. **T3 Code as a host.** T3 Code runs Claude Code, Codex and others from one GUI, on the operator's own subscriptions. It could replace Rex beside agent-files only if its Claude sessions fire `agent-files-hook` (S9 run in T3 Code). CLIProxyAPI is rejected for Claude: it proxies subscription tokens, which Anthropic forbids. See [md/analysis/2026-11-01-multi-subscription/multi-subscription.md](../analysis/2026-11-01-multi-subscription/multi-subscription.md).
-16. **Entire for capture.** Grade Entire (and SpecStory) against what the return path in §8.1 needs, before building any capture of coding sessions. The test: capture of observed Claude Code and Codex sessions, a checkpoint id we can cite, local-only use with no account, and transcripts kept out of public remotes. Open: what its memory (entire-brain) does.
-17. **`claude -p` fidelity for the planning harness.** Does a flattened thread read as well as the same thread through the API backend, and do `claude-cli` turns get cache reads? Cache reads can be observed at no cost in `steps/*.response.json`; reading quality, by using both. A synthetic session file with `--resume` would restore real turns, but it depends on Claude Code's internal format.
-18. **How a coding session reads a brief.** Options: by path, with `--add-dir` for the data root; a copy committed into the code repo; or a `CLAUDE.md` import. Decide at M6.
-19. **Acceptance defaults.** Which node types default to `manual`, `auto` or `sample` (§7), and what share `sample` sends for review.
-20. **Product.** Reconsider only when the operator has used the record → accept → ground loop for a month, and two or three other people use it without help ([direction-analysis §7](../docs/direction-analysis.md#7-built-for-the-operator-first-kept-product-shaped)).
+8. *Open:* Which Juggler borrowings to adopt beyond branching-as-directories → [open-questions A8](../plans/2026-11-04-open-questions/open-questions.md#a8).
+9. *Open:* Locks across machines, for agent-files' own runtimes only → [open-questions A9](../plans/2026-11-04-open-questions/open-questions.md#a9).
+10. *Open:* How a sub-thread's agent declares its turn final → [open-questions A10](../plans/2026-11-04-open-questions/open-questions.md#a10).
+11. *Open:* Enforcement (§9) → [open-questions A11](../plans/2026-11-04-open-questions/open-questions.md#a11).
+12. *Open:* Pi as a harness → [open-questions A12](../plans/2026-11-04-open-questions/open-questions.md#a12).
+13. *Open:* Claude Code's own features vs. M3 → [open-questions A13](../plans/2026-11-04-open-questions/open-questions.md#a13).
+14. *Open:* Host gaps to watch → [open-questions A14](../plans/2026-11-04-open-questions/open-questions.md#a14).
+15. *Open:* T3 Code as a host → [open-questions A15](../plans/2026-11-04-open-questions/open-questions.md#a15).
+16. *Open:* Entire for capture → [open-questions A16](../plans/2026-11-04-open-questions/open-questions.md#a16).
+17. *Open:* `claude -p` fidelity for the planning harness → [open-questions A17](../plans/2026-11-04-open-questions/open-questions.md#a17).
+18. *Open:* How a coding session reads a brief → [open-questions A18](../plans/2026-11-04-open-questions/open-questions.md#a18).
+19. *Open:* Acceptance defaults → [open-questions A19](../plans/2026-11-04-open-questions/open-questions.md#a19).
+20. *Open:* Product → [open-questions A20](../plans/2026-11-04-open-questions/open-questions.md#a20).
 
 ## 14. Milestones
 

@@ -6,6 +6,7 @@
 - [`rex-host.md`](rex-host.md): decision record on Rex as the host.
 - [`related-repos.md`](related-repos.md): decision record on the repos agent-files relates to.
 - [`role-of-neovim.md`](role-of-neovim.md), [`view-layer.md`](view-layer.md): the Neovim client and the read-only view.
+- [`operator-neovim.md`](operator-neovim.md): the operator's own Neovim and Rex layout; not part of agent-files, but its §3 is how to use `agents.term`.
 - `examples/view-fixture/`: the shared parser and plugin test fixture, read by the tests.
 
 ---

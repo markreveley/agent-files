@@ -1,6 +1,6 @@
 # governance/
 
-- [`ARCHITECTURE.md`](ARCHITECTURE.md): the design of agent-files. Its §13 numbers the open design questions, and its §14 lists the milestones.
+- [`ARCHITECTURE.md`](ARCHITECTURE.md): the design of agent-files. Its §13 numbers the design questions (the open ones are in `../plans/2026-11-04-open-questions/`), and its §14 lists the milestones.
 
 agent-files has no POLICY, SCHEMA, PROCEDURE or DOCTRINE yet. The thread format is in ARCHITECTURE §4 and the build spec.
 

@@ -1,13 +1,13 @@
 # The operator's Neovim setup under Rex
 
-> Status: operator notes · 2026-11-04 · not part of agent-files. agent-files is built for Neovim (Neovim-first since 2026-11-04); this is how the operator's own Neovim and Rex fit together. For what agent-files does with Rex, read [md/docs/rex-host.md](docs/rex-host.md).
+> Status: operator notes · 2026-11-04 · not part of agent-files. agent-files is built for Neovim (Neovim-first since 2026-11-04); this is how the operator's own Neovim and Rex fit together. For what agent-files does with Rex, read [md/docs/rex-host.md](rex-host.md).
 
 ## 1. The layout
 
 - **One Rex session per repo.** Before, there was one Ghostty tab per repo. Rex sessions do the same job and keep running when the app quits; reopen it and every session is where you left it.
 - **One Neovim per session**, in a Rex pane: nvim-tree on the left, files in the middle, the agent on the right. `<space>cc` toggles the agent: `coder/claudecode.nvim` runs `claude` in a native `:terminal` split (40 % width, right side), and is also its IDE (selection, diffs).
 - **Moving between panes:** `ctrl-w h/j/k/l`, as before. Everything is in one Neovim, so Neovim's window keys reach every pane, agents included. Rex's own pane keys come into it only if you split Rex panes beside Neovim.
-- **More agents or shells for the same repo:** a Neovim tab or a window split with `:terminal`, as before. A Rex tab or pane would also work, but `ctrl-w` doesn't reach it. Planned: the `agents.nvim` sidebar starts, lists and switches the agent sessions in this Neovim ([plan](plans/2026-11-04-nvim-sidebar/nvim-sidebar.md)).
+- **More agents or shells for the same repo:** a Neovim tab or a window split with `:terminal`, as before. A Rex tab or pane would also work, but `ctrl-w` doesn't reach it. Planned: the `agents.nvim` sidebar starts, lists and switches the agent sessions in this Neovim ([plan](../plans/2026-11-04-nvim-sidebar/nvim-sidebar.md)).
 - **Copying out:** `"+y` from a file or an agent's terminal buffer, paste into a shell.
 
 ## 2. What Rex adds over Ghostty alone

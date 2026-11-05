@@ -40,7 +40,7 @@ Add `~/code/agent-files/nvim` to Neovim's `runtimepath` and call:
 ```lua
 require('agents').setup({ root = '~/agent-files', tabline = true })
 ```
-That also defines `:AgentsTerms`, `:AgentsTermSend` and `:AgentsTermCapture` (ARCHITECTURE §11.2); your own layout is in [md/operator-neovim.md](md/operator-neovim.md). The sidebar's commands and your keymaps for it come with its build (plan step 5).
+That also defines `:AgentsTerms`, `:AgentsTermSend` and `:AgentsTermCapture` (ARCHITECTURE §11.2); your own layout is in [md/docs/operator-neovim.md](md/docs/operator-neovim.md). The sidebar's commands and your keymaps for it come with its build (plan step 5).
 Do view-layer step 0 (a generic markdown renderer, about an hour) and confirm you can read `md/docs/examples/view-fixture/thread.md` comfortably.
 
 ## 4. Start the runner
@@ -73,4 +73,5 @@ Report each result to the agent; for a failure, include the exact symptom and th
 - None blocking.
 - For the sidebar, when its steps come up: [Q1 and Q2 of the plan](md/plans/2026-11-04-nvim-sidebar/nvim-sidebar.md#questions) (selection broadcast to every session; whether `--resume` keeps the session id, which the agent checks).
 - [md/plans/2026-11-03-nvim-addressing/nvim-addressing.md](md/plans/2026-11-03-nvim-addressing/nvim-addressing.md): Q4 (replace `nvim` or use another name?) is open; Q1 waits on the doorbell analysis (next-agents).
+- Design and build questions not owned by one plan (ARCHITECTURE §13 and build spec §14, both now pointers): [md/plans/2026-11-04-open-questions/open-questions.md](md/plans/2026-11-04-open-questions/open-questions.md). None blocks the next step.
 - Before M6: [md/plans/2026-11-03-dag-orchestration/dag-orchestration.md](md/plans/2026-11-03-dag-orchestration/dag-orchestration.md#questions).

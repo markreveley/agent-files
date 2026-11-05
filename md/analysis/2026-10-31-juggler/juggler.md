@@ -126,8 +126,8 @@ The one place a CRDT would clearly win is real-time collaboration between people
 
 **Milestone:** M6; its priority relative to M3–M5 is set after M1.
 
-## 7. Open questions
+## 7. Questions raised
 
 1. *Closed (2026-11-01):* how Juggler drives `claude` on Pro/Max mattered only for the M2 bridge, which is dropped.
-2. Is the `events.jsonl` sidecar worth its weight from M1, or only once the native loop exists?
-3. Locks across machines — an advisory `lock` file naming the host, or simply "runtimes only on one machine"? (ARCHITECTURE §13.)
+2. The `events.jsonl` sidecar, from M1 or only with the native loop: moved to [open-questions J2](../../plans/2026-11-04-open-questions/open-questions.md#j2).
+3. Locks across machines: the same as ARCHITECTURE §13 Q9, now [open-questions A9](../../plans/2026-11-04-open-questions/open-questions.md#a9).

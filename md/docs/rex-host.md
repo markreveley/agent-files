@@ -81,7 +81,7 @@ Still allowed: your own text through either path (`:AgentsTermSend` on a selecti
 
 - ARCHITECTURE v0.7: §1, §5, §5.1, §8, §10, §11 (new §11.2), §12, §13 Q8, Q9, Q13–Q15, §14.
 - README, AGENTS.md, next-agents.md, next-operator.md (step 2a is now "Host in Rex"; S9 runs inside Rex), role-of-neovim §1.
-- The operator's own Neovim layout, outside agent-files: [md/operator-neovim.md](../operator-neovim.md).
+- The operator's own Neovim layout, outside agent-files: [operator-neovim.md](operator-neovim.md).
 - Not edited, read with this record: [host-analysis](host-analysis.md), [direction-analysis](direction-analysis.md), [juggler-analysis](../analysis/2026-10-31-juggler/juggler.md) (worktrees "adopted from TUIOS" are now unowned), [multi-subscription-analysis](../analysis/2026-11-01-multi-subscription/multi-subscription.md) ("replace TUIOS" now means "replace Rex"), [m1-plan](../plans/2026-10-31-m1/m1.md) (the needs-you list for harness sessions is the observed threads), and the session logs (now in thread-archive, `threads/agent-files/`).
 
 ## 6. Sources
