@@ -17,7 +17,7 @@ M1 is built and tested against the mock backend. Nothing has yet run through the
 Already done on this Mac: the install clone at `~/code/agent-files` (pulled to `1a85870` on 2026-11-04; see README), `./install.sh` (links in `~/.local/bin`, on `PATH`), `uv`, `git`, Python 3.14, Neovim 0.12.5, Rex Beta 0.1.0, ripgrep 15.2.0, and `agent-files-run init`. The data root is at `~/dev/repos/agent-files-data`, with `~/agent-files` linking to it. It has a private remote (`markreveley/agent-files-data`, added 2026-11-04); nothing pushes it automatically, so `git -C ~/agent-files push` when you want a backup.
 
 ## 0. Tidy up after the change
-- Delete the neovim-agent-sidebar repo: its GitHub repo (`markreveley/neovim-agent-sidebar`) and the local checkout `~/dev/repos/neovim-agent-sidebar`. It has no commits; its plan lives on here.
+- Delete the neovim-agent-sidebar repo: its GitHub repo (`markreveley/neovim-agent-sidebar`) and the local checkout `~/dev/repos/neovim-agent-sidebar`. GitHub has no commits; the local checkout has one (the layout and the superseded v1 plan) and uncommitted edits, none of which is needed: the plan lives on here.
 
 ## 1. Configure
 - Prices are done (2026-11-02): `~/agent-files/config.toml` has blocks for `claude-opus-5-5`, `claude-fable-5-1`, `claude-sonnet-5-5` and `claude-haiku-5-5`. Any other paid model needs its own block, keyed by the exact `model:` name in quotes; without one it counts as $0 and the spend cap doesn't protect it. Local `ollama/...` and `lmstudio/...` models need none.
