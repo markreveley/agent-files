@@ -7,6 +7,7 @@
 - [`2026-11-04-inline-ask/`](2026-11-04-inline-ask/inline-ask.md): questions written inline in any Markdown file, answered on save by `agents.nvim`. Proposed.
 - [`2026-11-04-nvim-sidebar/`](2026-11-04-nvim-sidebar/nvim-sidebar.md): the agent sidebar in `agents.nvim`. Proposed.
 - [`2026-11-05-provenance/`](2026-11-05-provenance/provenance.md): provenance for direct turns: provider ids, hashed and committed step records, operator authorship, `verify`. Proposed; from the investigations repo's Agent Habitat analysis.
+- [`2026-11-05-morla/`](2026-11-05-morla/morla.md): morla-neovim as the plain-English command lane for `agents.nvim`; intent decides whether a send is human (ARCHITECTURE §5.1). Accepted; milestone M1.6, after the sidebar.
 
 ---
 
