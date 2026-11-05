@@ -15,7 +15,9 @@ Direction: [md/docs/direction-analysis.md](md/docs/direction-analysis.md). Desig
 
 **The data root is `~/agent-files/` (or `$AGENT_FILES_ROOT`) — do not clone this repo there.**
 
-agent-files is built around Neovim: Claude Code and Codex sessions run in Neovim's terminal buffers, listed in a sidebar ([md/plans/2026-11-04-nvim-sidebar.md](md/plans/2026-11-04-nvim-sidebar.md), being built), and Neovim runs in a [Superlogical Rex](https://superlogical.com) pane, which keeps it alive. agent-files observes the sessions through hooks ([md/docs/rex-host.md](md/docs/rex-host.md)). TUIOS is the fallback host.
+agent-files is built around Neovim: Claude Code and Codex sessions run in Neovim's terminal buffers, listed in a sidebar ([md/plans/2026-11-04-nvim-sidebar.md](md/plans/2026-11-04-nvim-sidebar.md), being built), and Neovim runs in a [Superlogical Rex](https://superlogical.com) pane, which keeps it alive. agent-files observes the sessions through hooks ([md/docs/rex-host.md](md/docs/rex-host.md)).
+
+Install from a clone of its own, not the one you develop in: `install.sh` links `~/.local/bin/agent-files-*` into whichever clone it runs from, so the tools you run would change with every branch you check out. The operator's install clone is `~/code/agent-files`. To update it after a merge: `git -C ~/code/agent-files pull --ff-only`, then run its `./install.sh` again (needed only when a new executable is added).
 
 ```sh
 ./install.sh                 # symlinks bin/*, prints the hook block for ~/.claude/settings.json
