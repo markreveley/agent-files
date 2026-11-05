@@ -1,7 +1,7 @@
 # The role of Neovim
 
-> Status: draft · 2026-11-04 · companion to [ARCHITECTURE.md](../../ARCHITECTURE.md) §11
-> Built: the file watcher, the file-writing commands and `agents.term`; the session sidebar is planned ([2026-11-04-nvim-sidebar](../plans/2026-11-04-nvim-sidebar.md)). Neovim-first since 2026-11-04: Neovim is where the harness sessions run and are shown. **The doorbell (§3–§6, §9–§10 and the ring rows of §8: ring, registry, notify) is dropped (2026-11-01) and kept here as a record.** Attention for Claude Code sessions is their observed threads, shown in `agents.nvim` ([rex-host](rex-host.md) superseded the TUIOS Inbox of [host-analysis](host-analysis.md)); for agent-files' own threads the local file watcher is enough.
+> Status: draft · 2026-11-04 · companion to [ARCHITECTURE.md](../governance/ARCHITECTURE.md) §11
+> Built: the file watcher, the file-writing commands and `agents.term`; the session sidebar is planned ([2026-11-04-nvim-sidebar](../plans/2026-11-04-nvim-sidebar/nvim-sidebar.md)). Neovim-first since 2026-11-04: Neovim is where the harness sessions run and are shown. **The doorbell (§3–§6, §9–§10 and the ring rows of §8: ring, registry, notify) is dropped (2026-11-01) and kept here as a record.** Attention for Claude Code sessions is their observed threads, shown in `agents.nvim` ([rex-host](rex-host.md) superseded the TUIOS Inbox of [host-analysis](host-analysis.md)); for agent-files' own threads the local file watcher is enough.
 
 Neovim is where agent-files runs and is seen. The `claude` and `codex` sessions run in its terminal buffers, started and switched from a sidebar, and it is where you read threads, write turns and notice what needs you. Rex keeps Neovim, and so those sessions, alive when the terminal app quits. The files stay the source of truth: Neovim holds no state that is not on disk. Its RPC server was to be a **doorbell** — a best-effort signal that tells one Neovim instance to look at one file now, so that the person at that editor notices. Nothing in agent-files depends on it; the files are the mailbox.
 
@@ -9,7 +9,7 @@ Neovim is where agent-files runs and is seen. The `claude` and `codex` sessions 
 
 Neovim does four jobs in agent-files, all on the human side of the system.
 
-1. **Home of the harness sessions.** `agents.nvim` starts `claude` and `codex` in terminal buffers, lists them with agent-files' own threads in a sidebar, and shows the chosen one in the main window ([sidebar plan](../plans/2026-11-04-nvim-sidebar.md)). Sessions keep running while not shown, and a closed Claude session can be resumed from the list. `agents.term` reads and types into those terminals, under the send policy (ARCHITECTURE §5.1, §11.2).
+1. **Home of the harness sessions.** `agents.nvim` starts `claude` and `codex` in terminal buffers, lists them with agent-files' own threads in a sidebar, and shows the chosen one in the main window ([sidebar plan](../plans/2026-11-04-nvim-sidebar/nvim-sidebar.md)). Sessions keep running while not shown, and a closed Claude session can be resumed from the list. `agents.term` reads and types into those terminals, under the send policy (ARCHITECTURE §5.1, §11.2).
 2. **Viewer.** It renders thread files: folds for tool output, a status mark per thread in the tabline, the needs-you list in quickfix.
 3. **Editor.** It is where you write your turns, fork threads, and answer permission questions. Ending your turn with `END` (`:AgentsSend`) is sending; saving a draft is not.
 4. **Attention surface.** When a `direct` thread (or an `observed` mirror) needs you: a tabline mark, a popup, the terminal bell, an entry in the quickfix list. Harness sessions ask for you through their observed threads, so the same marks, the sidebar and `:AgentsNext` cover them.

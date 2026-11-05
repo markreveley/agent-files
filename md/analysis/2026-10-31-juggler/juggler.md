@@ -1,8 +1,14 @@
 # Juggler as a reference — supplemental analysis
 
-> Status: draft · 2026-11-04 · companion to [ARCHITECTURE.md](../../ARCHITECTURE.md)
-> Sources: [juggler.studio](https://juggler.studio) and [its features page](https://juggler.studio/features.html), read 2026-10-31. Source code (not yet read): [github.com/juggler-ai/juggler](https://github.com/juggler-ai/juggler).
-> **Note (2026-11-04):** agent-files is now Neovim-first: Neovim runs the harness sessions, so "the editor is a client" below is out of date, and worktrees "adopted from TUIOS" are unowned since Rex became the host ([rex-host](rex-host.md)).
+**Date:** 2026-10-31, updated 2026-11-04. Companion to [ARCHITECTURE.md](../../governance/ARCHITECTURE.md).
+
+**Question.** What can agent-files take from Juggler, the closest existing tool to it, and where does it differ?
+
+**Sources read.** [juggler.studio](https://juggler.studio) and [its features page](https://juggler.studio/features.html), read 2026-10-31. Not read: the source code at [github.com/juggler-ai/juggler](https://github.com/juggler-ai/juggler).
+
+**Method caveat.** Everything about Juggler is as its own site describes it; nothing was installed or run.
+
+> **Note (2026-11-04):** agent-files is now Neovim-first: Neovim runs the harness sessions, so "the editor is a client" below is out of date, and worktrees "adopted from TUIOS" are unowned since Rex became the host ([rex-host](../../docs/rex-host.md)).
 
 **Summary.** Juggler is the closest reference so far. It already ships most of our context ideas — editable history, branching, sub-threads that return only results, approvals as persistent state, model switching mid-conversation. The difference is where those ideas live: Juggler builds its own agent loop and stores conversations as live-synced CRDT documents behind a native app. agent-files keeps them in plain files and borrows existing harnesses. That difference is our angle:
 
@@ -41,13 +47,13 @@
 | Conversation tree (Miller columns) | Threads are directories; branches are subdirectories; `tree threads/` is the branch view | **Adopted** (ARCHITECTURE §4.1) |
 | Non-destructive compaction | An explicit rewrite the runtime performs while holding the turn; originals moved to `archive/`, a `## note` records it | **Adopted** (ARCHITECTURE §4.5 rule 9) |
 | Step inspection | `steps/NNNN.request.json` + `.response.json`; inspect with `jq`, compare turns with `diff` | **Adopted** in layout — only where we call the model API ourselves (direct, native loop); inside Claude Code or Codex we only have transcripts |
-| Turn as named states (model → tools → approval → next call) | Stable turn ids are **adopted** (`## agent · tN`); intra-turn states go in a sidecar (not the frontmatter, which is yours), so a restarted runtime knows where to resume. Recovery rules, taken from Pi Durable ([host-analysis](host-analysis.md)): (1) each tool is declared replay-safe or not — on resume after a crash only replay-safe tool calls re-run, and the others are reported to the model as interrupted, instead of closing the whole turn `END (interrupted)`; (2) the turn id `tN` is the idempotency key for a send, so a send can never be applied twice; (3) a recorded answer (`> y`, `> grant`) is first-write-wins and never rewritten | Proposed (M6) |
+| Turn as named states (model → tools → approval → next call) | Stable turn ids are **adopted** (`## agent · tN`); intra-turn states go in a sidecar (not the frontmatter, which is yours), so a restarted runtime knows where to resume. Recovery rules, taken from Pi Durable ([host-analysis](../../docs/host-analysis.md)): (1) each tool is declared replay-safe or not — on resume after a crash only replay-safe tool calls re-run, and the others are reported to the model as interrupted, instead of closing the whole turn `END (interrupted)`; (2) the turn id `tN` is the idempotency key for a send, so a send can never be applied twice; (3) a recorded answer (`> y`, `> grant`) is first-write-wins and never rewritten | Proposed (M6) |
 | Narrow, editable approval rules | One text rules file per project, in Claude Code's allow/deny syntax | Proposed |
 | Token budget per sub-agent, spend ceiling per conversation | `budget:` in frontmatter, enforced by the supervisor | Proposed — matters once SDK credit / API billing is in play |
 | Workspace per conversation | For harness sessions: TUIOS `worktree new` / `ship` / `fan` (ARCHITECTURE §12) | **Adopted from TUIOS** (2026-11-01) — not built here |
 | Read-only explore/research sub-agents in parallel | Sub-thread template with read-only tools; many may run at once | Proposed |
 | Extension SDK | Executables on `PATH`: `agent-files-<name>`, arguments/JSON in, JSON out | **Adopted** as principle 3 |
-| Export to Markdown/HTML | Markdown stays the source; a read-only HTML view is generated from it ([view-layer.md](view-layer.md)) | Proposed |
+| Export to Markdown/HTML | Markdown stays the source; a read-only HTML view is generated from it ([view-layer.md](../../docs/view-layer.md)) | Proposed |
 
 ## 4. Where we deliberately differ
 
@@ -95,7 +101,7 @@ The one place a CRDT would clearly win is real-time collaboration between people
 
 **Recommendation: yes, but deliberately small — and not as the main coding harness.**
 
-> **Decided 2026-11-02:** yes, as the **planning harness** (M6): planning, research, review, extraction, proposing nodes and writing briefs; coding farmed out to Claude Code and Codex, which come back as records ([direction-analysis §3](direction-analysis.md#3-weaknesses-and-the-planning-harness), ARCHITECTURE §5.3, §8.1). Juggler as checked on 2026-11-02 (features page): Claude through "your own unmodified `claude` CLI" on Pro/Max or an API key; `~/.juggler` "is plain files", with export to Markdown or HTML; project memory in `.juggler/MEMORY.md`; no knowledge base or decision record. A general coding harness of our own would compete with it on its strengths; a planning harness does not.
+> **Decided 2026-11-02:** yes, as the **planning harness** (M6): planning, research, review, extraction, proposing nodes and writing briefs; coding farmed out to Claude Code and Codex, which come back as records ([direction-analysis §3](../../docs/direction-analysis.md#3-weaknesses-and-the-planning-harness), ARCHITECTURE §5.3, §8.1). Juggler as checked on 2026-11-02 (features page): Claude through "your own unmodified `claude` CLI" on Pro/Max or an API key; `~/.juggler` "is plain files", with export to Markdown or HTML; project memory in `.juggler/MEMORY.md`; no knowledge base or decision record. A general coding harness of our own would compete with it on its strengths; a planning harness does not.
 
 **For a native loop:**
 

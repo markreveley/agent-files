@@ -2,7 +2,7 @@
 
 The logbook for human–agent work: every exchange a file you can edit as context, every settled conclusion a node that records who or what accepted it, every change linked to the turns and decisions behind it — in Neovim, beside the harnesses.
 
-Direction: [md/docs/direction-analysis.md](md/docs/direction-analysis.md). Design: [ARCHITECTURE.md](ARCHITECTURE.md). This build (M1, threads as plain-text files): [md/docs/m1-build-spec.md](md/docs/m1-build-spec.md).
+Direction: [md/docs/direction-analysis.md](md/docs/direction-analysis.md). Design: [ARCHITECTURE.md](md/governance/ARCHITECTURE.md). This build (M1, threads as plain-text files): [md/docs/m1-build-spec.md](md/docs/m1-build-spec.md).
 
 | Piece | What |
 |---|---|
@@ -13,9 +13,19 @@ Direction: [md/docs/direction-analysis.md](md/docs/direction-analysis.md). Desig
 | `bin/agent-files-term` | list, read and type into Neovim's terminal buffers; agents can't type into `claude` / `codex` (ARCHITECTURE §11.2) |
 | `nvim/` | `agents.nvim`: marks, read-only while working, `:AgentsNew/Send/Stop/Fork/Next/Blocked/Grep`; `:AgentsTerms`, `:AgentsTermSend`, `:AgentsTermCapture` |
 
+## What is where
+
+| path | holds |
+|---|---|
+| `bin/`, `lib/agent_files/`, `nvim/`, `install.sh` | the tools above, their shared Python, the Neovim plugin, the installer |
+| `tests/` | unit, Neovim and smoke tests; `tests/fixtures/` is Markdown the tests read (in `.layoutignore`) |
+| [`md/`](md/README.md) | the prose: [ARCHITECTURE](md/governance/ARCHITECTURE.md), docs, plans, analyses, issues |
+| `AGENTS.md` | working rules for agents and people; `CLAUDE.md` imports it |
+| `next-agents.md`, `next-operator.md` | handoff: where the last thread stopped |
+
 **The data root is `~/agent-files/` (or `$AGENT_FILES_ROOT`) — do not clone this repo there.**
 
-agent-files is built around Neovim: Claude Code and Codex sessions run in Neovim's terminal buffers, listed in a sidebar ([md/plans/2026-11-04-nvim-sidebar.md](md/plans/2026-11-04-nvim-sidebar.md), being built), and Neovim runs in a [Superlogical Rex](https://superlogical.com) pane, which keeps it alive. agent-files observes the sessions through hooks ([md/docs/rex-host.md](md/docs/rex-host.md)).
+agent-files is built around Neovim: Claude Code and Codex sessions run in Neovim's terminal buffers, listed in a sidebar ([md/plans/2026-11-04-nvim-sidebar/nvim-sidebar.md](md/plans/2026-11-04-nvim-sidebar/nvim-sidebar.md), being built), and Neovim runs in a [Superlogical Rex](https://superlogical.com) pane, which keeps it alive. agent-files observes the sessions through hooks ([md/docs/rex-host.md](md/docs/rex-host.md)).
 
 Install from a clone of its own, not the one you develop in: `install.sh` links `~/.local/bin/agent-files-*` into whichever clone it runs from, so the tools you run would change with every branch you check out. The operator's install clone is `~/code/agent-files`. To update it after a merge: `git -C ~/code/agent-files pull --ff-only`, then run its `./install.sh` again (needed only when a new executable is added).
 

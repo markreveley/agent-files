@@ -1,12 +1,12 @@
 # Plan: DAG-grounded orchestration
 
-> Status: proposed · 2026-11-04 · from [orchestrator-analysis](../analysis/orchestrator-analysis.md); part of M6 ([ARCHITECTURE §14](../../ARCHITECTURE.md#14-milestones))
+> Status: proposed · 2026-11-04 · from [orchestrator-analysis](../../analysis/2026-11-03-orchestrator/orchestrator.md); part of M6 ([ARCHITECTURE §14](../../governance/ARCHITECTURE.md#14-milestones))
 
 **Goal.** The planning harness reads a question, picks the DAG nodes it bears on, and briefs an agent with that subgraph. The agent walks DAGs first, and every claim in its answer carries a label. What was adopted and why is in the analysis. This file holds the order of work and the questions it waits on.
 
 ## Steps
 
-Each step names the question it waits on. When a step comes up, its question moves to [next-operator.md](../../next-operator.md) as blocking.
+Each step names the question it waits on. When a step comes up, its question moves to [next-operator.md](../../../next-operator.md) as blocking.
 
 1. **Measure graph against grep** (analysis §5). Run about 20 real questions three ways: grep only, DAG-grounded, and both. Record tokens and tool calls from `steps/`, and grade answers against accepted nodes. Decide in advance what result would change the plan. *Waits on Q3.*
 2. **Acceptance for existing DAGs** (analysis §6). No node in identikey-dev or the second project DAG has `status` or `accepted_by` (0 of 842 files, 2026-11-03), so nothing counts as `grounded` yet. *Waits on Q2.*

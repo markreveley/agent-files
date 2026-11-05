@@ -1,6 +1,6 @@
 # Plan: the agent sidebar in `agents.nvim`
 
-> Status: proposed · 2026-11-04 · replaces the separate neovim-agent-sidebar repo, which is folded in here and deleted · thread: [md/threads/2026-11-04-nvim-sidebar.md](../threads/2026-11-04-nvim-sidebar.md)
+> Status: proposed · 2026-11-04 · replaces the separate neovim-agent-sidebar repo, which is folded in here and deleted · thread: thread-archive `threads/agent-files/2026-11-04-nvim-sidebar.md`
 
 **Goal.** A pane on the left of Neovim lists every agent: the `claude` and `codex` sessions running in Neovim's terminals, and agent-files' own threads. Moving onto one and pressing Enter shows it in the main window, the way nvim-tree opens a file: a session's terminal, or a thread's `thread.md`. Sessions keep running while not shown, and closed Claude sessions can be resumed from the list.
 
@@ -8,7 +8,7 @@
 
 ## Decisions
 
-- **D1. Sessions are terminal buffers, not tabs.** A `:terminal` is a buffer; its process runs whether or not a window shows it. Showing a session is `nvim_win_set_buf(main_win, buf)`. Tabs stay free, and the operator's `nk` (zoom into a new tab) and `nK` keymaps work on a session window unchanged ([md/operator-neovim.md](../operator-neovim.md)).
+- **D1. Sessions are terminal buffers, not tabs.** A `:terminal` is a buffer; its process runs whether or not a window shows it. Showing a session is `nvim_win_set_buf(main_win, buf)`. Tabs stay free, and the operator's `nk` (zoom into a new tab) and `nK` keymaps work on a session window unchanged ([md/operator-neovim.md](../../operator-neovim.md)).
 - **D2. Sessions run as children of Neovim** (`jobstart(cmd, { term = true })`). Quitting Neovim ends them; resuming (D6) brings Claude sessions back. Rex keeps Neovim, and so the sessions, alive when the terminal app quits.
 - **D3. The harness is a command.** `claude` by default, `codex` or any other. Hook-based status (D5) and resume (D6) apply to Claude Code only; other harnesses get activity status.
 - **D4. Claude sessions connect to claudecode.nvim, if it is installed.** Each `claude` starts with the environment claudecode.nvim gives its own terminal (`lua/claudecode/terminal.lua`): `ENABLE_IDE_INTEGRATION=true`, `FORCE_CODE_TERMINAL=true`, `CLAUDE_CODE_SSE_PORT=<require("claudecode.server.init").state.port>`. Each session then opens files and shows diffs in this Neovim; the server tracks diffs per client, so several sessions can connect at once (read in claudecode.nvim's source on 2026-11-04: `lua/claudecode/server/tcp.lua` keeps a table of clients, and `diff.close_diffs_for_client` closes one client's diffs; recheck after a plugin update). Without claudecode.nvim this step is skipped. Consequence for the runner: these variables are inherited by anything a session runs, including `agent-files-run`, so the `claude -p` backend removes them (and every other `CLAUDE_CODE_*` IDE variable) from its environment, as it already removes the API keys. Otherwise a headless turn could connect to Neovim's IDE server and gain tools.
@@ -47,7 +47,7 @@
 
 ## Out of scope
 
-A worktree per session, rendering transcripts as anything but the terminal, harnesses without a terminal, the Rex backend (D9), and the addressable-Neovim plan ([nvim-addressing.md](nvim-addressing.md)), which stays separate.
+A worktree per session, rendering transcripts as anything but the terminal, harnesses without a terminal, the Rex backend (D9), and the addressable-Neovim plan ([nvim-addressing.md](../2026-11-03-nvim-addressing/nvim-addressing.md)), which stays separate.
 
 ## Questions
 

@@ -1,7 +1,13 @@
 # Multi-subscription tools: CLIProxyAPI and T3 Code
 
-> Status: research spike · 2026-11-04 · companion to [host-analysis.md](host-analysis.md) and [ARCHITECTURE.md](../../ARCHITECTURE.md) §5.1, §13 Q6, Q15
-> Method: READMEs, project sites, T3 Code's `docs/internals/overview.md` and `providers.md`, and Anthropic's Claude Code legal and compliance page. Nothing was cloned, built or run. The video "T3 Code broke me" (youtube.com/watch?v=uLGxb4F3SyI) could not be read; only its title was available.
+**Date:** 2026-11-01, updated 2026-11-04. Companion to [host-analysis.md](../../docs/host-analysis.md) and [ARCHITECTURE.md](../../governance/ARCHITECTURE.md) §5.1, §13 Q6, Q15.
+
+**Question.** Should agent-files use CLIProxyAPI or T3 Code to put several model subscriptions behind one interface?
+
+**Sources read.** READMEs, project sites, T3 Code's `docs/internals/overview.md` and `providers.md`, and Anthropic's Claude Code legal and compliance page. Not read: the video "T3 Code broke me" (youtube.com/watch?v=uLGxb4F3SyI); only its title was available.
+
+**Method caveat.** Nothing was cloned, built or run; both tools are as their own documents describe them.
+
 > **Superseded in part (2026-11-04):** agent-files is now Neovim-first: harness sessions run in Neovim terminal buffers under `agents.nvim`, so T3 Code is no longer a host candidate. §2 on CLIProxyAPI stands.
 
 **Decision.** CLIProxyAPI is not used for Claude. T3 Code doesn't change M1. T3 Code may later be graded as a harness host next to TUIOS, but only if a session it starts fires `agent-files-hook` (§3).
@@ -36,7 +42,7 @@ T3 Code does not run agent-files, just as TUIOS doesn't. Like TUIOS, it could on
 
 **The test that decides it:** run smoke test S9 with T3 Code as the host. Start a Claude session in T3 Code, trigger a permission prompt, and check that `_observed/...` appears in the data root and that `:AgentsNext` shows `blocked`. If it fails, T3 Code can't host sessions for agent-files and isn't a candidate.
 
-**If S9 passes:** grade T3 Code against the 21 items in [host-analysis §1](host-analysis.md#1-session-host-and-attention--21-items) before switching anything.
+**If S9 passes:** grade T3 Code against the 21 items in [host-analysis §1](../../docs/host-analysis.md#1-session-host-and-attention--21-items) before switching anything.
 
 ## Sources
 - github.com/router-for-me/CLIProxyAPI

@@ -1,8 +1,8 @@
 # Direction — the logbook, a planning harness, and what to adopt
 
-> Status: decision record · 2026-11-04 · companion to [ARCHITECTURE.md](../../ARCHITECTURE.md) §1, §7, §8.1, §9.6, §14
+> Status: decision record · 2026-11-04 · companion to [ARCHITECTURE.md](../governance/ARCHITECTURE.md) §1, §7, §8.1, §9.6, §14
 > Method: the git history before and after the TUIOS decision (`6e60896`, `e194b0a`), the installed TUIOS binary, the operator's related repos, and a web survey of hosts, harnesses and attribution tools (2026-11-02). Where only a secondary page says so, it is marked *(unverified)*.
-> **Superseded in part (2026-11-04):** agent-files is now Neovim-first. `agents.nvim` runs the `claude` and `codex` sessions in Neovim terminal buffers, and Rex hosts Neovim ([rex-host](rex-host.md), [sidebar plan](../plans/2026-11-04-nvim-sidebar.md)). Where this record says agent-files is "not a host" or keeps TUIOS as the host, that no longer holds; the rest stands.
+> **Superseded in part (2026-11-04):** agent-files is now Neovim-first. `agents.nvim` runs the `claude` and `codex` sessions in Neovim terminal buffers, and Rex hosts Neovim ([rex-host](rex-host.md), [sidebar plan](../plans/2026-11-04-nvim-sidebar/nvim-sidebar.md)). Where this record says agent-files is "not a host" or keeps TUIOS as the host, that no longer holds; the rest stands.
 
 **Decision.** agent-files is the **logbook for human–agent work**. It is not a host and not a coding harness. It keeps TUIOS as the host. It builds a small **planning harness**, grown from `agent-files-run`. Coding is farmed out to Claude Code and Codex, and their sessions come back as records. The knowledge base is built on **artifact-dag**. Capture tools for coding sessions (Entire first) are graded before any capture is built. M1 is the first build; attribution and the DAG are the record work that follows it (§8). agent-files is built for the operator first, in a shape that could become a product (§7).
 
@@ -38,7 +38,7 @@ The planning harness is where the loop starts and closes. Coding harnesses, and 
 - **GUI.** The interaction model itself (type `END` to send, edit above `END`) is unfamiliar to most people. It doesn't matter for the operator's own use; it is the main barrier for a product. The HTML view is the cheap test of it. Reaching GUI users takes the web, not a terminal toolkit.
 - **A custom harness.**
   - *A general coding harness was considered and rejected.* It would compete with Juggler, which already has editable history (rewind, fork, delete), full step inspection with cache-miss warnings, Claude through the unmodified CLI on Pro/Max, desktop, browser and phone clients, and headless mode. Behind Juggler are Claude Code, Codex, OpenCode, Pi and Crush. The cost would be coding quality, sandboxing, upkeep for every provider, and the operator's time, all taken from the parts only agent-files has. The gains would be editable context that includes tool use, not only conversation; checks built into the loop; one record for all the operator's work; and a UI of its own.
-  - *A planning harness is the decision.* Planning, research, review, extraction and proposing nodes happen in agent-files' own loop. Coding is farmed out. This was mostly the original plan: v0.4 listed "being the main coding harness" as a non-goal, and [juggler-analysis §6](juggler-analysis.md#6-should-we-have-our-own-agent-loop) scoped a small loop to that work. What it left vague was the handoff in both directions. Now it is first-class: briefs out, records back ([ARCHITECTURE §8.1](../../ARCHITECTURE.md#81-the-logbook-loop--briefs-out-records-back)).
+  - *A planning harness is the decision.* Planning, research, review, extraction and proposing nodes happen in agent-files' own loop. Coding is farmed out. This was mostly the original plan: v0.4 listed "being the main coding harness" as a non-goal, and [juggler-analysis §6](../analysis/2026-10-31-juggler/juggler.md#6-should-we-have-our-own-agent-loop) scoped a small loop to that work. What it left vague was the handoff in both directions. Now it is first-class: briefs out, records back ([ARCHITECTURE §8.1](../governance/ARCHITECTURE.md#81-the-logbook-loop--briefs-out-records-back)).
   - *Differentiation from Juggler:* a DAG whose nodes record who accepted them, with invalidation that reaches threads and commits (Juggler has a `MEMORY.md` and no knowledge base or decision record). Also a record of *other* harnesses' sessions, and markdown as the source of truth. Juggler could even be one of the engines coding is farmed out to.
 
 ## 4. The host fork, reconsidered
@@ -103,7 +103,7 @@ They all answer *which conversation wrote this line?* agent-files answers the ne
 
 ## Sources
 
-- agent-files history: ARCHITECTURE v0.4 at `6e60896`; the TUIOS decision `e194b0a`; [host-analysis](host-analysis.md); [related-repos](related-repos.md); [multi-subscription-analysis](multi-subscription-analysis.md)
+- agent-files history: ARCHITECTURE v0.4 at `6e60896`; the TUIOS decision `e194b0a`; [host-analysis](host-analysis.md); [related-repos](related-repos.md); [multi-subscription-analysis](../analysis/2026-11-01-multi-subscription/multi-subscription.md)
 - TUIOS: the installed binary (`tuios version 0.12.1`), [github.com/Gaurav-Gosain/tuios](https://github.com/Gaurav-Gosain/tuios)
 - herdr: [herdr.dev](https://herdr.dev), [seed announcement](https://herdr.dev/blog/herdr-raised-a-seed/)
 - Superlogical Rex: [mitchellh.com/writing/superlogical](https://mitchellh.com/writing/superlogical), [public testing](https://superlogical.com/updates/public-testing-beginning), [program status](https://www.superlogical.com/rex/docs/build/program-status)
