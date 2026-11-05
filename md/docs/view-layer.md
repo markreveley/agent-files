@@ -1,7 +1,7 @@
 # The view layer — readable in Neovim, rich in the browser
 
-> Status: draft · 2026-10-31 · companion to [ARCHITECTURE.md](../../ARCHITECTURE.md) and [role-of-neovim.md](role-of-neovim.md)
-> Not part of M1's go/no-go. Steps 0–1 are in the first M1 build — step 0 is a prerequisite of the smoke test, step 1 is part of `agents.nvim` ([m1-build-spec §9.5](m1-build-spec.md#95-display-view-layer-step-1)); step 2 is an optional prototype ([m1-build-spec §12](m1-build-spec.md#12-the-html-view--how-it-plugs-in)).
+> Status: draft · 2026-11-04 · companion to [ARCHITECTURE.md](../../ARCHITECTURE.md) and [role-of-neovim.md](role-of-neovim.md)
+> Steps 0–1 are in the first M1 build — step 0 is a prerequisite of the smoke test, step 1 is part of `agents.nvim` ([m1-build-spec §9.5](m1-build-spec.md#95-display-view-layer-step-1)); step 2 is an optional prototype ([m1-build-spec §12](m1-build-spec.md#12-the-html-view--how-it-plugs-in)).
 
 **Summary.** Markdown stays the single source of truth. Neovim is made to display it well. A separate, read-only HTML view is generated from the same files for rich display (tables, charts, collapsible tool output). The HTML is a cache: delete it and nothing is lost. Nothing is ever translated back from HTML to text.
 
@@ -126,13 +126,11 @@ The same fixture is used by the parser and plugin tests ([m1-build-spec §10.1](
 
 ### Step 3 — only if step 2 earns its keep
 
-Candidates, each optional and in this order: a jump-to-line link that opens a turn in Neovim (the doorbell meant to carry it is dropped, [role-of-neovim.md](role-of-neovim.md); a plain `nvim +N <file>` handler is the fallback); a diff view of edits above `END` (the H1 measurement made visible); search across `threads/`; buttons that write files (send, fork, stop) through a small local endpoint that only creates the same files the plugin does.
+Candidates, each optional and in this order: a jump-to-line link that opens a turn in Neovim (the doorbell meant to carry it is dropped, [role-of-neovim.md](role-of-neovim.md); a plain `nvim +N <file>` handler is the fallback); a diff view of edits above `END` (how the context was changed, made visible); search across `threads/`; buttons that write files (send, fork, stop) through a small local endpoint that only creates the same files the plugin does.
 
 ## 6. How we decide
 
-Treat this like the M1 trial: set the question in advance.
-
-- **Keep the browser view** if, over two weeks, the journal's "read threads in" line ([m1-build-spec §7.4](m1-build-spec.md#74-journal-template-trialjournalmd)) shows you used it for reading on more days than you used Warp or another viewer.
+- **Keep the browser view** if, after a couple of weeks, you find you read threads in it more often than in Warp or another viewer.
 - **Drop step 2** if steps 0–1 already remove the need for a separate viewer. That is a good outcome, not a failure.
 
 ## 7. Open questions

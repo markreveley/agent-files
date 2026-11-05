@@ -26,7 +26,7 @@ daily_spend_cap_usd = 5.00            # 0 disables; checked before every send
 
 [backends.anthropic]
 api_key_env = "ANTHROPIC_API_KEY"     # unset -> the SDK's own credential chain
-fallbacks   = true                    # refusal fallback is built after the trial; for now only a caveat is recorded in steps/
+fallbacks   = true                    # refusal fallback is not built yet; for now only a caveat is recorded in steps/
 
 [backends.openai_compat.ollama]       # model "ollama/<name>"
 base_url = "http://localhost:11434/v1"

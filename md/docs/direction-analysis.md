@@ -1,22 +1,23 @@
 # Direction — the logbook, a planning harness, and what to adopt
 
-> Status: decision record · 2026-11-02 · companion to [ARCHITECTURE.md](../../ARCHITECTURE.md) §1, §7, §8.1, §9.6, §14
+> Status: decision record · 2026-11-04 · companion to [ARCHITECTURE.md](../../ARCHITECTURE.md) §1, §7, §8.1, §9.6, §14
 > Method: the git history before and after the TUIOS decision (`6e60896`, `e194b0a`), the installed TUIOS binary, the operator's related repos, and a web survey of hosts, harnesses and attribution tools (2026-11-02). Where only a secondary page says so, it is marked *(unverified)*.
+> **Superseded in part (2026-11-04):** agent-files is now Neovim-first. `agents.nvim` runs the `claude` and `codex` sessions in Neovim terminal buffers, and Rex hosts Neovim ([rex-host](rex-host.md), [sidebar plan](../plans/2026-11-04-nvim-sidebar.md)). Where this record says agent-files is "not a host" or keeps TUIOS as the host, that no longer holds; the rest stands.
 
-**Decision.** agent-files is the **logbook for human–agent work**. It is not a host and not a coding harness. It keeps TUIOS as the host. It builds a small **planning harness**, grown from `agent-files-run`. Coding is farmed out to Claude Code and Codex, and their sessions come back as records. The knowledge base is built on **artifact-dag**. Capture tools for coding sessions (Entire first) are graded before any capture is built. M1 runs unchanged; attribution and the DAG are the next trial. agent-files is built for the operator first, in a shape that could become a product (§7).
+**Decision.** agent-files is the **logbook for human–agent work**. It is not a host and not a coding harness. It keeps TUIOS as the host. It builds a small **planning harness**, grown from `agent-files-run`. Coding is farmed out to Claude Code and Codex, and their sessions come back as records. The knowledge base is built on **artifact-dag**. Capture tools for coding sessions (Entire first) are graded before any capture is built. M1 is the first build; attribution and the DAG are the record work that follows it (§8). agent-files is built for the operator first, in a shape that could become a product (§7).
 
 ## 1. What agent-files is for
 
-> **The logbook for human–agent work: every exchange a file you can edit as context, every settled conclusion a node that records who or what accepted it, every change linked to the turns and decisions behind it — beside any harness, under any host.**
+> **The logbook for human–agent work: every exchange a file you can edit as context, every settled conclusion a node that records who or what accepted it, every change linked to the turns and decisions behind it — in Neovim, beside the harnesses.**
 
-The harnesses are the engines; TUIOS (or herdr, or Rex) is the cockpit; the logbook outlives both.
+The harnesses are the engines; Neovim is the cockpit; the logbook outlives both.
 
 **The logbook loop:**
 
 ```
 plan ──► brief ──► coding session ──► record ──► DAG ──► grounding ─┐
  ▲   (planning      (Claude Code /     (transcript,   (gate, then    │
- │    harness)       Codex, in TUIOS)   commits,       acceptance)    │
+ │    harness)       Codex, in Neovim)  commits,       acceptance)    │
  │                                      checks)                      │
  └───────────────────────────────────────────────────────────────────┘
 ```
@@ -81,27 +82,24 @@ They all answer *which conversation wrote this line?* agent-files answers the ne
 ## 7. Built for the operator first, kept product-shaped
 
 - **The operator's own use comes first.** The itch is proven: seven repos keep returning to the same core. What's unproven is daily use of the acceptance and invalidation machinery. An open gap isn't proof of demand (md-ai 13★, Juggler 848★).
-- **Where the money is in this category:** hosted record-keeping (Entire's forge) and per-seat GUIs (Conductor). For tools where the user owns the files, the model that works is a free local tool plus paid sync, publishing or team features (Obsidian, herdr Cloud, SpecStory's cloud). For agent-files that would be teams reviewing agent PRs through the record (§9.6). A solo trial can't test that.
+- **Where the money is in this category:** hosted record-keeping (Entire's forge) and per-seat GUIs (Conductor). For tools where the user owns the files, the model that works is a free local tool plus paid sync, publishing or team features (Obsidian, herdr Cloud, SpecStory's cloud). For agent-files that would be teams reviewing agent PRs through the record (§9.6). Solo use can't test that.
 - **Product-shaped means four rules,** written into ARCHITECTURE §2 (principle 13):
   1. **The format can be pulled out.** It gets a standalone, versioned spec (`FORMAT.md`), separate from ARCHITECTURE, which mixes format and plans. `md/docs/examples/view-fixture/` grows into a conformance suite that every parser passes; a JavaScript viewer would be the third, after Python and Lua. Implementation-only fields go in sidecars. Knowledge-base nodes use artifact-dag's schema, not a parallel one.
   2. **The hook can be pulled out.** It stays standard-library-only and silent, and gets a documented contract (event in, files out), so it installs and works without the runner or Neovim. Codex is added the same way.
   3. **Links use shared formats.** Every turn is addressable as `<thread path>#tN`; turn ids are never renumbered, so the address is stable. Commit trailers follow §9.6. When an `Entire-Checkpoint` trailer is present, its id goes in the thread's `commits` sidecar instead of capturing the session twice. Agent Trace JSON is emitted only once that spec settles. Nodes cite turns, commits, checkpoints and delta ids in `sources:`.
   4. **The viewer is HTML.** It is a static page built from the data root, like artifact-dag's `build-viewer`. It shows threads with their status, the DAG (reusing artifact-dag's viewer) and the chain from decision to turns to commits. It is read-only; markdown stays the only source. Editing in a browser comes only with a product, through a local server that obeys the same one-writer rule.
 - **Acceptance is a choice.** Not everyone will want to approve every node by hand. The gate (no cycles, no dangling references, sources resolve) is always on. Acceptance is a policy per node type: `manual`, `auto` or `sample`. Every node records `accepted_by`, so attribution survives automation (ARCHITECTURE §7).
-- **Reconsider "product" only when** the trial passes, the operator has used the record → accept → ground loop for a month, and two or three other people use it without help.
+- **Reconsider "product" only when** the operator has used the record → accept → ground loop for a month, and two or three other people use it without help.
 
-## 8. The trials
+## 8. After M1: the record work
 
-- **M1 runs unchanged.** Its build spec, hypotheses and thresholds ([m1-plan §5](m1-plan.md#5-decision-criteria)) stay as they are. M1 tests modular context engineering only (H1–H3).
-- **Widening M1 was considered and rejected.** The alternative was to relax "nothing new before day 10" and add a probe on observed sessions during M1: mirror each session's transcript into `_observed/`, add commit links in Entire's or Agent Trace's format, and promote decisions to artifact-dag nodes. It was turned down because setup was about an hour away, and widening the scope would delay the only evidence the trial gives. Those pieces became the record trial instead.
-- **Free measurements during M1** (no new building): for `claude-cli` turns, the `cache_read_input_tokens` in `steps/*.response.json`; and whether a thread sent through `claude-cli` reads as well as the same thread sent through the API backend. The journal can note both.
-- **The record trial comes next.** It tests attribution and the DAG on real coding work:
+- **M1 is the first build:** the thread format, `agent-files-run`, `agents.nvim` and the observed-status hook. It covers modular context engineering only.
+- **Widening M1 was considered and rejected.** The alternative was to add a probe on observed sessions to M1: mirror each session's transcript into `_observed/`, add commit links in Entire's or Agent Trace's format, and promote decisions to artifact-dag nodes. It was turned down because it would have delayed the first build. Those pieces became the record work instead.
+- **The record work comes next.** It brings attribution and the DAG to real coding work:
   - capture of coding sessions (Entire graded first, else a transcript mirror of observed sessions);
   - commit links (§9.6);
   - M5a on artifact-dag;
   - extraction proposing nodes from those records.
-
-  Its hypotheses and thresholds are written before it starts, as M1's were. It tests a different thesis from M1: if H1–H3 fail, editable context fails, not the record. Whether the record trial still runs is decided at day 10.
 
 ## Sources
 

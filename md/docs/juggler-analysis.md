@@ -1,7 +1,8 @@
 # Juggler as a reference — supplemental analysis
 
-> Status: draft · 2026-10-31 · companion to [ARCHITECTURE.md](../../ARCHITECTURE.md)
+> Status: draft · 2026-11-04 · companion to [ARCHITECTURE.md](../../ARCHITECTURE.md)
 > Sources: [juggler.studio](https://juggler.studio) and [its features page](https://juggler.studio/features.html), read 2026-10-31. Source code (not yet read): [github.com/juggler-ai/juggler](https://github.com/juggler-ai/juggler).
+> **Note (2026-11-04):** agent-files is now Neovim-first: Neovim runs the harness sessions, so "the editor is a client" below is out of date, and worktrees "adopted from TUIOS" are unowned since Rex became the host ([rex-host](rex-host.md)).
 
 **Summary.** Juggler is the closest reference so far. It already ships most of our context ideas — editable history, branching, sub-threads that return only results, approvals as persistent state, model switching mid-conversation. The difference is where those ideas live: Juggler builds its own agent loop and stores conversations as live-synced CRDT documents behind a native app. agent-files keeps them in plain files and borrows existing harnesses. That difference is our angle:
 
@@ -117,7 +118,7 @@ The one place a CRDT would clearly win is real-time collaboration between people
 
 **Adopt-first check before M6:** Pi (`pi --mode rpc`; four tools, a tiny system prompt, multi-provider, MIT) is an existing small loop. If its RPC mode or extensions can write each exact request to `steps/` and run from a replayed `thread.md`, use it instead of growing our own (ARCHITECTURE §13 Q12). Not verified.
 
-**Milestone:** M6, only if the M1 trial says go; the trial's results set its priority relative to M3–M5.
+**Milestone:** M6; its priority relative to M3–M5 is set after M1.
 
 ## 7. Open questions
 

@@ -1,9 +1,9 @@
 # M1 build spec — the first build
 
-> Status: draft · 2026-10-31 · implements [m1-plan.md](m1-plan.md) §3 against [ARCHITECTURE.md](../../ARCHITECTURE.md) §4, with steps 0–1 of [view-layer.md](view-layer.md)
+> Status: draft · 2026-11-04 · implements [m1-plan.md](m1-plan.md) §3 against [ARCHITECTURE.md](../../ARCHITECTURE.md) §4, with steps 0–1 of [view-layer.md](view-layer.md)
 > Audience: whoever writes the code. Where this spec and the plan disagree, this spec wins for M1; where it is silent, the plan and the architecture apply.
 
-**Summary.** The first M1 build is four small programs and one Neovim plugin, all reading and writing the same plain-text files: `agent-files-run` (the replay runtime), `agent-files-hook` (observed status for hand-started `claude` sessions), `agent-files-stats` (trial measurement), `agent-files-grep` (logged cross-thread search), and `agents.nvim`, which also makes threads readable in Neovim (view-layer steps 0–1). The optional HTML view (`agent-files-render`, view-layer step 2) is specified there, not here; this spec only fixes how it plugs in (§12). The build is done when the automated tests pass and the smoke test in §10 passes by hand; then the ten-day trial starts. This document pins down everything the plan left open: the exact grammar and parser, turn numbering, escaping, request assembly, backends, git commits, configuration, and the acceptance tests.
+**Summary.** The first M1 build is four small programs and one Neovim plugin, all reading and writing the same plain-text files: `agent-files-run` (the replay runtime), `agent-files-hook` (observed status for hand-started `claude` sessions), `agent-files-stats` (threads, turns and spend), `agent-files-grep` (cross-thread search), and `agents.nvim`, which also makes threads readable in Neovim (view-layer steps 0–1). The optional HTML view (`agent-files-render`, view-layer step 2) is specified there, not here; this spec only fixes how it plugs in (§12). The build is done when the automated tests pass and the smoke test in §10 passes by hand. This document pins down everything the plan left open: the exact grammar and parser, turn numbering, escaping, request assembly, backends, git commits, configuration, and the acceptance tests.
 
 ## 1. Decisions this spec makes
 
@@ -16,14 +16,14 @@ Things the plan and architecture left open or inconsistent, settled here for M1:
 | D3 | How turn ids are assigned | Global and sequential across both roles in a thread (`you · t1`, `agent · t2`, `you · t3`…). Next id = 1 + max(highest id in `thread.md`, the `last_turn` sidecar). The sidecar stops ids being reused after you delete trailing turns. |
 | D4 | Where `## carry` goes in the request | In the first user message, wrapped in `<carry>…</carry>`, before the text of `t1`. Not in the system prompt: carry is quoted material, not instructions. |
 | D5 | Thinking blocks in replay | **Never sent back.** Assistant turns are replayed as plain text from the file. Current Claude models reject edited history that carries thinking blocks ("preserved thinking"); text-only history makes edits above `END` safe. Verified by smoke test S7. |
-| D6 | How edits above `END` are measured (H1) | Two commits per exchange: a **send** commit (your turn, plus any edits you made) and a **reply** commit (the agent turn). An edit above `END` is a send commit whose diff does more than append below the previous last `END` (§7.2). |
+| D6 | Commits per exchange | Two commits per exchange: a **send** commit (your turn, plus any edits you made) and a **reply** commit (the agent turn). An edit above `END` shows in the history as a send commit whose diff does more than append below the previous last `END`. |
 | D7 | Runner errors in the transcript | A line starting `! ` at column 0 inside an agent turn is a runner diagnostic: visible to you, excluded from requests. Model output that starts with `! ` is escaped like any marker. |
 | D8 | File watching in the runner | Polling (`stat` every 300 ms), standard library only. Tens of threads; no dependency, same behaviour on macOS and Linux. |
 | D9 | Sending on start-up | A thread whose last turn is yours, closed with `END`, and whose status is not `working` is a pending send. `watch` processes pending sends at start-up (you sent while the runner was down) and logs each one. |
 | D10 | Recursion via `claude -p` | The runner sets `AGENT_FILES_RUNNER=1` for child processes; `agent-files-hook` exits at once when it is set, so the runner's own `claude -p` calls never create observed threads. |
-| D11 | Sidecars in git | `status`, `seen`, `STOP`, `last_turn` and `threads/_observed/` are git-ignored (live state, noise in history). `thread.md`, `steps/` and `trial/` are committed. |
+| D11 | Sidecars in git | `status`, `seen`, `STOP`, `last_turn` and `threads/_observed/` are git-ignored (live state, noise in history). `thread.md` and `steps/` are committed. |
 | D12 | Configuration | One file, `$AGENT_FILES_ROOT/config.toml`, read with `tomllib`. Your file; no program writes it after `init`. |
-| D13 | Reading threads | Neovim is the reading surface for the trial: view-layer step 0 (editor setup) is a prerequisite of the smoke test, and step 1 (thread-aware display) is part of `agents.nvim`. The HTML view is optional and outside the M1 go/no-go. |
+| D13 | Reading threads | Neovim is the reading surface: view-layer step 0 (editor setup) is a prerequisite of the smoke test, and step 1 (thread-aware display) is part of `agents.nvim`. The HTML view is optional. |
 | D14 | One parser | Every program that reads `thread.md` — runner, stats, the HTML renderer — imports `lib/agent_files/thread.py`. view-layer §5.3's line rules are a summary of §4 here, not a second grammar: fences, escapes (`\END`) and `## note · <source> · tN` headers are handled the same way everywhere. |
 
 ## 2. Code layout (this repo)
@@ -33,7 +33,7 @@ bin/
   agent-files-run          # Python 3.11+, PEP 723 script header, run with `uv run --script`
   agent-files-hook         # Python 3.11+, standard library only (must start fast)
   agent-files-stats        # Python 3.11+, standard library only
-  agent-files-grep         # POSIX sh: rg wrapper that logs the search
+  agent-files-grep         # POSIX sh: rg over the threads
   agent-files-render       # optional, after the core build — view-layer step 2 (§12)
 lib/agent_files/           # shared Python, imported by the bin scripts
   thread.py                # parser, serializer, escaping (§4) — the contract, most tested
@@ -69,10 +69,7 @@ $AGENT_FILES_ROOT/
 ├── .gitignore             # D11
 ├── config.toml            # §3.2, commented
 ├── agents/default.md      # frontmatter `model: null`, a short default system prompt
-├── threads/
-└── trial/
-    ├── journal.md         # §7.4 template
-    └── searches.log       # empty; appended by agent-files-grep
+└── threads/
 ```
 
 `.gitignore`:
@@ -143,7 +140,7 @@ A thread is any directory under `threads/` that contains `thread.md`, excluding 
 | `runtime` | `direct`, `observed` | — | the runner owns only `direct`; anything else is ignored |
 | `model` | §5.4 | agent's, then `default_model` | read fresh at every send (model switching) |
 | `context` | `replay` | `replay` | `resume` is rejected with a diagnostic in M1 |
-| `kind` | `main`, `fork` | `main` | informational; stats counts forks |
+| `kind` | `main`, `fork` | `main` | informational |
 | `branched_at` | `tN` or `null` | `null` | informational |
 | `grounding` | list | `[]` | ignored in M1; a non-empty list logs a warning once |
 
@@ -259,7 +256,7 @@ Chosen by the `model` string:
 
 - Official `anthropic` Python SDK, `client.messages.stream(...)`, text deltas appended as they arrive, final message from `get_final_message()`. Usage is noted as it arrives (`message_start`: input and cache tokens; `message_delta`: output tokens), so a stopped or failed stream still records what was billed up to that point.
 - Request: `model`, `max_tokens` (config), `system`, `messages` (text content only — D5), `cache_control: {type: "ephemeral"}` at the top level (automatic caching of the longest stable prefix), `output_config: {effort: <config>}` for models that take it. No `temperature`/`top_p`/`top_k` (current models reject them). No `thinking` parameter: current Opus/Sonnet run adaptive thinking by default, and the runner ignores thinking blocks in the response.
-- Refusal fallback: **deferred until after the trial** (operator decision, 2026-11-01). Today `fallbacks = true` only records a caveat in `response.json`, and a refusal ends as a failed turn (below). When it is built: send the server-side fallback option with its beta flag, as documented for the model at the time. Already in place: the runner records the model that served the turn in `response.json`, and if it differs from `model:` it adds `! served by <model>`, so a fallback is never silent.
+- Refusal fallback: **deferred** (operator decision, 2026-11-01). Today `fallbacks = true` only records a caveat in `response.json`, and a refusal ends as a failed turn (below). When it is built: send the server-side fallback option with its beta flag, as documented for the model at the time. Already in place: the runner records the model that served the turn in `response.json`, and if it differs from `model:` it adds `! served by <model>`, so a fallback is never silent.
 - `stop_reason`: `end_turn` → normal; `max_tokens` → normal close plus `! stopped: max_tokens`; `refusal` (with no fallback, or after fallback) → failed turn with `! error: refusal (<category>)`.
 - Errors: rate limit / overload / 5xx → the SDK's own retries, then a failed turn. 4xx → failed turn immediately, with the API's message in the diagnostic.
 
@@ -269,7 +266,7 @@ Draws from the Pro/Max plan's limits (the separate Agent SDK credit announced 20
 
 - Render the assembled messages as one transcript prompt (`[you]` / `[agent]` blocks) on stdin; the agent's system prompt via the flag that replaces the system prompt.
 - Run in an empty temporary directory, with all tools disabled, session persistence off, project/user settings not loaded, `--output-format stream-json`, and `AGENT_FILES_RUNNER=1` in the environment. `ANTHROPIC_API_KEY` and `ANTHROPIC_AUTH_TOKEN` are removed from the child's environment, so `claude -p` bills the plan, not the API.
-- **Verify every flag against `claude --help` at build time** (open question m1-plan §9.1). If a flag is missing, document the gap in `steps/` (`"backend_caveats": [...]`) rather than silently dropping it.
+- **Verify every flag against `claude --help` at build time** (open question m1-plan §8.1). If a flag is missing, document the gap in `steps/` (`"backend_caveats": [...]`) rather than silently dropping it.
 - Cost: take `total_cost_usd` and `usage` from the final result event if present, including an error result (`is_error`).
 
 #### 5.4.3 Mock
@@ -300,7 +297,7 @@ Mock turns write `steps/` like real ones, with `"backend": "mock"`.
 
 ### 5.6 Spend cap
 
-Before each send, sum `cost_usd` from every `steps/*.response.json` modified today (local time) across the root. Over `daily_spend_cap_usd` → failed turn, `! error: daily spend cap reached ($5.00)`. Mock and local backends cost 0. Scanning is fine at trial scale; no cache file.
+Before each send, sum `cost_usd` from every `steps/*.response.json` modified today (local time) across the root. Over `daily_spend_cap_usd` → failed turn, `! error: daily spend cap reached ($5.00)`. Mock and local backends cost 0. Scanning is fine at this scale; no cache file.
 
 ## 6. `agent-files-hook`
 
@@ -344,9 +341,8 @@ Verified against the Claude Code hooks reference on 2026-11-01: event names; no 
   | `SessionEnd` | delete the directory |
 
 - Status writes are atomic replacements. Hooks for one session can race (Pre/PostToolUse in quick succession); the last writer wins, which is acceptable for a status mirror.
-- Append one line per status change to `trial/observed.log` (`ISO-time<TAB>thread<TAB>status`) for the fallback measure (and observed-session counts, printed as information since H4 was dropped). Lines under `PIPE_BUF`, opened with `O_APPEND`, so concurrent appends are safe.
 
-## 7. Measurement
+## 7. Commits and stats
 
 ### 7.1 Commit trailers
 
@@ -361,52 +357,13 @@ Agent-Files-Turn: t5
 Agent-Files-Model: claude-opus-5-5
 ```
 
-### 7.2 Classifying a send commit
-
-For each `send` commit, compare `thread.md` before (the thread's previous commit) and after:
-
-- **Context edit (H1):** the "before" body up to and including its last `END` line is not a byte-for-byte prefix of the "after" body. Frontmatter is excluded from both sides first. (Edits to `## carry` count.) Deleting an agent turn that ended `END (failed)`, `END (interrupted)` or `END (conflict)` to retry it is not an edit: such a turn is left out of "before" when "after" no longer has an agent turn with its id. Any other change counts, including edits to your own turns, edits inside an abnormally ended turn, and deleting a normally closed agent turn.
-- **Model switch:** the frontmatter `model` value differs.
-- **Frontmatter edit:** any other frontmatter change.
-
-A thread's first send has no "before" and counts as neither. Edits you save but never send are picked up by the next send commit; edits in a thread you never send to again are not measured (journal them).
-
-### 7.3 `agent-files-stats`
+### 7.2 `agent-files-stats`
 
 ```
 agent-files-stats [--since YYYY-MM-DD] [--json]
 ```
 
-Prints, from `git log` (trailers + the diffs in §7.2), `threads/`, `trial/searches.log` and `trial/observed.log`:
-
-```
-threads                     23   (forks 7)
-turns per thread            median 6, max 31
-threads with 6+ turns       11
-  with a context edit        4   (36.3%)  H1 go ≥ 20%, kill < 5%
-forks                        7            H2 go ≥ 5,   kill < 2
-  carry size                median 14 lines / 1.1k chars
-model switches               3
-searches (agent-files-grep) 18            H3: "used" count is in the journal
-observed sessions           41   blocked events 19
-spend                       $3.12 (today $0.40)
-```
-
-`--json` prints the same numbers as one object; `context_edit_pct` is a number with one decimal, cut rather than rounded (1 of 21 is 4.7, not 5), so it never reads as reaching a threshold it has not. Forks are threads with `kind: fork` present now, plus fork directories deleted later (found as `thread.md` paths in history).
-
-Renamed or moved threads (a fork moves with its parent) keep their history. The runner commits only the current thread's paths, so git never records the rename; stats links an id that no longer exists to the id that took it over, by content. The new id first appears after the old id's last commit (or is not committed yet) and either holds a `steps/*.request.json` committed under the old id, or, failing that, keeps the old body up to its last `END` as in §7.2. Links are one-to-one and can chain. Context edits count under the thread's current name, the first send under a new name is classified against the old name's last commit, and a renamed fork is not counted again as deleted. A fork is also identified by what it started with — its `## carry`, `branched_at` and first turn — so two deleted forks started with identical carry and question count once. `--since` filters sends (context edits, model switches) from local midnight of that date; thread, fork, search and observed counts are all-time.
-
-### 7.4 Journal template (`trial/journal.md`)
-
-```markdown
-## 2026-11-02
-- Used it for:
-- Used instead (Claude app / plain TUI), and why:
-- Worst friction:
-- Forks today: <thread> — helped | hurt | neutral — why
-- Searches whose result I used: <pattern> → <thread>
-- Read threads in: Neovim | browser view | Warp/other viewer   (view-layer §6)
-```
+Reports threads, turns per thread, spend (in total, today, per day and per thread, from `cost_usd` in `steps/*.response.json`, dated as the spend cap dates it, §5.6) and live observed sessions by status. `--since` limits spend to that local date and later. `--json` prints the same numbers as one object.
 
 ## 8. `agent-files-grep`
 
@@ -414,7 +371,7 @@ Renamed or moved threads (a fork moves with its parent) keep their history. The 
 agent-files-grep <pattern> [rg options…]
 ```
 
-Runs `rg --vimgrep <pattern> $AGENT_FILES_ROOT/threads --glob thread.md --glob '!_observed/**'`, prints the results, and appends `ISO-time<TAB>pattern<TAB>hit-count` to `trial/searches.log`. Exit code is `rg`'s. `:AgentsGrep` calls this, so searches from the shell and from Neovim are counted the same way.
+Runs `rg --vimgrep <pattern> $AGENT_FILES_ROOT/threads --glob thread.md --glob '!_observed/**'` and prints the results. Exit code is `rg`'s. `:AgentsGrep` calls this, so searches from the shell and from Neovim find the same things.
 
 ## 9. `agents.nvim`
 
@@ -482,18 +439,18 @@ Thread-aware display on top of whatever generic markdown renderer step 0 install
 | Assembly | carry placement; empty turns dropped; same-role merge; diagnostics excluded; determinism (same file → identical JSON) |
 | Runner (mock) | full turn writes header, body, `END`, scaffold, `done`, two commits with trailers; `STOP` → `END (interrupted)`; foreign write → `END (conflict)` + `out/`; crash (kill -9 mid-turn) then restart → recovered; `mock/fail` → `END (failed)` + `! error`; spend cap; second runner exits 2 |
 | Hook | fixture events → statuses; `idle_prompt` no change; `SessionEnd` deletes; `AGENT_FILES_RUNNER` set → no-op; always exit 0, even on garbage input |
-| Stats | a scripted git history with known edits, switches and forks → expected numbers |
+| Stats | a scripted root with threads and `steps/` → expected thread, turn and spend numbers; `--since` filters spend only |
 | Plugin (headless) | `:AgentsNew`, `:AgentsSend` refusals and success, `:AgentsFork` output, read-only while `working`, draft re-apply; on the view fixture: highlight groups land on the right lines (none inside the fenced fake marker), the `▸` fold is closed, the end mark shows the status |
 
 ### 10.2 Smoke test (by hand, real editor; `tests/smoke.sh` automates S1–S5 with the mock backend)
 
-**Prerequisite:** view-layer step 0 is done and its exit check passes — you can read `md/docs/examples/view-fixture/thread.md` (table, long tool output) in Neovim without another viewer. A trial that fails because threads are unpleasant to read tests the editor setup, not the thesis (m1-plan §7).
+**Prerequisite:** view-layer step 0 is done and its exit check passes — you can read `md/docs/examples/view-fixture/thread.md` (table, long tool output) in Neovim without another viewer.
 
 
 | # | Do | Pass when |
 |---|---|---|
 | S1 | `:AgentsNew smoke`, write a question, `:AgentsSend` with `model: mock/echo` | An agent turn streams in live; the buffer is read-only during it; `✓` then idle after you look; two commits |
-| S2 | Edit a line above the last `END`, send another turn | `steps/` request contains the edited text; `agent-files-stats` reports one context edit |
+| S2 | Edit a line above the last `END`, send another turn | `steps/` request contains the edited text; the send commit's diff shows the edit above `END` |
 | S3 | Select two lines, `:AgentsFork smoke-fork`, send | Child exists with `## carry`, `kind: fork`, `branched_at`; the request starts with `<carry>` |
 | S4 | `model: mock/slow`, send, `:AgentsStop` | `END (interrupted)`, status `interrupted`, `STOP` gone, scaffold present |
 | S5 | `model: mock/slow`, send, kill the runner, restart it | Turn closed `END (interrupted)` on restart; no duplicate turn |
@@ -501,14 +458,12 @@ Thread-aware display on top of whatever generic markdown renderer step 0 install
 | S7 | Delete a whole earlier agent turn, rewrite your first turn, send | Reply arrives (no 400 from edited history — D5) |
 | S8 | Switch to a local model (`ollama/<name>`), send | Reply; `cost_usd: 0` |
 | S9 | Start `claude` by hand in a project, give it a task that needs a permission | `_observed/<project>-<sid>/` appears; `:AgentsNext` lists it as `blocked`; with its `thread.md` open, the end mark then shows `working`, then `done` (`:AgentsNext` never lists working threads); gone after exit |
-| S10 | `:AgentsGrep <word from S1>` | Quickfix hits; one line in `trial/searches.log` |
+| S10 | `:AgentsGrep <word from S1>` | Quickfix hits |
 | S11 | Copy the view fixture under `threads/` (the plugin attaches only there), then open it and a real thread | Turn headers and `END` are highlighted; the end mark shows the token estimate, plus the status while a turn runs or its result is unseen; the fixture's tool fold is closed. Delete the copy afterwards |
-
-When S1–S11 pass, record the date at the top of `trial/journal.md`: day 1 of the trial.
 
 ## 11. Build order
 
-Each step ends with its tests passing; together under a week, matching m1-plan §8.
+Each step ends with its tests passing; together under a week, matching m1-plan §7.
 
 1. `thread.py` + tests (parser, escaping, ids, send detection). **The contract — do it first and carefully.**
 2. `assemble.py` + the mock backend + `agent-files-run once`/`check` + runner tests.
@@ -516,19 +471,18 @@ Each step ends with its tests passing; together under a week, matching m1-plan �
 4. Anthropic backend, spend cap, `steps/`; S6, S7 by hand.
 5. View-layer step 0 (editor setup, about an hour) and the view fixture (`md/docs/examples/view-fixture/`). Then `agents.nvim`: buffers, watcher, read-only, `:AgentsNew`/`:AgentsSend`/`:AgentsStop`; then marks, `:AgentsFork`, `:AgentsNext`, draft re-apply; then display (§9.5).
 6. `agent-files-hook` + `install.sh`; S9.
-7. `agent-files-grep`, `agent-files-stats`, journal template; OpenAI-compatible and `claude -p` backends.
-8. Full smoke test; start the trial.
-9. *Optional, in parallel with the trial:* `agent-files-render` (view-layer step 2), built on `thread.py` (§12).
+7. `agent-files-grep`, `agent-files-stats`; OpenAI-compatible and `claude -p` backends.
+8. Full smoke test.
+9. *Optional, after the core build:* `agent-files-render` (view-layer step 2), built on `thread.py` (§12).
 
 ## 12. The HTML view — how it plugs in
 
-`agent-files-render` is specified in [view-layer.md §5](view-layer.md#step-2--the-html-prototype-agent-files-render) and is not needed for the trial. If it is built, these rules from this spec apply to it:
+`agent-files-render` is specified in [view-layer.md §5](view-layer.md#step-2--the-html-prototype-agent-files-render) and is optional. If it is built, these rules from this spec apply to it:
 
 - **Parser:** it imports `lib/agent_files/thread.py` (D14) — same markers, fence handling and unescaping as the runner; a turn's `closed` state drives its styling (draft, `END (interrupted)` etc.).
 - **Diagnostics:** `! ` lines in agent turns are shown, styled as runner messages, not as model text.
 - **Sidecars:** status from `status` and `seen` with the same rules as §9.2 (idle, unseen, stale); the token estimate is the same characters ÷ 4.
 - **Read-only and outside the root:** it writes only under `~/.cache/agent-files/view/`, which is outside the root repo, so it never shows up in git or in `agent-files-stats`.
-- **Not measured as a hypothesis.** Its keep/drop question (view-layer §6) is answered from the journal's "read threads in" line, separately from H1–H3.
 
 ## 13. Not in this build
 
@@ -536,12 +490,12 @@ Exactly as m1-plan §2: no tools in the runner (so no `▸` folds, `out/` only f
 
 ## 14. Open questions for the build
 
-1. **`claude -p` flags** (m1-plan §9.1): verify at step 7; if Claude Code's own prompt cannot be removed, the backend is still useful for cheap iteration but its turns should be excluded from cache and request comparisons.
+1. **`claude -p` flags** (m1-plan §8.1): verify at step 7; if Claude Code's own prompt cannot be removed, the backend is still useful for cheap iteration but its turns should be excluded from cache and request comparisons.
    **Answered 2026-11-01** (Claude Code 2.1.316, one real turn with the backend's exact argv from a clean environment). The §5.4.2 flags work. The session's init event lists no tools, MCP servers, slash commands or skills. User settings (and so their hooks) and `CLAUDE.md` are not loaded. `--system-prompt` replaces Claude Code's prompt: the whole request came to 666 input tokens. Two parts can't be removed:
    - Claude Code still adds a `userEmail` reminder and an `# Environment` block, which includes the temporary working directory. `--bare` would drop them, but it accepts only `ANTHROPIC_API_KEY`, which defeats this backend's purpose.
    - The exact request isn't observable: the stream shows the session config, not the request.
 
    Both are in `backend_caveats`. Every `response.json` from this backend says `"backend": "claude_cli"`, so its turns can be filtered out of any cache or request comparison; `agent-files-stats` makes none today.
    **Re-checked 2026-11-02** (Claude Code 2.1.317, same method, `ANTHROPIC_API_KEY` and `ANTHROPIC_AUTH_TOKEN` removed as the backend now does). Results are unchanged: no tools, MCP servers, slash commands or skills; about 660 input tokens; `apiKeySource: none`, so the turn ran on the plan. With no `model:` suffix, `claude -p` uses Claude Code's own default model, which was `claude-fable-5-1` on this machine. Its `total_cost_usd` (an API-equivalent figure, 0.013 for a one-word reply) counts toward the daily cap (§5.6).
-2. **Effort per thread.** M1 uses one `effort` from config. If the trial wants a per-thread knob, add an optional `effort:` frontmatter field — a format addition, not a change.
+2. **Effort per thread.** M1 uses one `effort` from config. If a per-thread knob is wanted, add an optional `effort:` frontmatter field — a format addition, not a change.
 3. **Spinner cost.** A 120 ms timer redrawing the tabline is cheap, but if it flickers in Ghostty, fall back to a static `…`.

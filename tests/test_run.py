@@ -37,7 +37,7 @@ class RunnerBase(unittest.TestCase):
 
 class Once(RunnerBase):
     def test_init_idempotent_and_files(self):
-        for f in ("config.toml", ".gitignore", "agents/default.md", "trial/journal.md", "trial/searches.log"):
+        for f in ("config.toml", ".gitignore", "agents/default.md", "threads/.gitkeep"):
             self.assertTrue(os.path.exists(os.path.join(self.e.root, f)), f)
         self.assertIn("init", self.e.git("log", "--format=%s"))
         r = self.e.run("init")

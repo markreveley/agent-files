@@ -1,24 +1,25 @@
 # The role of Neovim
 
-> Status: draft · 2026-11-01 · companion to [ARCHITECTURE.md](../../ARCHITECTURE.md) §11
-> Built: the file watcher and the file-writing commands. **The doorbell (§3–§6, §9–§10 and the ring rows of §8: ring, registry, notify) is dropped (2026-11-01) and kept here as a record.** Attention for Claude Code and Codex sessions is their observed threads, with Rex's Activity sidebar outside the editor ([rex-host](rex-host.md), which supersedes the TUIOS Inbox of [host-analysis](host-analysis.md)); for agent-files' own threads the local file watcher is enough.
+> Status: draft · 2026-11-04 · companion to [ARCHITECTURE.md](../../ARCHITECTURE.md) §11
+> Built: the file watcher, the file-writing commands and `agents.term`; the session sidebar is planned ([2026-11-04-nvim-sidebar](../plans/2026-11-04-nvim-sidebar.md)). Neovim-first since 2026-11-04: Neovim is where the harness sessions run and are shown. **The doorbell (§3–§6, §9–§10 and the ring rows of §8: ring, registry, notify) is dropped (2026-11-01) and kept here as a record.** Attention for Claude Code sessions is their observed threads, shown in `agents.nvim` ([rex-host](rex-host.md) superseded the TUIOS Inbox of [host-analysis](host-analysis.md)); for agent-files' own threads the local file watcher is enough.
 
-Neovim is a client, not a host: it is where you read threads, write turns, and notice what needs you — for agent-files' own threads. Its RPC server was to be a **doorbell** — a best-effort signal that tells one Neovim instance to look at one file now, so that the person at that editor notices. Nothing in agent-files depends on it; the files are the mailbox.
+Neovim is where agent-files runs and is seen. The `claude` and `codex` sessions run in its terminal buffers, started and switched from a sidebar, and it is where you read threads, write turns and notice what needs you. Rex keeps Neovim, and so those sessions, alive when the terminal app quits. The files stay the source of truth: Neovim holds no state that is not on disk. Its RPC server was to be a **doorbell** — a best-effort signal that tells one Neovim instance to look at one file now, so that the person at that editor notices. Nothing in agent-files depends on it; the files are the mailbox.
 
-## 1. Three roles, and what Neovim is not
+## 1. Four roles, and what Neovim is not
 
-Neovim does three jobs in agent-files, all on the human side of the system.
+Neovim does four jobs in agent-files, all on the human side of the system.
 
-1. **Viewer.** It renders thread files: folds for tool output, a status mark per thread in the tabline, the needs-you list in quickfix.
-2. **Editor.** It is where you write your turns, fork threads, and answer permission questions. Ending your turn with `END` (`:AgentsSend`) is sending; saving a draft is not.
-3. **Attention surface — for agent-files' threads.** When a `direct` thread (or an `observed` mirror) needs you: a tabline mark, a popup, the terminal bell, an entry in the quickfix list. Harness sessions ask for you through their observed threads, so the same marks and `:AgentsNext` cover them.
+1. **Home of the harness sessions.** `agents.nvim` starts `claude` and `codex` in terminal buffers, lists them with agent-files' own threads in a sidebar, and shows the chosen one in the main window ([sidebar plan](../plans/2026-11-04-nvim-sidebar.md)). Sessions keep running while not shown, and a closed Claude session can be resumed from the list. `agents.term` reads and types into those terminals, under the send policy (ARCHITECTURE §5.1, §11.2).
+2. **Viewer.** It renders thread files: folds for tool output, a status mark per thread in the tabline, the needs-you list in quickfix.
+3. **Editor.** It is where you write your turns, fork threads, and answer permission questions. Ending your turn with `END` (`:AgentsSend`) is sending; saving a draft is not.
+4. **Attention surface.** When a `direct` thread (or an `observed` mirror) needs you: a tabline mark, a popup, the terminal bell, an entry in the quickfix list. Harness sessions ask for you through their observed threads, so the same marks, the sidebar and `:AgentsNext` cover them.
 
 What Neovim is **not**:
 
 - **Not a store.** No thread state lives only in Neovim. Close every editor and nothing is lost.
-- **Not a host.** Agents run under their runtimes, and Rex hosts the processes. A `claude` you start in Neovim's own `:terminal` lives as long as that Neovim does, and Neovim runs in a Rex pane, so both outlive the terminal app ([rex-host](rex-host.md)).
+- **Not what outlives the terminal app.** The sessions are Neovim's child processes and end when it quits; `claude --resume` brings a Claude session back. Rex hosts Neovim, so Neovim and its sessions survive the terminal app quitting ([rex-host](rex-host.md)). agent-files' own runtimes (`agent-files-run`) run outside Neovim.
 - **Not a transport for threads.** Messages to agent-files' threads travel as file writes, never over Neovim's socket. `agents.term` types into harness terminals over that socket, and those are not threads (ARCHITECTURE §11.2).
-- **Not a requirement.** `cat`, `grep`, `tail -f`, any other editor, or a tmux status-line script can do everything Neovim does here, less comfortably.
+- **Not the only way in.** agent-files is built for Neovim, and nothing is designed for other editors now. But every thread operation is a file operation, so `cat`, `grep`, `tail -f` or a shell script can still read and write threads (§7).
 
 ## 2. The cast: who writes, who reads, who rings
 
@@ -26,8 +27,9 @@ Every party talks through files, one machine writer per file (ARCHITECTURE §4.4
 
 | Party | Writes | Reads | Rings the doorbell? (dropped) |
 |---|---|---|---|
-| **You** (in Neovim or any editor) | Your turns (each ending with `END`), permission answers, edits above `END`, frontmatter, `STOP` files, new branches | Thread files | No — you are the one being called |
+| **You** (in Neovim, or from a shell) | Your turns (each ending with `END`), permission answers, edits above `END`, frontmatter, `STOP` files, new branches | Thread files | No — you are the one being called |
 | **A thread's runtime** (`agent-files-run` in M1; the supervisor later) | Agent turns, notes, scaffolds, `status`, `session`, `steps/`, `out/` — for the threads it owns | Your turns, `STOP`, `inbox/` | No |
+| **Harness sessions** (`claude`, `codex` in Neovim terminal buffers) | Their own project files and transcripts; nothing under `threads/` | Their own context | No |
 | **Claude Code hooks** | `status` of `observed` threads | Hook input on stdin | No |
 | **Extensions** (`agent-files-<name>` executables) | Their own outputs (`reviews/`, KB proposals), notes into a thread's `inbox/` | Whatever they need | Optionally, with the related thread's path |
 | **agents.nvim** (the plugin inside each Neovim) | What you type and save, the files its commands create, `seen` when you view a thread, its entry in the editor registry | Thread files and sidecars, on watcher events and rings | Never — it answers the door |
@@ -170,10 +172,10 @@ Neovim never calls a runtime. Every command in `agents.nvim` is a file operation
 | Fork | `:AgentsFork` on a selection | `<thread>/<child>/thread.md` with `kind: fork`, `branched_at: tN` and a `## carry` section holding the selection |
 | Close a sub-thread *(later)* | `:AgentsClose` | Asks its runtime to close it (from M3) |
 | Prune a branch *(later)* | `:AgentsPrune` | `rm -r` of the child directory (git is the undo) |
-| Search threads | `:AgentsGrep <pattern>` | `rg` across `threads/` into quickfix; one line appended to `trial/searches.log` (for H3) |
+| Search threads | `:AgentsGrep <pattern>` | `rg` across `threads/` into quickfix |
 | See what needs you | `:AgentsNext` | Nothing written — reads `status` files across `threads/` |
 
-Every row can be done from a shell instead. That is the test that keeps Neovim a client.
+Every row can be done from a shell instead. That is the test that keeps the files the source of truth.
 
 ## 8. Failure modes
 

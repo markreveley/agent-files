@@ -1,10 +1,11 @@
 # Host analysis — existing tools graded against the plan
 
-> Status: decision record · 2026-11-01 · companion to [ARCHITECTURE.md](../../ARCHITECTURE.md) §5.1, §12
+> Status: decision record · 2026-11-04 · companion to [ARCHITECTURE.md](../../ARCHITECTURE.md) §5.1, §12
 > Rule applied: planned work that an existing tool already does is dropped and the tool used instead; the tool that covers the most planned work goes first.
 > Method: TUIOS, herdr and parrot.nvim were shallow-cloned and read (source and docs; nothing built or run). Other tools from their docs and READMEs. Where only a README or a secondary page says so, it is marked *(docs)* or *(unverified)*.
+> **Superseded (2026-11-03, 2026-11-04):** Rex replaced TUIOS as the host ([rex-host](rex-host.md)), and agent-files is now Neovim-first: `agents.nvim` runs the harness sessions in Neovim terminal buffers, and Rex hosts Neovim ([sidebar plan](../plans/2026-11-04-nvim-sidebar.md)). The grades below stand as the record.
 
-**Decision.** TUIOS hosts harness sessions and owns attention for them; herdr is the fallback. agent-files keeps its own replay runner (`agent-files-run`); parrot.nvim is not adopted. Pi Durable is not a foundation. Dropped as a result: the M2 tier-1 bridge, the doorbell (`agent-files-ring`, registry, `agent-files-notify`), the Elixir supervisor, the proposed worktree workspaces, and H4 as a trial hypothesis.
+**Decision.** TUIOS hosts harness sessions and owns attention for them; herdr is the fallback. agent-files keeps its own replay runner (`agent-files-run`); parrot.nvim is not adopted. Pi Durable is not a foundation. Dropped as a result: the M2 tier-1 bridge, the doorbell (`agent-files-ring`, registry, `agent-files-notify`), the Elixir supervisor, the proposed worktree workspaces, and a needs-you list of agent-files' own for harness sessions.
 
 ## 1. Session host and attention — 21 items
 
@@ -35,7 +36,7 @@ Items are the planned capabilities from ARCHITECTURE §4–§9 and the M1 spec. 
 | C21 | Platform, license, maturity | P — macOS ok, MIT, v0.12.1, 16 releases in 5 weeks, the owner has 5,205 commits and the next contributor 295, ~660k lines of Go | F with risk — macOS/Linux/Windows, Apache-2.0 (from AGPL, 2026-08), $6M-seeded company, Cloud accounts coming, desktop app telemetry on by default |
 | | **Total** | **10 F · 10 P · 1 N** | **9 F · 7 P · 5 N** |
 
-**What TUIOS replaces:** the M2 bridge's hosting, input, capture and attach; H4's needs-you list, jump and notifications; answering harness permissions; worktree workspaces; fan-out across terminal agents; the multi-machine view; Codex observed status.
+**What TUIOS replaces:** the M2 bridge's hosting, input, capture and attach; the planned needs-you list, jump and notifications; answering harness permissions; worktree workspaces; fan-out across terminal agents; the multi-machine view; Codex observed status.
 
 **What neither replaces:** threads as editable context, forks with `## carry`, `steps/`, the spend cap, the git record and trailers, the KB, checks that can block a turn.
 
@@ -46,18 +47,18 @@ Items are the planned capabilities from ARCHITECTURE §4–§9 and the M1 spec. 
 - Never use features that type agent-written text into a pane: `ask-agent`, `send-agent-message`, agent mail, the delivery queue. herdr's equivalent is `hc` notes into a parent.
 - `agent-files-hook` and `tuios integration install` coexist in `~/.claude/settings.json`: the installer removes only entries containing both ` agent-hook ` and ` --integration ` (`internal/integration/jsonedit.go`) and backs the file up as `settings.json.tuios.bak`. `--statusline` refuses an existing `statusLine` unless given `--then`.
 - Known gaps: Esc leaves a Claude pane "working"; Codex hooks break when the shared app-server was started from another pane (TUIOS #1391); verb meanings have changed between releases.
-- Switch to herdr if TUIOS misbehaves during the trial. Under herdr-core, run `claude` directly under `hc`, not inside tmux, or Claude never emits OSC 7501.
+- Switch to herdr if TUIOS misbehaves. Under herdr-core, run `claude` directly under `hc`, not inside tmux, or Claude never emits OSC 7501.
 
 ## 2. Others considered
 
 | Tool | Verdict | Why |
 |---|---|---|
-| **Superlogical Rex** | Not graded (found 2026-11-02) | Mitchell Hashimoto's company. A terminal replacement on libghostty with persistent sessions, remote connections, program status (OSC 7501, which Superlogical wrote) and live sharing; public beta since 2026-10-05; "free… no account". Grade it if hosts are re-graded after the trial ([direction-analysis §4](direction-analysis.md#4-the-host-fork-reconsidered)). |
+| **Superlogical Rex** | Not graded (found 2026-11-02) | Mitchell Hashimoto's company. A terminal replacement on libghostty with persistent sessions, remote connections, program status (OSC 7501, which Superlogical wrote) and live sharing; public beta since 2026-10-05; "free… no account". Grade it if hosts are re-graded ([direction-analysis §4](direction-analysis.md#4-the-host-fork-reconsidered)). |
 | **tmux** | Works, without attention | Stable and scriptable; no agent awareness. Fine as a bare host; TUIOS adds the planned attention layer on top and has a tmux shim. |
 | **workmux** | Not adopted | Worktree per tmux window, agent status in window names. TUIOS covers the same and more. |
 | **cmux** | A terminal app, not a host | macOS app on libghostty; "does not checkpoint arbitrary live process state", so agents die with the app unless its `local-tmux` mode is used. GPL. Fine as a place to run Neovim. |
 | **parrot.nvim** | Not adopted | Chats are markdown files and the whole buffer is the context (replay), but it does less than the M1 runner already built: model output is unescaped (a reply line starting `🗨:` becomes a user turn), no end markers or status, requests die with Neovim, no `steps/`, no cost cap, no git, the model is global rather than per chat, stop reasons ignored, ACP built for Grok. It eliminates no planned work. gp.nvim: same parse and forgery problem, dormant since 2025-08. |
-| **Pi Durable** | Not a foundation | Earendil's durable execution for Pi (TypeScript, MIT, "experimental, API changes without notice", 1.0→1.4 in three weeks). One process owns an opaque store (JSONL or SQLite) holding the conversation as immutable entries plus task checkpoints, inbox, live and usage documents and permission memos; nothing is shown before it is committed. A markdown file could only be a one-way projection, and history cannot be edited, so replay (H1) is impossible. It runs only its own loop — it cannot drive Claude Code or Codex. Its recovery patterns are adopted ([juggler-analysis §3](juggler-analysis.md#3-what-we-borrow--translated-to-files)). |
+| **Pi Durable** | Not a foundation | Earendil's durable execution for Pi (TypeScript, MIT, "experimental, API changes without notice", 1.0→1.4 in three weeks). One process owns an opaque store (JSONL or SQLite) holding the conversation as immutable entries plus task checkpoints, inbox, live and usage documents and permission memos; nothing is shown before it is committed. A markdown file could only be a one-way projection, and history cannot be edited, so replay with context editing is impossible. It runs only its own loop — it cannot drive Claude Code or Codex. Its recovery patterns are adopted ([juggler-analysis §3](juggler-analysis.md#3-what-we-borrow--translated-to-files)). |
 | **Pi** (the agent) | Open question | A small multi-provider loop with an RPC mode; a candidate tier-2 harness for non-Claude models, or the M6 loop (ARCHITECTURE §13 Q12). Claude subscriptions reportedly do not cover third-party harnesses since 2026-04, so Claude in Pi bills per token *(unverified)*; ChatGPT, Copilot and open-model plans are the usual subscription routes. |
 
 ## Sources
