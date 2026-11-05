@@ -5,6 +5,7 @@
 - [`2026-11-03-nvim-addressing/`](2026-11-03-nvim-addressing/nvim-addressing.md): Neovim instances addressable by name. Proposed; waits on the doorbell revisit.
 - [`2026-11-04-open-questions/`](2026-11-04-open-questions/open-questions.md): every open design and build question not owned by one plan (ARCHITECTURE §13, build spec §14, juggler §7). Proposed.
 - [`2026-11-04-nvim-sidebar/`](2026-11-04-nvim-sidebar/nvim-sidebar.md): the agent sidebar in `agents.nvim`. Proposed.
+- [`2026-11-05-provenance/`](2026-11-05-provenance/provenance.md): provenance for direct turns: provider ids, hashed and committed step records, operator authorship, `verify`. Proposed; from the investigations repo's Agent Habitat analysis.
 
 ---
 
