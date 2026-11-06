@@ -10,7 +10,7 @@ Direction: [md/docs/direction-analysis.md](md/docs/direction-analysis.md). Desig
 | `bin/agent-files-hook` | Claude Code hook → observed status for hand-started sessions |
 | `bin/agent-files-stats` | threads, turns, spend per day and per thread, live observed sessions |
 | `bin/agent-files-grep` | `rg` over all threads |
-| `bin/agent-files-term` | list, read and type into Neovim's terminal buffers; agents can't type into `claude` / `codex` (ARCHITECTURE §11.2) |
+| `bin/agent-files-term` | list, read and type into Neovim's terminal buffers (ARCHITECTURE §11.2) |
 | `nvim/` | `agents.nvim`: marks, read-only while working, `:AgentsNew/Send/Stop/Fork/Next/Blocked/Grep`; `:AgentsTerms`, `:AgentsTermSend`, `:AgentsTermCapture` |
 
 ## What is where
@@ -25,7 +25,7 @@ Direction: [md/docs/direction-analysis.md](md/docs/direction-analysis.md). Desig
 
 **The data root is `~/agent-files/` (or `$AGENT_FILES_ROOT`) — do not clone this repo there.**
 
-agent-files is built around Neovim: Claude Code and Codex sessions run in Neovim's terminal buffers, listed in a sidebar ([md/plans/2026-11-04-nvim-sidebar/nvim-sidebar.md](md/plans/2026-11-04-nvim-sidebar/nvim-sidebar.md), being built), and Neovim runs in a [Superlogical Rex](https://superlogical.com) pane, which keeps it alive. agent-files observes the sessions through hooks ([md/docs/rex-host.md](md/docs/rex-host.md)).
+agent-files is built around Neovim, where you read and write threads. The host is Ghostty, tmux and [workmux](https://github.com/raine/workmux): Claude Code and Codex sessions run in tmux panes beside Neovim, one tmux window per git worktree, and workmux tracks their status and switches between them. tmux keeps everything running when Ghostty quits. agent-files observes the sessions through Claude Code hooks. Why, and how agents reach Neovim: [md/plans/2026-11-05-tmux-host/tmux-host.md](md/plans/2026-11-05-tmux-host/tmux-host.md), ARCHITECTURE §11.4.
 
 Install from a clone of its own, not the one you develop in: `install.sh` links `~/.local/bin/agent-files-*` into whichever clone it runs from, so the tools you run would change with every branch you check out. The operator's install clone is `~/code/agent-files`. To update it after a merge: `git -C ~/code/agent-files pull --ff-only`, then run its `./install.sh` again (needed only when a new executable is added).
 

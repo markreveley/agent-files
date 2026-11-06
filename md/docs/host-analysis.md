@@ -3,6 +3,7 @@
 > Status: decision record · 2026-11-04 · companion to [ARCHITECTURE.md](../governance/ARCHITECTURE.md) §5.1, §12
 > Rule applied: planned work that an existing tool already does is dropped and the tool used instead; the tool that covers the most planned work goes first.
 > Method: TUIOS, herdr and parrot.nvim were shallow-cloned and read (source and docs; nothing built or run). Other tools from their docs and READMEs. Where only a README or a secondary page says so, it is marked *(docs)* or *(unverified)*.
+> **Superseded again (2026-11-05):** tmux and workmux host the harness sessions, and Rex is not used ([tmux-host](../plans/2026-11-05-tmux-host/tmux-host.md)). workmux, "not adopted" below because TUIOS covered more, is now the operator's.
 > **Superseded (2026-11-03, 2026-11-04):** Rex replaced TUIOS as the host ([rex-host](rex-host.md)), and agent-files is now Neovim-first: `agents.nvim` runs the harness sessions in Neovim terminal buffers, and Rex hosts Neovim ([sidebar plan](../plans/2026-11-04-nvim-sidebar/nvim-sidebar.md)). The grades below stand as the record.
 
 **Decision.** TUIOS hosts harness sessions and owns attention for them; herdr is the fallback. agent-files keeps its own replay runner (`agent-files-run`); parrot.nvim is not adopted. Pi Durable is not a foundation. Dropped as a result: the M2 tier-1 bridge, the doorbell (`agent-files-ring`, registry, `agent-files-notify`), the Elixir supervisor, the proposed worktree workspaces, and a needs-you list of agent-files' own for harness sessions.

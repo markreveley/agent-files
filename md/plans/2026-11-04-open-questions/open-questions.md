@@ -16,7 +16,7 @@ Questions that belong to one plan stay in that plan: [sidebar](../2026-11-04-nvi
 
 <a id="a8"></a>**A8.** Which Juggler borrowings to adopt beyond branching-as-directories: intra-turn states (now designed from Pi Durable's recovery patterns, juggler-analysis §3), an approval rules file, budgets. Worktree workspaces are not planned.
 
-<a id="a9"></a>**A9.** Locks across machines, for agent-files' own runtimes only (harness sessions on other hosts are Rex's): an advisory `lock` file naming the host, or "runtimes only on one machine"? Default: one machine.
+<a id="a9"></a>**A9.** Locks across machines, for agent-files' own runtimes only (harness sessions on other machines are tmux's or workmux's): an advisory `lock` file naming the host, or "runtimes only on one machine"? Default: one machine.
 
 <a id="a10"></a>**A10.** How a sub-thread's agent declares its turn final (a structured marker, a tool call, or always one task per sub-thread).
 
@@ -26,9 +26,9 @@ Questions that belong to one plan stay in that plan: [sidebar](../2026-11-04-nvi
 
 <a id="a13"></a>**A13.** **Claude Code's own features vs. M3.** Its subagents, `/rewind` and session forking overlap sub-threads for coding work. Grade them against M3 before building it, as TUIOS and Rex were graded against M2.
 
-<a id="a14"></a>**A14.** **Host gaps to watch:** Esc leaves an observed session "working" (a Claude Code gap); whether sessions survive a Rex update.
+<a id="a14"></a>**A14.** **Host gaps to watch:** Esc leaves an observed session "working" (a Claude Code gap); whether sessions survive a workmux update (it rewrites `settings.json` and tmux's window format).
 
-<a id="a15"></a>**A15.** **T3 Code as a host.** T3 Code runs Claude Code, Codex and others from one GUI, on the operator's own subscriptions. It could replace Rex beside agent-files only if its Claude sessions fire `agent-files-hook` (S9 run in T3 Code). CLIProxyAPI is rejected for Claude: it proxies subscription tokens, which Anthropic forbids. See [md/analysis/2026-11-01-multi-subscription/multi-subscription.md](../../analysis/2026-11-01-multi-subscription/multi-subscription.md).
+<a id="a15"></a>**A15.** **T3 Code as a host.** T3 Code runs Claude Code, Codex and others from one GUI, on the operator's own subscriptions. It could replace tmux and workmux beside agent-files only if its Claude sessions fire `agent-files-hook` (S9 run in T3 Code). CLIProxyAPI is rejected for Claude: it proxies subscription tokens, which Anthropic forbids. See [md/analysis/2026-11-01-multi-subscription/multi-subscription.md](../../analysis/2026-11-01-multi-subscription/multi-subscription.md).
 
 <a id="a16"></a>**A16.** **Entire for capture.** Grade Entire (and SpecStory) against what the return path in §8.1 needs, before building any capture of coding sessions. The test: capture of observed Claude Code and Codex sessions, a checkpoint id we can cite, local-only use with no account, and transcripts kept out of public remotes. Open: what its memory (entire-brain) does.
 

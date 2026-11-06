@@ -1,6 +1,6 @@
 # Plan: the agent sidebar in `agents.nvim`
 
-> Status: proposed · 2026-11-04 · replaces the separate neovim-agent-sidebar repo, which is folded in here and deleted · thread: thread-archive `threads/agent-files/2026-11-04-nvim-sidebar.md`
+> Status: dropped · 2026-11-05 · harness sessions run in tmux panes, and workmux starts, lists, switches and tracks them ([tmux-host](../2026-11-05-tmux-host/tmux-host.md) D3); D4 carries on as the IDE link (tmux-host D4) · was proposed 2026-11-04, replacing the separate neovim-agent-sidebar repo, which is folded in here and deleted · thread: thread-archive `threads/agent-files/2026-11-04-nvim-sidebar.md`
 
 **Goal.** A pane on the left of Neovim lists every agent: the `claude` and `codex` sessions running in Neovim's terminals, and agent-files' own threads. Moving onto one and pressing Enter shows it in the main window, the way nvim-tree opens a file: a session's terminal, or a thread's `thread.md`. Sessions keep running while not shown, and closed Claude sessions can be resumed from the list.
 

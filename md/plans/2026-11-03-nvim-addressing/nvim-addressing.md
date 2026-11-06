@@ -1,7 +1,7 @@
 # Plan: Neovim instances you can address by name
 
-> Status: proposed · 2026-11-04 (Q2, Q3 decided; Q1 moved to the doorbell revisit) · extends `agents.term` ([ARCHITECTURE §11.2](../../governance/ARCHITECTURE.md), [operator-neovim §3](../../docs/operator-neovim.md#3-reading-and-typing-into-the-agents-inside-neovim))
-> Not built until the doorbell revisit answers Q1.
+> Status: proposed · 2026-11-05 (Q2, Q3 decided; Q1 answered by [tmux-host](../2026-11-05-tmux-host/tmux-host.md): no doorbell, no registry) · now the way an agent in a tmux pane finds its worktree's Neovim (tmux-host D4, step 5); its send-policy lines are superseded (tmux-host D5) · extends `agents.term` ([ARCHITECTURE §11.2](../../governance/ARCHITECTURE.md), [operator-neovim §3](../../docs/operator-neovim.md#3-reading-and-typing-into-agents))
+> Not built until tmux-host step 5 revisits it.
 
 **Goal.** Every Neovim the operator starts gets a socket at a known path, and the socket's name is its id: `agent-files`, `identikey-dev`, one per repo. An agent in one Neovim can then list the others and read or type into their terminals by id (`agent-files-term --server identikey-dev capture claude`), instead of needing a random socket path that only `:echo v:servername` reveals.
 

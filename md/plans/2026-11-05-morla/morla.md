@@ -1,6 +1,6 @@
 # Plan: morla as the command lane for agents.nvim
 
-> Status: accepted · 2026-11-05 · from a conversation with the operator on agent orchestration in Neovim · milestone M1.6 (ARCHITECTURE §14)
+> Status: accepted · 2026-11-05 · from a conversation with the operator on agent orchestration in Neovim · milestone M1.6 (ARCHITECTURE §14) · 2026-11-05: D1 superseded, there is no send policy ([tmux-host](../2026-11-05-tmux-host/tmux-host.md) D5); sessions now run in tmux panes, so "tell the claude in the docs worktree…" is a `workmux send` (tmux-host Q3)
 
 **Goal.** Let the operator drive `agents.nvim` in plain English through [morla-neovim](https://github.com/markreveley/morla-neovim) (locally `~/dev/repos/morla-neovim`). For example, "fork this thread from t4 with the selection as carry", "stop the api agent", "tell the claude in the docs worktree to run the tests". morla turns each request into an Ex command in `q:`, explains it, and runs nothing until the operator presses Enter.
 
