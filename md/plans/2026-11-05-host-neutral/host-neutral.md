@@ -73,5 +73,5 @@
 
 ## Questions
 
-- **Q1. The hooks.** Rex's Claude Code `SessionStart` hook is not in `~/.claude/settings.json` (removed in dotfiles `bd9e045`); `~/.codex/hooks.json` still has Rex's hook. workmux's hooks are still in `settings.json`. Re-add Rex's (`rex skill setup`), and remove workmux's? agent-files needs neither: program status needs no hook (D2), and `agent-files-hook` runs beside whatever is there. The operator's call.
+- **Q1. The hooks.** Answered (operator, 2026-11-05): Rex's Claude Code `SessionStart` hook is back as it was before dotfiles `bd9e045`, and workmux's hooks are out of `settings.json` and `~/.codex/hooks.json` (dotfiles `0d3bbd2`). Steps 2 and 3 are done; step 4 is partly checked (next-operator 2a).
 - tmux-host Q1–Q3 stay open there, read as in D4.

@@ -21,11 +21,11 @@ M1 is built and tested against the mock backend. Nothing has yet run through the
 
 **Also 2026-11-04:** the repo now follows repo-template's layout (PR #35). ARCHITECTURE is at `md/governance/ARCHITECTURE.md`, and other docs moved; old paths in open Neovim buffers point at files that are gone.
 
-Already done on this Mac: the install clone at `~/code/agent-files` (at `1a85870`, behind `main`: PR #41 changed `agents.term` and `agent-files-term`, so pull it before step 3; see README), `./install.sh` (links in `~/.local/bin`, on `PATH`), `uv`, `git`, Python 3.14, Neovim 0.12.5, Rex Beta 0.1.0 (1829), ripgrep 15.2.0 (tmux 3.7b and workmux 0.1.278 too, unused), and `agent-files-run init`. The data root is at `~/dev/repos/agent-files-data`, with `~/agent-files` linking to it. It has a private remote (`markreveley/agent-files-data`, added 2026-11-04); nothing pushes it automatically, so `git -C ~/agent-files push` when you want a backup.
+Already done on this Mac: the install clone at `~/code/agent-files` (at `1a85870`, behind `main`: PR #41 changed `agents.term` and `agent-files-term`, so pull it before step 3; see README), `./install.sh` (links in `~/.local/bin`, on `PATH`), `uv`, `git`, Python 3.14, Neovim 0.12.5, Rex Beta 0.1.0 (1829), ripgrep 15.2.0 (tmux 3.8 and workmux 0.1.278 too, unused), and `agent-files-run init`. The data root is at `~/dev/repos/agent-files-data`, with `~/agent-files` linking to it. It has a private remote (`markreveley/agent-files-data`, added 2026-11-04); nothing pushes it automatically, so `git -C ~/agent-files push` when you want a backup.
 
 ## 0. Tidy up after the change
 - Delete the neovim-agent-sidebar repo: its GitHub repo (`markreveley/neovim-agent-sidebar`) and the local checkout `~/dev/repos/neovim-agent-sidebar`. GitHub has no commits; the local checkout has one (the layout and the superseded v1 plan) and uncommitted edits, none of which is needed: the plan lives on here (as a dropped plan).
-- tmux and workmux, if you want them gone: their config in your dotfiles, workmux's hooks in `settings.json` (2a), and the five skills `workmux setup` put in `~/.claude/skills` (`workmux`, `coordinator`, `merge`, `open-pr`, `rebase`), not in your dotfiles. If you keep the skills: `coordinator` has one agent start other agents and message them, which is the agent-to-agent orchestration agent-files leaves out.
+- workmux's five skills are still in `~/.claude/skills` (`workmux`, `coordinator`, `merge`, `open-pr`, `rebase`; not in your dotfiles). You chose to remove them (2026-11-06); the agent wasn't allowed to delete them: `! rm -r ~/.claude/skills/{workmux,coordinator,merge,open-pr,rebase}`. Its hooks are already out (2a); the tmux and workmux config stays in your dotfiles as the fallback host.
 
 ## 1. Configure
 - Prices are done (2026-11-02): `~/agent-files/config.toml` has blocks for `claude-opus-5-5`, `claude-fable-5-1`, `claude-sonnet-5-5` and `claude-haiku-5-5`. Any other paid model needs its own block, keyed by the exact `model:` name in quotes; without one it counts as $0 and the spend cap doesn't protect it. Local `ollama/...` and `lmstudio/...` models need none.
@@ -38,16 +38,10 @@ The observed threads (`:AgentsNext`, the tabline, `agent-files-stats`) come from
 
 Merge it; don't paste it in whole. Your `settings.json` already has a `"hooks"` object with arrays for `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PostToolUseFailure`, `Notification` and `Stop` (workmux added three of them). For those seven, add the printed `{ "hooks": [ … ] }` entry to the existing array (if removing workmux's hooks in 2a empties an array, add the entry there anyway). Add the other three (`PermissionRequest`, `StopFailure`, `SessionEnd`) as new keys in the same `"hooks"` object; a second `"hooks"` key would silently drop one set. Check it with `python3 -m json.tool ~/.claude/settings.json > /dev/null`. S9 below is the end-to-end check.
 
-## 2a. Set up Rex as the host
-This is [host-neutral](md/plans/2026-11-05-host-neutral/host-neutral.md) steps 2-4.
-- **The hooks (its Q1).** Rex's Claude Code `SessionStart` hook is out of `~/.claude/settings.json` (dotfiles `bd9e045`), but `~/.codex/hooks.json` still has Rex's. workmux's hooks are still in `settings.json`. Re-add Rex's (`rex skill setup`), and remove workmux's? agent-files needs neither, so it's your call. Read what changed before committing your dotfiles.
-- **Your Rex setup, outside agent-files:** worktree actions with your own worktree tooling (for example Worktrunk), pane moves between Neovim and the agent pane, and a known Neovim socket per worktree ([nvim-addressing](md/plans/2026-11-03-nvim-addressing/nvim-addressing.md)).
-- **Check the layout**, in a worktree's Rex tab with Neovim in one pane and `claude --ide` in the next:
-  - In the `claude` pane, `/ide` shows Neovim connected.
-  - A selection sent from Neovim reaches Claude.
-  - A diff Claude proposes opens in Neovim, where you accept or reject it.
-  - Your pane moves work between the two panes.
-  - Rex's Activity view shows the `claude` pane's status.
+## 2a. Finish checking Rex as the host
+This is [host-neutral](md/plans/2026-11-05-host-neutral/host-neutral.md) step 4. Done on 2026-11-05/06: the hooks (Rex's `SessionStart` hook back, workmux's out; dotfiles `0d3bbd2`), your Rex setup in the dotfiles (`rex/`: worktree tabs, Option+n/h/e/u pane moves, a Neovim socket per tab), and in a worktree's Rex tab: `/ide` connects, a selection sent with `<leader>cs` reaches Claude, and the pane moves work. Still to check:
+- A diff Claude proposes opens in Neovim, where you accept (`<leader>cy`) or reject (`<leader>cn`) it. Claude only asks when it isn't in auto mode: press Shift+Tab in the Claude pane until the mode line no longer says "auto mode", then ask it to change a file.
+- Rex's Activity view shows the `claude` pane's status.
 
 Tell the agent what failed.
 
@@ -87,7 +81,6 @@ Report each result to the agent; for a failure, include the exact symptom and th
 
 ## Questions
 - None blocking.
-- [host-neutral](md/plans/2026-11-05-host-neutral/host-neutral.md#questions) Q1, the hooks: in 2a.
 - [tmux-host](md/plans/2026-11-05-tmux-host/tmux-host.md#questions), still open and read under Rex (host-neutral D4), after you've checked the layout (2a):
   - **Q1.** `agents.term`: keep it for terminals inside Neovim only, give it a Rex backend, or retire it for `rex capture`/`send`? The agent recommends keeping it as it is.
   - **Q2.** Should `agent-files-hook` keep writing session status beside Rex's (which comes from Claude Code itself, over OSC 7501), or keep only the record of each session? The agent recommends the record only: two status sources can disagree.
