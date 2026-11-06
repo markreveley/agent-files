@@ -18,7 +18,7 @@ class Term(unittest.TestCase):
             f.write(
                 "vim.opt.rtp:prepend(%r)\n"
                 "local T = require('agents.term')\n"
-                "T.opts.policy.cat = 'human'\n"
+                "T.opts.harnesses = {'cat'}\n"
                 "vim.fn.jobstart({'cat'}, {term = true})\n"
                 "vim.cmd('enew')\n"
                 "vim.fn.jobstart({'sh'}, {term = true})\n" % os.path.join(REPO, "nvim"))
@@ -45,13 +45,27 @@ class Term(unittest.TestCase):
 
     def test_ls_send_capture(self):
         ts = self.terminals()
-        self.assertEqual(ts["cat"]["policy"], "human")
-        self.assertEqual(ts["sh"]["policy"], "any")
+        self.assertEqual(ts["cat"]["harness"], "cat")
+        self.assertIsNone(ts["sh"]["harness"])
+        self.assertNotIn("policy", ts["cat"])
         sh = str(ts["sh"]["buf"])
 
-        r = self.term("send", "cat", "hello")
-        self.assertEqual(r.returncode, 1)
-        self.assertIn("human-written", r.stderr)
+        r = self.term("ls")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        row = next(l.split() for l in r.stdout.splitlines() if l.split()[0] == str(ts["cat"]["buf"]))
+        # buffer, harness, command: no policy column
+        self.assertEqual(len(row), 3, row)
+        self.assertEqual(row[1], "cat")
+        self.assertEqual(os.path.basename(row[2]), "cat")
+
+        # a send from here to a harness's terminal is typed in like any other
+        r = self.term("send", "cat", "hello from an agent")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        for _ in range(60):
+            if any("hello from an agent" in l for l in self.term("capture", "cat").stdout.splitlines()):
+                break
+            time.sleep(0.05)
+        self.assertTrue(any("hello from an agent" in l for l in self.term("capture", "cat").stdout.splitlines()))
 
         # quotes of both kinds survive the trip; the output line differs from the echoed input
         r = self.term("send", sh, "-", stdin="printf '%s\\n' \"it's \\\"quoted\\\"\"\n")

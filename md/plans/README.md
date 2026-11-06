@@ -2,12 +2,13 @@
 
 - [`2026-10-31-m1/`](2026-10-31-m1/m1.md): M1, the first build. Done.
 - [`2026-11-03-dag-orchestration/`](2026-11-03-dag-orchestration/dag-orchestration.md): DAG-grounded orchestration, part of M6. Proposed.
-- [`2026-11-03-nvim-addressing/`](2026-11-03-nvim-addressing/nvim-addressing.md): Neovim instances addressable by name. Proposed; waits on the doorbell revisit.
+- [`2026-11-03-nvim-addressing/`](2026-11-03-nvim-addressing/nvim-addressing.md): Neovim instances addressable by name. Proposed; how an agent in a tmux pane would find its Neovim (tmux-host step 5).
 - [`2026-11-04-open-questions/`](2026-11-04-open-questions/open-questions.md): every open design and build question not owned by one plan (ARCHITECTURE §13, build spec §14, juggler §7). Proposed.
 - [`2026-11-04-inline-ask/`](2026-11-04-inline-ask/inline-ask.md): questions written inline in any Markdown file, answered on save by `agents.nvim`. Proposed.
-- [`2026-11-04-nvim-sidebar/`](2026-11-04-nvim-sidebar/nvim-sidebar.md): the agent sidebar in `agents.nvim`. Proposed.
+- [`2026-11-04-nvim-sidebar/`](2026-11-04-nvim-sidebar/nvim-sidebar.md): the agent sidebar in `agents.nvim`. Dropped: workmux does it (tmux-host D3).
 - [`2026-11-05-provenance/`](2026-11-05-provenance/provenance.md): provenance for direct turns: provider ids, hashed and committed step records, operator authorship, `verify`. Proposed; from the investigations repo's Agent Habitat analysis.
-- [`2026-11-05-morla/`](2026-11-05-morla/morla.md): morla-neovim as the plain-English command lane for `agents.nvim`; intent decides whether a send is human (ARCHITECTURE §5.1). Accepted; milestone M1.6, after the sidebar.
+- [`2026-11-05-morla/`](2026-11-05-morla/morla.md): morla-neovim as the plain-English command lane for `agents.nvim`. Accepted; milestone M1.6. Its D1 is superseded by tmux-host D5.
+- [`2026-11-05-tmux-host/`](2026-11-05-tmux-host/tmux-host.md): Ghostty, tmux and workmux host the agents; Rex not used; the sidebar dropped; no send policy; three ways agents reach Neovim. Accepted; adopted in ARCHITECTURE v0.9.
 
 ---
 

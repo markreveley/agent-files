@@ -8,8 +8,7 @@
 TARGET is a terminal's buffer number, or a harness name, command, directory or title that matches
 exactly one terminal. The Neovim is $NVIM (set inside its :terminal) or --server ADDR.
 
-Every send from here counts as an agent send: a terminal running a harness that takes only
-human-written text (claude, codex by default) refuses it. Exit 0 ok, 1 refused or failed, 2 usage.
+Exit 0 ok, 1 failed (no match, no running job, Neovim not reachable), 2 usage.
 """
 import argparse, json, os, shutil, subprocess, sys
 
@@ -65,8 +64,8 @@ def main(argv):
             print(json.dumps(r["terminals"], indent=1))
         else:
             for t in r["terminals"]:
-                print("%4d  %-8s %-6s %s%s" % (t["buf"], t["harness"] or "-", t["policy"], t["cmd"] or "?",
-                                               "" if t["running"] else "  (exited)"))
+                print("%4d  %-8s %s%s" % (t["buf"], t["harness"] or "-", t["cmd"] or "?",
+                                          "" if t["running"] else "  (exited)"))
     elif a.op == "capture":
         print(r["text"])
     return 0
