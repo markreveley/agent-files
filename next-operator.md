@@ -21,7 +21,7 @@ M1 is built and tested against the mock backend. Nothing has yet run through the
 
 **Also 2026-11-04:** the repo now follows repo-template's layout (PR #35). ARCHITECTURE is at `md/governance/ARCHITECTURE.md`, and other docs moved; old paths in open Neovim buffers point at files that are gone.
 
-Already done on this Mac: the install clone at `~/code/agent-files` (at `1a85870`; everything merged since is docs, so it needs no pull to work; see README), `./install.sh` (links in `~/.local/bin`, on `PATH`), `uv`, `git`, Python 3.14, Neovim 0.12.5, tmux 3.7b, workmux 0.1.278, ripgrep 15.2.0, and `agent-files-run init`. The data root is at `~/dev/repos/agent-files-data`, with `~/agent-files` linking to it. It has a private remote (`markreveley/agent-files-data`, added 2026-11-04); nothing pushes it automatically, so `git -C ~/agent-files push` when you want a backup.
+Already done on this Mac: the install clone at `~/code/agent-files` (at `1a85870`, behind `main`: PR #41 changed `agents.term` and `agent-files-term`, so pull it before step 3; see README), `./install.sh` (links in `~/.local/bin`, on `PATH`), `uv`, `git`, Python 3.14, Neovim 0.12.5, tmux 3.7b, workmux 0.1.278, ripgrep 15.2.0, and `agent-files-run init`. The data root is at `~/dev/repos/agent-files-data`, with `~/agent-files` linking to it. It has a private remote (`markreveley/agent-files-data`, added 2026-11-04); nothing pushes it automatically, so `git -C ~/agent-files push` when you want a backup.
 
 ## 0. Tidy up after the change
 - Delete the neovim-agent-sidebar repo: its GitHub repo (`markreveley/neovim-agent-sidebar`) and the local checkout `~/dev/repos/neovim-agent-sidebar`. GitHub has no commits; the local checkout has one (the layout and the superseded v1 plan) and uncommitted edits, none of which is needed: the plan lives on here (as a dropped plan).
@@ -49,7 +49,7 @@ This is [tmux-host](md/plans/2026-11-05-tmux-host/tmux-host.md) step 2. In a rep
 Tell the agent what failed. Restart Neovim first, so it loads the new `init.lua`.
 
 ## 3. Editor
-Add `~/code/agent-files/nvim` to Neovim's `runtimepath` and call:
+First update the install clone: `git -C ~/code/agent-files pull --ff-only` (no `./install.sh` needed: no new executable). Then add `~/code/agent-files/nvim` to Neovim's `runtimepath` and call:
 ```lua
 require('agents').setup({ root = '~/agent-files', tabline = true })
 ```
