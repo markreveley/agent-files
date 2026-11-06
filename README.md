@@ -25,7 +25,7 @@ Direction: [md/docs/direction-analysis.md](md/docs/direction-analysis.md). Desig
 
 **The data root is `~/agent-files/` (or `$AGENT_FILES_ROOT`) — do not clone this repo there.**
 
-agent-files is built around Neovim, where you read and write threads. The host is Ghostty, tmux and [workmux](https://github.com/raine/workmux): Claude Code and Codex sessions run in tmux panes beside Neovim, one tmux window per git worktree, and workmux tracks their status and switches between them. tmux keeps everything running when Ghostty quits. agent-files observes the sessions through Claude Code hooks. Why, and how agents reach Neovim: [md/plans/2026-11-05-tmux-host/tmux-host.md](md/plans/2026-11-05-tmux-host/tmux-host.md), ARCHITECTURE §11.4.
+agent-files is built around Neovim, where you read and write threads. Claude Code and Codex sessions run in their own panes beside Neovim, grouped per git worktree, in a host that keeps them running when its app quits and shows their status; the host is Superlogical Rex. agent-files observes the sessions through Claude Code hooks. What agent-files needs from a host: ARCHITECTURE §12 and [md/plans/2026-11-05-host-neutral/host-neutral.md](md/plans/2026-11-05-host-neutral/host-neutral.md). How agents reach Neovim: ARCHITECTURE §11.4.
 
 Install from a clone of its own, not the one you develop in: `install.sh` links `~/.local/bin/agent-files-*` into whichever clone it runs from, so the tools you run would change with every branch you check out. The operator's install clone is `~/code/agent-files`. To update it after a merge: `git -C ~/code/agent-files pull --ff-only`, then run its `./install.sh` again (needed only when a new executable is added).
 

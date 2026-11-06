@@ -1,6 +1,7 @@
 # Plan: Ghostty, tmux and workmux host the agents
 
-> Status: accepted · 2026-11-05 · from a conversation with the operator on how Neovim and agents fit together under tmux · adopted as design in ARCHITECTURE v0.9 (§5.1, §11.4, §12)
+> Status: accepted · 2026-11-05 · from a conversation with the operator on how Neovim and agents fit together under tmux · adopted as design in ARCHITECTURE v0.9 (§5.1, §11.4, §12) · superseded in part 2026-11-05, later ([host-neutral](../2026-11-05-host-neutral/host-neutral.md))
+> **Superseded in part (2026-11-05, later):** Rex is the host again ([host-neutral](../2026-11-05-host-neutral/host-neutral.md) D2). D1 (Ghostty, tmux and workmux) and D3 (attention and switching are workmux's) are superseded: attention for harness sessions is Rex's program status and Activity view, plus agent-files' observed threads (host-neutral D4). D2 and D4–D6 stand, host-neutral. Q1–Q3 stay open, read as in host-neutral D4; step 2 is redone in Rex (host-neutral step 4). The record below stands as written.
 
 **Goal.** Say where the harness sessions run and how they reach Neovim, now that the operator works in Ghostty, tmux and workmux, and drop what that makes redundant. Rex is not used.
 
@@ -39,7 +40,7 @@
 - **[nvim-addressing](../2026-11-03-nvim-addressing/nvim-addressing.md)** no longer waits on the doorbell revisit; the point above answers its Q1, and its Q4 stays open. It becomes how an agent in a tmux pane finds its worktree's Neovim (D4, RPC socket).
 - **Smoke S9** starts `claude` in a tmux pane instead of Neovim's `:terminal`.
 - **Docs.**
-  - Edited in place: ARCHITECTURE v0.9 (header, principle 10, §5, §5.1, §10, §11, §12, §14), README, AGENTS.md, and [operator-neovim](../../docs/operator-neovim.md), rewritten for tmux.
+  - Edited in place: ARCHITECTURE v0.9 (header, principle 10, §5, §5.1, §10, §11, §12, §14), README, AGENTS.md, and [operator-neovim](https://github.com/markreveley/agent-files/blob/7ccde4e2d0832097452fbba81cb215d701ec47ec/md/docs/operator-neovim.md), rewritten for tmux.
   - Given a superseded line: [rex-host](../../docs/rex-host.md), [host-analysis](../../docs/host-analysis.md), [direction-analysis](../../docs/direction-analysis.md) and [role-of-neovim](../../docs/role-of-neovim.md).
 
 ## Steps

@@ -1,6 +1,6 @@
 # Plan: Neovim instances you can address by name
 
-> Status: proposed · 2026-11-05 (Q2, Q3 decided; Q1 answered by [tmux-host](../2026-11-05-tmux-host/tmux-host.md): no doorbell, no registry) · now the way an agent in a tmux pane finds its worktree's Neovim (tmux-host D4, step 5); its send-policy lines are superseded (tmux-host D5) · extends `agents.term` ([ARCHITECTURE §11.2](../../governance/ARCHITECTURE.md), [operator-neovim §3](../../docs/operator-neovim.md#3-reading-and-typing-into-agents))
+> Status: proposed · 2026-11-05 (Q2, Q3 decided; Q1 answered by [tmux-host](../2026-11-05-tmux-host/tmux-host.md): no doorbell, no registry) · now the way an agent in its own pane (a Rex pane since 2026-11-05, later: [host-neutral](../2026-11-05-host-neutral/host-neutral.md)) finds its worktree's Neovim (tmux-host D4, step 5); its send-policy lines are superseded (tmux-host D5) · extends `agents.term` ([ARCHITECTURE §11.2](../../governance/ARCHITECTURE.md))
 > Not built until tmux-host step 5 revisits it.
 
 **Goal.** Every Neovim the operator starts gets a socket at a known path, and the socket's name is its id: `agent-files`, `identikey-dev`, one per repo. An agent in one Neovim can then list the others and read or type into their terminals by id (`agent-files-term --server identikey-dev capture claude`), instead of needing a random socket path that only `:echo v:servername` reveals.
@@ -60,7 +60,7 @@ Whether that difference is enough is Q1.
 2. `agent-files-term`: id resolution for `--server`, `peers`, `ls --all`.
 3. `agents.nvim`: `vim.g.agents_nvim_id`, and the id in `:AgentsTerms`.
 4. Tests: `tests/test_term.py` starts two headless Neovims through `agent-files-nvim`, checks `peers` lists both, and sends and captures across them, including a refused send to a `human`-policy terminal in the other Neovim. Plus a dead socket being removed, and an id collision getting `-2`.
-5. Docs: ARCHITECTURE §11.2, [operator-neovim](../../docs/operator-neovim.md) §3.1 and §4 (the function), the README table.
+5. Docs: ARCHITECTURE §11.2 and the README table. The function goes in the operator's own config (outside agent-files).
 6. Operator: add the function to the dotfiles, restart Neovims. *Waits on Q4.*
 
 ## Questions

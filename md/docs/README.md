@@ -3,10 +3,9 @@
 - [`m1-build-spec.md`](m1-build-spec.md): the M1 build; wins over the M1 plan.
 - [`direction-analysis.md`](direction-analysis.md): decision record on what agent-files is for, the planning harness, and what to adopt.
 - [`host-analysis.md`](host-analysis.md): decision record grading existing hosts against M2; the model for "adopt before building".
-- [`rex-host.md`](rex-host.md): decision record on Rex as the host; superseded 2026-11-05 (Rex is not used, [tmux-host](../plans/2026-11-05-tmux-host/tmux-host.md)).
+- [`rex-host.md`](rex-host.md): decision record on Rex as the host (2026-11-04); superseded, then reinstated in part on 2026-11-05: Rex is the host again, with current facts in [host-neutral](../plans/2026-11-05-host-neutral/host-neutral.md).
 - [`related-repos.md`](related-repos.md): decision record on the repos agent-files relates to.
 - [`role-of-neovim.md`](role-of-neovim.md), [`view-layer.md`](view-layer.md): the Neovim client and the read-only view.
-- [`operator-neovim.md`](operator-neovim.md): the operator's own Neovim, tmux and workmux layout; not part of agent-files, but its §3 is how agents reach Neovim and how to use `agents.term`.
 - `examples/view-fixture/`: the shared parser and plugin test fixture, read by the tests.
 
 ---
