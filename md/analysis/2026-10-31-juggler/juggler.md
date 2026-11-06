@@ -9,6 +9,7 @@
 **Method caveat.** Everything about Juggler is as its own site describes it; nothing was installed or run.
 
 > **Note (2026-11-04):** agent-files is now Neovim-first: Neovim runs the harness sessions, so "the editor is a client" below is out of date, and worktrees "adopted from TUIOS" are unowned since Rex became the host ([rex-host](../../docs/rex-host.md)).
+> **Note (2026-11-05):** the harness sessions now run in their own panes beside Neovim, not in Neovim ([tmux-host](../../plans/2026-11-05-tmux-host/tmux-host.md) D2), and the host is Rex ([host-neutral](../../plans/2026-11-05-host-neutral/host-neutral.md)). Worktrees stay outside agent-files, with the operator's own tooling.
 
 **Summary.** Juggler is the closest reference so far. It already ships most of our context ideas — editable history, branching, sub-threads that return only results, approvals as persistent state, model switching mid-conversation. The difference is where those ideas live: Juggler builds its own agent loop and stores conversations as live-synced CRDT documents behind a native app. agent-files keeps them in plain files and borrows existing harnesses. That difference is our angle:
 

@@ -3,6 +3,7 @@
 > Status: decision record · 2026-11-04 · companion to [ARCHITECTURE.md](../governance/ARCHITECTURE.md) §5.1, §12
 > **Supersedes the host decision in [host-analysis.md](host-analysis.md)** (TUIOS hosts, herdr fallback) and the "keep TUIOS" line in [direction-analysis §4](direction-analysis.md#4-the-host-fork-reconsidered). Those documents stay as they are, as the record of the earlier decision; where they name TUIOS as the host, read Rex.
 > Method: the installed Rex Beta 0.1.0 (1758), whose CLI is `rex 0.0.1793645657-gd018d2`: its `--help` for every command, the guide it gives agents (`rex skill show`), the server and app actions (`rex actions`, `rex -C <app> actions`), and one look at a live server (`rex whoami`, `rex ls`, `rex block call … program_status`). Nothing was run inside Rex beyond that. *(cli)* marks a claim read from the CLI's help or guide but not exercised.
+> **Reinstated in part (2026-11-05, later):** Rex is the host again ([host-neutral](../plans/2026-11-05-host-neutral/host-neutral.md) D2). The sessions run in their own Rex panes beside Neovim, not in Neovim's terminals ([tmux-host](../plans/2026-11-05-tmux-host/tmux-host.md) D2), so the "Narrowed" line below no longer holds; there is no send policy (tmux-host D5), so §4 below is out of date. Current facts are in the host-neutral plan; the versions and grades below are as of 2026-11-04.
 > **Superseded (2026-11-05):** Rex is not used. Ghostty, tmux and workmux host the harness sessions, which run in tmux panes beside Neovim, not in Neovim's terminals; the sidebar is dropped ([tmux-host](../plans/2026-11-05-tmux-host/tmux-host.md)). The record below stands as written.
 > **Narrowed (2026-11-04):** agent-files is now Neovim-first. `agents.nvim` starts and shows the `claude` and `codex` sessions in Neovim terminal buffers ([sidebar plan](../plans/2026-11-04-nvim-sidebar/nvim-sidebar.md)); Rex hosts Neovim, not the sessions directly. A harness in its own Rex block still works but is not the path agent-files is built for.
 
@@ -82,7 +83,7 @@ Still allowed: your own text through either path (`:AgentsTermSend` on a selecti
 
 - ARCHITECTURE v0.7: §1, §5, §5.1, §8, §10, §11 (new §11.2), §12, §13 Q8, Q9, Q13–Q15, §14.
 - README, AGENTS.md, next-agents.md, next-operator.md (step 2a is now "Host in Rex"; S9 runs inside Rex), role-of-neovim §1.
-- The operator's own Neovim layout, outside agent-files: [operator-neovim.md](operator-neovim.md).
+- The operator's own Neovim layout, outside agent-files: [operator-neovim.md](https://github.com/markreveley/agent-files/blob/7ccde4e2d0832097452fbba81cb215d701ec47ec/md/docs/operator-neovim.md).
 - Not edited, read with this record: [host-analysis](host-analysis.md), [direction-analysis](direction-analysis.md), [juggler-analysis](../analysis/2026-10-31-juggler/juggler.md) (worktrees "adopted from TUIOS" are now unowned), [multi-subscription-analysis](../analysis/2026-11-01-multi-subscription/multi-subscription.md) ("replace TUIOS" now means "replace Rex"), [m1-plan](../plans/2026-10-31-m1/m1.md) (the needs-you list for harness sessions is the observed threads), and the session logs (now in thread-archive, `threads/agent-files/`).
 
 ## 6. Sources
